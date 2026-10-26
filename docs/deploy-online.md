@@ -9,7 +9,7 @@ Ngày chuẩn bị: **26/10/2026**. Đây là hướng dẫn triển khai; trạ
 - Hosting: Vercel project mới `kpidi-linh`, hiện deploy trực tiếp bằng CLI; chưa kết nối tự động deploy từ repo KpiDiLinh.
 - Bản local tiếp tục dùng `data/kpidi-linh.sqlite`; đặt cấu hình online riêng trong Vercel.
 
-Hiện repo local chưa có commit/push đầu tiên. Database Turso mới đã được nhập và xác minh 25 bảng; web Production đã triển khai tại **https://kpidi-linh.vercel.app**.
+Mã nguồn đã được commit và push lên nhánh `main` của GitHub KpiDiLinh. Database Turso mới đã được nhập và xác minh 25 bảng; web Production đã triển khai tại **https://kpidi-linh.vercel.app**. Chưa kết nối tự động deploy từ GitHub với Vercel.
 
 ## Trạng thái đã thực hiện
 
@@ -73,11 +73,11 @@ Trước commit đầu tiên:
 - Giữ `.env`, `.local/`, `data/`, file backup và thông tin đăng nhập ngoài commit.
 - Tạo commit trên repo mới, sau đó push nhánh `main` tới `https://github.com/dangquocviet2612-del/KpiDiLinh.git`.
 
-Chưa thực hiện commit/push. Web hiện được triển khai trực tiếp bằng Vercel CLI, nên không cần tạo commit để có deployment đầu tiên; chưa có tự động deploy từ GitHub.
+Đã commit/push nhánh `main` ngày 26/10/2026, với [commit source đầu tiên `1f0d456`](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/1f0d45618a760d1a5752b2eb2ad93a02e1d72c02). Trước push đã kiểm tra file riêng tư, quét Gitleaks và chạy lại 126 test/TypeScript; xem mục 13 của `tiendokpi.md`. Web vẫn được triển khai trực tiếp bằng Vercel CLI; chưa có tự động deploy từ GitHub.
 
 ## 5. Tạo Vercel project mới
 
-Project `kpidi-linh` đã được tạo và triển khai trong scope `vietdq9` bằng Vercel CLI; không cần tạo lại. Các bước Dashboard bên dưới là tham chiếu khi kết nối repo sau commit/push hoặc khi tạo một project khác.
+Project `kpidi-linh` đã được tạo và triển khai trong scope `vietdq9` bằng Vercel CLI; không cần tạo lại. Repo đã có source trên GitHub; các bước Dashboard bên dưới là tham chiếu khi kết nối repo với Vercel hoặc khi tạo một project khác.
 
 1. Đăng nhập `https://vercel.com` bằng tài khoản có quyền truy cập repo mới.
 2. Chọn **Add New / Project**, import repo **KpiDiLinh**.

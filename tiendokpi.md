@@ -13,7 +13,7 @@
 | GitHub mới | `https://github.com/dangquocviet2612-del/KpiDiLinh.git` |
 | Git remote `origin` | Đã trỏ tới GitHub mới |
 | Lịch sử Git cũ | Đã cất riêng; chưa đưa sang repo mới |
-| Commit/push lên GitHub mới | **Chưa thực hiện**; nhánh `main` local chưa có commit |
+| Commit/push lên GitHub mới | **Đã push nhánh `main`**; commit source đầu tiên `1f0d456`, đã đối chiếu hash local/GitHub |
 | Database đang dùng | SQLite local: `data/kpidi-linh.sqlite` |
 | Dữ liệu nghiệp vụ | Đã phục hồi từ backup của `https://cumtomer.vercel.app` |
 | Địa chỉ chạy local | `http://localhost:3000` |
@@ -47,7 +47,7 @@ Bằng chứng: `git remote -v`, `git status`, thư mục lưu riêng ở trên;
 - [x] Xác minh Git bỏ qua `.env`, `data/`, `.local/`, các file database và file mật khẩu local.
 - [x] Rà các file có thể đưa vào Git để kiểm tra không chứa những giá trị bí mật đã biết trong đợt phục hồi.
 
-Đây là kiểm tra theo các giá trị/mẫu đã biết; chưa chạy công cụ quét secret chuyên dụng như Gitleaks. Không ghi mật khẩu, token, password hash hoặc dữ liệu khách hàng vào file tiến độ này.
+Ban đầu kiểm tra theo các giá trị/mẫu đã biết; trước khi push đã quét thêm bằng Gitleaks 8.30.1 trên source staged và commit. Một cảnh báo cho khóa giả chỉ dùng trong CI đã được xác minh, ngoại lệ giới hạn đúng giá trị và file đó; không có secret thật được phát hiện. Không ghi mật khẩu, token, password hash hoặc dữ liệu khách hàng vào file tiến độ này.
 
 Bằng chứng: `.gitignore`, `.env.example`, kết quả `git check-ignore` đã chạy trong phiên phục hồi.
 
@@ -188,9 +188,9 @@ Các đường dẫn bắt đầu bằng `.local/` hoặc `data/` được tính
 ### Trước khi đưa mã nguồn lên GitHub mới
 
 - [ ] Kiểm tra giao diện và các thao tác chính bằng dữ liệu thật đã phục hồi, đặc biệt KPI, bản đồ node và import/export.
-- [ ] Chạy secret scan chuyên dụng; kiểm tra danh sách file sẽ đưa vào commit.
+- [x] Chạy secret scan chuyên dụng; kiểm tra 331 file đưa vào commit, không có database hoặc thông tin đăng nhập riêng tư.
 - [x] Đổi mật khẩu admin cũ từng xuất hiện trong lịch sử Git trên **database online mới**; không đổi mật khẩu trên web cũ hoặc SQLite local.
-- [ ] Tạo commit đầu tiên trên repo mới và push lên GitHub KpiDiLinh.
+- [x] Tạo commit đầu tiên trên repo mới và push nhánh `main` lên GitHub KpiDiLinh; đã đối chiếu commit local và remote.
 
 ### Trước khi chạy web mới online
 
@@ -231,6 +231,7 @@ Các đường dẫn bắt đầu bằng `.local/` hoặc `data/` được tính
 | 26/10/2026 | Nhập và xác minh 25 bảng trên Turso mới; chuẩn bị cấu hình Production riêng, Vercel chưa deploy |
 | 26/10/2026 | Nhận token thay thế, bảo vệ file cấu hình, đổi mật khẩu admin bị lộ trên database online mới |
 | 26/10/2026 | Tạo project Vercel `kpidi-linh`, deploy trực tiếp bằng CLI, xác minh web Production và dữ liệu sau migration |
+| 26/10/2026 | Quét 331 file bằng Gitleaks, tạo commit source `1f0d456`, xác thực đúng tài khoản và push nhánh `main` lên GitHub mới |
 
 ## 10. Chuẩn bị chuyển online ngày 26/10/2026
 
@@ -244,7 +245,8 @@ Các đường dẫn bắt đầu bằng `.local/` hoặc `data/` được tính
 - [x] Nhận cấu hình truy cập hợp lệ của database Turso mới và kiểm tra kết nối.
 - [x] Nhập dữ liệu lên online và đối chiếu với manifest.
 - [x] Tạo Vercel project mới và xác minh web online; triển khai trực tiếp bằng CLI.
-- [ ] Commit/push mã lên repo mới và kết nối GitHub để tự động deploy.
+- [x] Commit/push mã lên repo mới; nhánh `main` đã có trên GitHub.
+- [ ] Kết nối GitHub với Vercel để tự động deploy; chưa thực hiện trong yêu cầu push source.
 
 Lưu ý đã xác minh: backup JSON khoảng 73 MB vượt giới hạn payload 4,5 MB của Vercel Functions; dữ liệu đã được chuyển trực tiếp vào database, không tải qua trang restore trên Vercel. Build hiện chạy migrations và cron archive có thể purge dữ liệu hết hạn; hướng dẫn triển khai đã ghi rõ hai tác động này. Bản local vẫn dùng SQLite riêng; database Turso và web Vercel mới đã hoạt động độc lập với web cũ.
 
@@ -264,7 +266,8 @@ Lưu ý đã xác minh: backup JSON khoảng 73 MB vượt giới hạn payload 
 - [ ] Thu hồi token cũ đã gửi trong chat; kiểm tra trước khi deploy cho thấy token này **vẫn còn hiệu lực**.
 - [x] Đổi mật khẩu admin cũ từng lộ trong lịch sử Git trên bản database dùng cho web mới.
 - [x] Tạo Vercel project mới và xác minh web sau deploy bằng CLI.
-- [ ] Commit/push mã nguồn và kết nối tự động deploy từ GitHub.
+- [x] Commit/push mã nguồn lên nhánh `main` của GitHub mới.
+- [ ] Kết nối tự động deploy từ GitHub với Vercel.
 
 Bằng chứng riêng tư, không đưa lên Git: `.local/deployment/turso-import-state.json`, `.local/deployment/turso-import-report.json`, `.local/deployment/snapshot-manifest.json`. Báo cáo ghi số dòng và checksum, không ghi token. Kết quả đối chiếu toàn bộ checksum là tại thời điểm nhập; sau đó một mật khẩu admin và thời điểm cập nhật được thay có chủ đích, xem mục 12.
 
@@ -307,5 +310,22 @@ Các kiểm tra trên là HTTP/API smoke test, **không phải** xác nhận m�
 - Project: `prj_RAnaEm2i5BjdF4sRtc5VVKNCHc2u`; deployment: `dpl_E4igS6VTaNRjtEpGm7Rs5nYEtTfw`; xem [Vercel deployment](https://vercel.com/vietdq9/kpidi-linh/E4igS6VTaNRjtEpGm7Rs5nYEtTfw).
 - Báo cáo riêng tư: `.local/deployment/production-config-verification.json`, `vercel-configuration-report.json`, `online-admin-security.json`, `vercel-smoke-report.json`, `post-deploy-database-verification.json`, `vercel-deployment-report.json` (các tên sau cùng đều trong `.local/deployment/`).
 - **Chưa hoàn tất thu hồi token cũ.** Tạo token khác không tự thu hồi token đã gửi trong chat. Theo tài liệu Turso, thao tác `db tokens invalidate` có thể vô hiệu hóa cả token của các database trong cùng group; cần kiểm tra ảnh hưởng, tạo lại token cần thiết, cập nhật Vercel và redeploy. Không tự thu hồi toàn group vì có thể ảnh hưởng web/dự án khác. [Turso token invalidation](https://docs.turso.tech/cli/db/tokens/invalidate).
-- GitHub mới vẫn chưa có commit/push trong đợt này; hiện deploy CLI trực tiếp. Chưa có tự động deploy khi push.
+- Source đã được push lên GitHub sau đợt deploy, xem mục 13. Web vẫn deploy CLI trực tiếp; chưa có tự động deploy khi push.
 - Giữ backup riêng ngoài Git/GitHub; chưa thiết lập sao lưu online định kỳ hoặc thử phục hồi online sang một database thứ ba.
+
+## 13. Đưa mã nguồn lên GitHub ngày 26/10/2026
+
+- [x] Nhận yêu cầu commit/push của chủ dự án; không tạo branch mới, không force-push.
+- [x] Kiểm tra repo đích `https://github.com/dangquocviet2612-del/KpiDiLinh.git` còn trống trước commit đầu tiên.
+- [x] Quét **331 file**, khoảng 6,5 MB source; xác minh 11 đường dẫn riêng tư tiếp tục bị Git ignore. Database, backup, token, file mật khẩu và `.vercel/` không nằm trong commit.
+- [x] Dùng Gitleaks 8.30.1 từ release chính thức, kiểm tra checksum gói Windows trước chạy. Quét bản source staged và chính commit; chỉ có khóa build giả tại `.github/workflows/ci.yml:40` được xác minh là false positive. Ngoại lệ quét đặt ngoài repo, giới hạn đúng giá trị/file đó; không tắt rule cho toàn repo.
+- [x] Chạy lại **37 file / 126 test**, tất cả đạt; TypeScript `tsc --noEmit` đạt. Không chạy migration hoặc sửa database để thực hiện push.
+- [x] Tạo [commit source đầu tiên `1f0d456`](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/1f0d45618a760d1a5752b2eb2ad93a02e1d72c02): `Initial import of recovered KpiDiLinh application`.
+- [x] Xử lý lỗi 403 do Git cache tài khoản cũ: chủ dự án xác thực `dangquocviet2612-del`; chỉ cấu hình chọn tài khoản cho repo mới, không đăng xuất hoặc thay cấu hình repo cũ.
+- [x] Push nhánh `main`, thiết lập upstream `origin/main`; đối chiếu GitHub và local cùng hash `1f0d45618a760d1a5752b2eb2ad93a02e1d72c02` ở lần push source đầu tiên.
+- [x] Giữ lịch sử Git cũ và script nhạy cảm ở thư mục backup riêng, không ghép lịch sử cũ vào repo mới.
+- [ ] Kết nối repo GitHub với project Vercel để tự động deploy; đây là bước riêng, chưa thực hiện. Web Production hiện tại không bị redeploy bởi đợt push này.
+
+Bằng chứng riêng tư: `.local/github-publish/preflight-report.json`, `gitleaks-staged-report.json`, `gitleaks-reviewed-staged-report.json`, `gitleaks-commit-report.json`, `push-report.json` (đều trong `.local/github-publish/`). Báo cáo Gitleaks đã redact; một cảnh báo khóa giả CI được ghi nhận riêng thay vì khẳng định mặc định scanner không có cảnh báo.
+
+GitHub lưu mã nguồn, **không lưu dữ liệu Turso/SQLite hoặc backup**. Việc push không thu hồi token Turso cũ; đầu việc bảo mật ở mục 12 vẫn còn.
