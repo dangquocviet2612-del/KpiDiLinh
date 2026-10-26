@@ -1,0 +1,251 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: slideUp 0.35s ease-out;
+}
+
+.header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.header p {
+  margin-top: 0.25rem;
+  color: var(--secondary-foreground);
+  font-size: 0.92rem;
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.controls {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.controls .ui-action-btn {
+  min-width: 132px;
+}
+
+.field {
+  min-width: 220px;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--secondary-foreground);
+}
+
+.counts {
+  margin-top: 0.85rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.card span {
+  color: var(--secondary-foreground);
+  font-size: 0.8rem;
+}
+
+.card strong {
+  font-size: 1.1rem;
+}
+
+.warning {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  background: rgba(217, 119, 6, 0.08);
+  color: var(--warning);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.infoBox {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: rgba(56, 189, 248, 0.08);
+  color: color-mix(in srgb, var(--foreground) 92%, #dbeafe 8%);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.successBox {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--success);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.exportStatusCard {
+  margin-top: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 88%, #0f172a 12%);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.exportStatusHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.exportStatusLabel {
+  display: block;
+  color: var(--secondary-foreground);
+  font-size: 0.78rem;
+  margin-bottom: 0.2rem;
+}
+
+.exportStatusHeader strong {
+  font-size: 0.96rem;
+}
+
+.exportStatusBadge {
+  white-space: nowrap;
+}
+
+.exportStatusFresh {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.32);
+  color: #34d399;
+}
+
+.exportStatusStale {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.exportStatusMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  color: var(--secondary-foreground);
+  font-size: 0.8rem;
+}
+
+.exportStatusMeta span {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  word-break: break-word;
+}
+
+.actions {
+  margin-top: 0.85rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.statusGrid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.statusGrid div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.statusGrid span {
+  font-size: 0.78rem;
+  color: var(--secondary-foreground);
+}
+
+.statusGrid strong {
+  font-size: 0.92rem;
+}
+
+.loading,
+.denied {
+  padding: 1rem;
+  color: var(--secondary-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 0.9rem;
+  }
+
+  .controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .field {
+    min-width: 100%;
+  }
+
+  .controls .ui-action-btn {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .counts {
+    grid-template-columns: 1fr;
+  }
+
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exportStatusMeta {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions .btn,
+  .actions .ui-action-btn {
+    width: 100%;
+  }
+}

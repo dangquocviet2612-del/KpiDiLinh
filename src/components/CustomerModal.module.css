@@ -1,0 +1,666 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal {
+    width: 100%;
+    max-width: 860px;
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideUp 0.3s ease-out;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+    background: #ffffff !important;
+    border-radius: 1.4rem;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.header {
+    padding: 1.1rem 1.2rem 1rem;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.9rem;
+}
+
+.header h2 {
+    font-size: 1.04rem;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.015em;
+}
+
+.headerCopy {
+    min-width: 0;
+}
+
+.headerSubtext {
+    margin-top: 0.28rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--secondary-foreground);
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+}
+
+.dirtyBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.26rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid rgba(245, 158, 11, 0.32);
+    background: rgba(245, 158, 11, 0.12);
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.closeBtn {
+    color: var(--secondary-foreground);
+    transition: all 0.2s;
+    padding: 0.35rem;
+    border-radius: 0.7rem;
+}
+
+.closeBtn:hover:not(:disabled) {
+    color: var(--foreground);
+    background: rgba(148, 163, 184, 0.12);
+}
+
+.formBody {
+    padding: 1rem 1.2rem 1.1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.section {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: #ffffff;
+    padding: 0.95rem;
+}
+
+.sectionTitle {
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--secondary-foreground);
+    margin-bottom: 0.7rem;
+    font-weight: 700;
+}
+
+.sectionHeading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+}
+
+.sectionHeading .sectionTitle {
+    margin-bottom: 0;
+}
+
+.sectionMeta {
+    font-size: 0.72rem;
+    color: var(--secondary-foreground);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem 1rem;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+}
+
+.labelRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.2rem;
+}
+
+.zaloQuickLink {
+    color: #0ea5e9;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.inlineQuickLink {
+    gap: 0.38rem;
+    min-height: 30px;
+    padding: 0.3rem 0.62rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.helperText {
+    margin-top: 0.34rem;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--secondary-foreground);
+}
+
+.helperWarning {
+    margin-top: 0.34rem;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--warning);
+    font-weight: 600;
+}
+
+.helperError {
+    margin-top: 0.34rem;
+    font-size: 0.74rem;
+    color: var(--destructive);
+}
+
+.invalidInput {
+    border-color: color-mix(in srgb, var(--warning) 55%, var(--border)) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 16%, transparent);
+}
+
+.inlineCheckbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 44px;
+    font-size: 0.92rem;
+    color: var(--foreground);
+}
+
+.error {
+    padding: 0.75rem 1.2rem;
+    background: rgba(239, 68, 68, 0.06);
+    color: var(--destructive);
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+    animation: slideUp 0.3s ease-out;
+}
+
+.footer {
+    padding: 0.9rem 0 0.15rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+    background: #ffffff;
+}
+
+.footerHint {
+    font-size: 0.78rem;
+    color: var(--secondary-foreground);
+}
+
+.footerActions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.gpsBtn {
+    width: 100%;
+    padding: 0.78rem 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.85rem;
+    background: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.55rem;
+    margin-bottom: 0.1rem;
+}
+
+.gpsBtn:hover {
+    background: color-mix(in srgb, var(--secondary) 80%, white);
+}
+
+.gpsBtn:active {
+    transform: scale(0.98);
+}
+
+.notesSection {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+.noteInputRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: flex-end;
+}
+
+.noteTextarea {
+    flex: 1;
+    resize: vertical;
+    min-height: 44px;
+    max-height: 120px;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.9rem;
+    border: 1px solid var(--border);
+    background: var(--input);
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: all 0.25s ease;
+}
+
+.noteTextarea:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.noteTextarea::placeholder {
+    color: var(--secondary-foreground);
+    opacity: 0.5;
+}
+
+.noteSendBtn {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.9rem;
+    background: var(--foreground);
+    color: var(--background);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.noteSendBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.noteSendBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.notesList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.noteItem {
+    background: var(--background);
+    padding: 0.78rem;
+    border-radius: 0.85rem;
+    transition: background 0.15s;
+    border: 1px solid var(--border);
+}
+
+.noteItem:hover {
+    background: var(--secondary);
+}
+
+.noteHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.noteAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.noteMeta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.noteAuthor {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.noteTime {
+    font-size: 0.7rem;
+    color: var(--secondary-foreground);
+    opacity: 0.7;
+}
+
+.noteDeleteBtn {
+    flex-shrink: 0;
+    padding: 0.3rem;
+    border-radius: 0.35rem;
+    color: var(--secondary-foreground);
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+}
+
+.noteItem:hover .noteDeleteBtn {
+    opacity: 1;
+}
+
+.noteDeleteBtn:hover {
+    color: var(--destructive);
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.noteContent {
+    font-size: 0.85rem;
+    color: var(--foreground);
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notesLoading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--secondary-foreground);
+    padding: 1rem 0;
+    justify-content: center;
+}
+
+.notesEmpty {
+    font-size: 0.82rem;
+    color: var(--secondary-foreground);
+    opacity: 0.6;
+    text-align: center;
+    padding: 1rem 0;
+    margin: 0;
+}
+
+.diffContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--background);
+    padding: 0.8rem;
+    border-radius: 0.9rem;
+    border: 1px solid var(--border);
+    margin-top: 0.5rem;
+}
+
+.diffRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.diffField {
+    font-weight: 600;
+    color: var(--secondary-foreground);
+    min-width: 90px;
+    flex-shrink: 0;
+}
+
+.diffValues {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.diffOldValue {
+    color: #ef4444;
+    background-color: #fef2f2;
+    text-decoration: line-through;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.diffNewValue {
+    color: #059669;
+    background-color: #ecfdf5;
+    font-weight: 500;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.diffIcon {
+    color: var(--secondary-foreground);
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.diffEmpty {
+    color: var(--secondary-foreground);
+    background-color: var(--border);
+    opacity: 0.7;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    text-decoration: none !important;
+}
+
+.disclosure {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--card);
+    overflow: hidden;
+}
+
+.disclosureSummary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.9rem 0.95rem;
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.disclosureSummary::-webkit-details-marker {
+    display: none;
+}
+
+.disclosureMeta {
+    font-size: 0.72rem;
+    color: var(--secondary-foreground);
+    font-weight: 600;
+}
+
+.disclosureBody {
+    padding: 0 0.95rem 0.95rem;
+    border-top: 1px solid var(--border);
+}
+
+:global(:root[data-theme='dark']) .modal {
+    background: #0f172a !important;
+}
+
+:global(:root[data-theme='dark']) .header {
+    background: #0f172a;
+}
+
+:global(:root[data-theme='dark']) .section {
+    background: #111c2f;
+}
+
+:global(:root[data-theme='dark']) .footer {
+    background: #0f172a;
+}
+
+:global(:root[data-theme='dark']) .dirtyBadge {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal {
+        max-height: 100svh;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 1rem 1rem 0.9rem;
+    }
+
+    .headerSubtext {
+        font-size: 0.76rem;
+    }
+
+    .dirtyBadge {
+        display: none;
+    }
+
+    .formBody {
+        padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom));
+    }
+
+    .section {
+        padding: 0.82rem;
+    }
+
+    .footer {
+        position: sticky;
+        bottom: 0;
+        background: var(--card);
+        padding: 0.8rem 0 calc(0.25rem + env(safe-area-inset-bottom));
+        z-index: 1;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .footerHint {
+        font-size: 0.75rem;
+    }
+
+    .footerActions {
+        width: 100%;
+    }
+
+    .footerActions :global(.btn) {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .noteDeleteBtn {
+        opacity: 1;
+    }
+}

@@ -1,0 +1,1292 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    height: calc(100vh - 1rem);
+    height: calc(100dvh - 1rem);
+}
+
+.mapWrapper {
+    flex: 1;
+    position: relative;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--secondary-foreground);
+}
+
+.mapOuter {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.searchOverlay {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    right: auto;
+    z-index: 1010;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: calc(100% - 2rem);
+}
+
+.searchBar {
+    width: min(34rem, calc(100vw - 10rem));
+    max-width: min(34rem, calc(100vw - 10rem));
+    flex: 1 1 auto;
+    position: relative;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+}
+
+.searchInput {
+    width: 100%;
+    height: 3rem;
+    padding: 0 2.5rem 0 2.6rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(30, 41, 59, 0.82);
+    color: #f1f5f9;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: rgba(96, 165, 250, 0.5);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.14);
+}
+
+.searchInput::placeholder {
+    color: #64748b;
+}
+
+.clearBtn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    padding: 0.25rem;
+    color: #94a3b8;
+}
+
+.clearBtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.mapActionsGroup {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.mapActionBtn {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+}
+
+.mapActionBtn:disabled {
+    opacity: 0.5;
+}
+
+.mapStyleDropdown {
+    position: absolute;
+    top: 3.3rem;
+    right: 0;
+    min-width: 8.5rem;
+    overflow: hidden;
+}
+
+.mapStyleOption {
+    width: 100%;
+    text-align: left;
+}
+
+.mapStyleOption.active {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.filterControls {
+    position: absolute;
+    top: 4.6rem;
+    left: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+    padding: 0.28rem;
+    border-radius: 1rem;
+    background: rgba(30, 41, 59, 0.84);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    max-width: calc(100% - 2rem);
+    overflow-x: auto;
+    scrollbar-width: none;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+}
+
+.filterControls::-webkit-scrollbar {
+    display: none;
+}
+
+.filterBtn {
+    gap: 0.38rem;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.filterBtn.active {
+    background: rgba(248, 113, 113, 0.18);
+    border-color: rgba(248, 113, 113, 0.38);
+    color: #fff1f2;
+}
+
+.filterCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.1rem;
+    padding: 0 0.28rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    font-size: 0.62rem;
+    font-weight: 700;
+}
+
+.filterDot {
+    width: 0.52rem;
+    height: 0.52rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filterLabel,
+.filterLabelDesktop,
+.filterLabelMobile {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.filterLabelMobile {
+    display: none;
+}
+
+.dotYellow {
+    background: #d4a017;
+}
+
+.dotSkyBlue {
+    background: #0284c7;
+}
+
+.dotRed {
+    background: #dc2626;
+}
+
+.dotGreen {
+    background: #15803d;
+}
+
+.searchResults {
+    position: absolute;
+    top: 7.35rem;
+    left: 1rem;
+    z-index: 1000;
+    width: min(23rem, calc(100% - 2rem));
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+}
+
+.searchResultsHeader {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.76rem;
+    color: #94a3b8;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.resultsList {
+    list-style: none;
+    margin: 0;
+    padding: 0.32rem;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.resultItem {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.62rem 0.68rem;
+    border-radius: 0.78rem;
+    cursor: pointer;
+}
+
+.resultItem:hover {
+    background: rgba(96, 165, 250, 0.12);
+}
+
+.searchResultDetails {
+    flex: 1;
+    min-width: 0;
+}
+
+.resultName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resultInfo {
+    margin-top: 0.16rem;
+    font-size: 0.74rem;
+    color: #94a3b8;
+}
+
+.resultActions {
+    display: flex;
+    align-items: center;
+    gap: 0.36rem;
+    flex-shrink: 0;
+}
+
+.resultActionBtn {
+    width: 1.95rem;
+    height: 1.95rem;
+}
+
+.resultActionBtn:disabled {
+    opacity: 0.55;
+}
+
+.resultActionAccent {
+    color: #7dd3fc;
+    border-color: rgba(125, 211, 252, 0.22);
+}
+
+.resultMore {
+    text-align: center;
+    padding: 0.45rem;
+    color: #94a3b8;
+    font-size: 0.73rem;
+}
+
+.pickingOverlay {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    background: rgba(15, 23, 42, 0.92);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.24);
+}
+
+.pickingText {
+    font-size: 0.8rem;
+}
+
+.pickingCancelBtn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.25rem 0.8rem;
+}
+
+.statsBadge {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    z-index: 1000;
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.statsBadge:hover {
+    background: rgba(30, 41, 59, 0.94);
+    border-color: rgba(248, 113, 113, 0.38);
+    transform: translateY(-1px);
+}
+
+.statsBadge:focus-visible {
+    outline: 3px solid rgba(96, 165, 250, 0.36);
+    outline-offset: 2px;
+}
+
+.statsBadgeIcon {
+    color: #fca5a5;
+}
+
+.statsBadgeText {
+    color: #cbd5e1;
+    font-size: 0.78rem;
+}
+
+.statsBadgeCount {
+    color: #fff1f2;
+    font-weight: 700;
+}
+
+.customerListPanel {
+    position: absolute;
+    top: 7.35rem;
+    bottom: 4rem;
+    left: 1rem;
+    z-index: 1100;
+    display: flex;
+    width: min(23rem, calc(100% - 2rem));
+    min-height: 12rem;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 1rem;
+    background: rgba(15, 23, 42, 0.96);
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(16px);
+}
+
+.customerListHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 0.9rem 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.customerListTitle {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.customerListMeta {
+    margin: 0.18rem 0 0;
+    color: #94a3b8;
+    font-size: 0.7rem;
+}
+
+.customerListClose {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+}
+
+.customerListSearch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.65rem 0.7rem 0.45rem;
+    padding: 0 0.7rem;
+    min-height: 2.4rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 0.75rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.customerListSearch:focus-within {
+    border-color: rgba(96, 165, 250, 0.52);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+}
+
+.customerListSearch input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #f8fafc;
+    font-size: 0.78rem;
+}
+
+.customerListSearch input::placeholder {
+    color: #64748b;
+}
+
+.customerListItems {
+    min-height: 0;
+    margin: 0;
+    padding: 0.2rem 0.45rem 0.55rem;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.customerListRow {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem;
+    border-radius: 0.75rem;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.customerListRow:hover,
+.customerListRow:focus-visible {
+    outline: none;
+    background: rgba(96, 165, 250, 0.12);
+}
+
+.customerListPin {
+    margin-top: 0.08rem;
+    flex: 0 0 auto;
+    color: #fca5a5;
+}
+
+.customerListContent {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.customerListContent strong,
+.customerListContent span,
+.customerListContent small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.customerListContent strong {
+    color: #f8fafc;
+    font-size: 0.8rem;
+}
+
+.customerListContent span {
+    color: #cbd5e1;
+    font-size: 0.72rem;
+}
+
+.customerListContent small {
+    color: #64748b;
+    font-size: 0.66rem;
+}
+
+.customerListEmpty {
+    padding: 1.4rem 0.8rem;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.customerListLimit {
+    margin: 0.25rem 0.2rem 0;
+    padding: 0.6rem;
+    border-radius: 0.65rem;
+    background: rgba(245, 158, 11, 0.1);
+    color: #fcd34d;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.loadingOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.68);
+    backdrop-filter: blur(4px);
+}
+
+.spinner {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #f87171;
+    animation: spin 0.9s linear infinite;
+}
+
+.loadingText {
+    margin-top: 0.7rem;
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.loadingSubtext {
+    margin-top: 0.2rem;
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.errorOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.errorCard {
+    width: min(100%, 22rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 1.1rem;
+    border: 1px solid rgba(248, 113, 113, 0.28);
+    border-radius: 1rem;
+    background: rgba(15, 23, 42, 0.96);
+    color: #f8fafc;
+    text-align: center;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.3);
+}
+
+.errorCard span {
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.viewportControls {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.24rem;
+    padding: 0.24rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.9rem;
+    background: rgba(30, 41, 59, 0.88);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(12px);
+}
+
+.viewportControlBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 0.68rem;
+    background: transparent;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.viewportControlBtn:hover,
+.viewportControlBtn:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    outline: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.currentLocationMarker {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45), 0 0 10px rgba(37, 99, 235, 0.5);
+    animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+    70% {
+        box-shadow: 0 0 0 16px rgba(37, 99, 235, 0), 0 0 10px rgba(37, 99, 235, 0.35);
+    }
+
+    to {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 0 10px rgba(37, 99, 235, 0.5);
+    }
+}
+
+.popupContent {
+    min-width: 13.4rem;
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 1rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+    color: #0f172a;
+    font-family: "Be Vietnam Pro", "Segoe UI", Tahoma, sans-serif;
+}
+
+.popupHeader {
+    padding: 0.8rem 0.88rem 0.45rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.55rem;
+}
+
+.popupTitleGroup {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.popupName {
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.popupSubline {
+    margin-top: 0.12rem;
+    font-size: 0.68rem;
+    color: #64748b;
+}
+
+.popupHeaderMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.popupPhoneLink {
+    color: #0f172a !important;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none !important;
+}
+
+.popupZaloLink {
+    font-size: 0.66rem;
+    color: #0f766e;
+    background: #f0fdfa;
+    border: 1px solid #ccfbf1;
+    border-radius: 999px;
+    padding: 0.16rem 0.48rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.popupBody {
+    padding: 0 0.88rem 0.58rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+}
+
+.popupPrimaryLine,
+.popupKeyValue {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.4rem 0;
+    border: none;
+    border-top: 1px solid #eef2f7;
+    background: transparent;
+}
+
+.popupKeyLabel {
+    color: #64748b;
+    font-size: 0.68rem;
+    flex-shrink: 0;
+    padding-top: 0.02rem;
+}
+
+.popupKeyData {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    min-width: 0;
+    font-size: 0.72rem;
+    color: #0f172a;
+    font-weight: 600;
+    word-break: break-word;
+    text-align: right;
+}
+
+.popupNodeRow {
+    padding-top: 0.34rem;
+    padding-bottom: 0.34rem;
+}
+
+.popupNodeRow .popupKeyData {
+    gap: 0.34rem;
+}
+
+.popupValueText {
+    min-width: 0;
+    flex: 1 1 auto;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+}
+
+.popupCopyBtn {
+    flex-shrink: 0;
+    border: 1px solid #d8e0ea;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 0.64rem;
+    font-weight: 600;
+    padding: 0.14rem 0.52rem;
+}
+
+.popupNodeBtn {
+    flex-shrink: 0;
+    text-decoration: none !important;
+    width: 1.78rem;
+    height: 1.78rem;
+    min-height: 1.78rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.68rem;
+}
+
+.popupMetaLine {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    padding-top: 0.18rem;
+}
+
+.popupMetaChip {
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    font-size: 0.66rem;
+    font-weight: 500;
+    padding: 0.16rem 0.48rem;
+}
+
+.popupAddress {
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: #475569;
+    padding-top: 0.1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.popupActions {
+    display: flex;
+    gap: 0.3rem;
+    padding: 0 0.88rem 0.8rem;
+    flex-wrap: wrap;
+}
+
+.actionBtn {
+    flex: 1 1 calc(50% - 0.175rem);
+    min-width: 0;
+    text-decoration: none;
+    text-align: center;
+}
+
+.directionBtn {
+    text-decoration: none !important;
+    flex-basis: 100%;
+}
+
+.popupSecondaryActions {
+    display: contents;
+}
+
+.markerPin {
+    background: transparent !important;
+    border: none !important;
+}
+
+.customClusterIcon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.customClusterLabel {
+    background: rgba(220, 38, 38, 0.88);
+    border: 2px solid rgba(248, 113, 113, 0.55);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.3rem 0.68rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.clusterRed {
+    border-color: #ef4444 !important;
+}
+
+.clusterYellow {
+    border-color: #eab308 !important;
+}
+
+.clusterGreen {
+    border-color: #10b981 !important;
+}
+
+.clusterPurple {
+    border-color: #a855f7 !important;
+}
+
+.clusterSky {
+    border-color: #38bdf8 !important;
+}
+
+.darkMapTile {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.lightMapTile {}
+
+.satelliteMapTile {}
+
+@media (max-width: 768px) {
+    .searchOverlay {
+        right: 0.55rem;
+        left: 0.55rem;
+        top: 0.55rem;
+        gap: 0.26rem;
+        max-width: none;
+        align-items: center;
+    }
+
+    .searchBar {
+        max-width: none;
+        width: auto;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .searchInput {
+        height: 2.75rem;
+        border-radius: 0.8rem;
+        padding: 0 2.05rem 0 2.05rem;
+        font-size: 0.82rem;
+    }
+
+    .mapActionsGroup {
+        gap: 0.22rem;
+        flex: 0 0 auto;
+    }
+
+    .mapActionBtn {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.8rem;
+    }
+
+    .filterControls {
+        left: 0.55rem;
+        right: 0.55rem;
+        top: 3.7rem;
+        max-width: none;
+        padding: 0.14rem;
+        gap: 0.2rem;
+        border-radius: 0.78rem;
+        background: rgba(30, 41, 59, 0.76);
+    }
+
+    .searchResults {
+        left: 0.55rem;
+        right: 0.55rem;
+        width: auto;
+        top: 5.98rem;
+        max-height: min(38vh, 18rem);
+    }
+
+    .customerListPanel {
+        top: 5.98rem;
+        right: 0.55rem;
+        bottom: 3.9rem;
+        left: 0.55rem;
+        width: auto;
+    }
+
+    .filterBtn {
+        min-height: 2rem;
+        padding: 0 0.56rem;
+        font-size: 0.67rem;
+        border-radius: 0.72rem;
+        gap: 0.26rem;
+    }
+
+    .filterDot {
+        width: 0.36rem;
+        height: 0.36rem;
+    }
+
+    .filterCount {
+        min-width: 1.05rem;
+        height: 0.95rem;
+        padding: 0 0.2rem;
+        font-size: 0.56rem;
+    }
+
+    .filterLabelDesktop {
+        display: none;
+    }
+
+    .filterLabelMobile {
+        display: inline-flex;
+    }
+
+    .statsBadge {
+        left: 0.55rem;
+        bottom: 0.55rem;
+        padding: 0.28rem 0.6rem;
+    }
+
+    .viewportControls {
+        right: 0.55rem;
+        bottom: 0.55rem;
+    }
+
+    .viewportControlBtn {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .popupContent {
+        min-width: min(15.8rem, calc(100vw - 2.4rem));
+    }
+
+    .popupHeader {
+        padding: 0.68rem 0.74rem 0.38rem;
+        gap: 0.44rem;
+    }
+
+    .popupName {
+        font-size: 0.86rem;
+    }
+
+    .popupSubline {
+        font-size: 0.64rem;
+    }
+
+    .popupHeaderMeta {
+        gap: 0.32rem;
+    }
+
+    .popupPhoneLink {
+        font-size: 0.73rem;
+    }
+
+    .popupZaloLink {
+        font-size: 0.62rem;
+        padding: 0.14rem 0.42rem;
+    }
+
+    .popupBody {
+        padding: 0 0.74rem 0.48rem;
+        gap: 0.12rem;
+    }
+
+    .popupKeyValue {
+        gap: 0.5rem;
+        padding: 0.34rem 0;
+    }
+
+    .popupKeyLabel {
+        font-size: 0.64rem;
+    }
+
+    .popupKeyData {
+        gap: 0.34rem;
+        font-size: 0.69rem;
+    }
+
+    .popupCopyBtn {
+        font-size: 0.6rem;
+        padding: 0.12rem 0.44rem;
+    }
+
+    .popupNodeBtn {
+        width: 1.62rem;
+        height: 1.62rem;
+        min-height: 1.62rem;
+        border-radius: 0.62rem;
+    }
+
+    .popupMetaLine {
+        gap: 0.24rem;
+        padding-top: 0.12rem;
+    }
+
+    .popupMetaChip {
+        font-size: 0.62rem;
+        padding: 0.14rem 0.42rem;
+    }
+
+    .popupAddress {
+        font-size: 0.67rem;
+        line-height: 1.35;
+    }
+
+    .popupActions {
+        gap: 0.28rem;
+        padding: 0 0.74rem 0.68rem;
+    }
+
+    .actionBtn {
+        flex-basis: calc(50% - 0.14rem);
+        font-size: 0.74rem;
+    }
+}
+
+/* Add customer at current location button */
+.addAtLocationBtn {
+    background: rgba(16, 185, 129, 0.18) !important;
+    border: 1.5px solid rgba(52, 211, 153, 0.35) !important;
+    color: #34d399 !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.addAtLocationBtn:hover {
+    background: rgba(16, 185, 129, 0.32) !important;
+    border-color: rgba(52, 211, 153, 0.55) !important;
+    color: #6ee7b7 !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+    transform: scale(1.06);
+}
+
+.addAtLocationBtn::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    border: 2px solid rgba(52, 211, 153, 0.4);
+    animation: addBtnPulse 2.5s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes addBtnPulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    70% {
+        opacity: 0;
+        transform: scale(1.45);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.45);
+    }
+}
+
+.confirmDialogOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.confirmDialog {
+    width: min(90%, 340px);
+    padding: 1.25rem;
+    border-radius: 1.15rem;
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.35);
+    color: #f8fafc;
+}
+
+.confirmDialogTitle {
+    font-size: 0.96rem;
+    font-weight: 800;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #f8fafc;
+}
+
+.confirmDialogMessage {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    margin-bottom: 1.15rem;
+}
+
+.confirmDialogActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.directionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.directionsItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    text-align: left;
+    font-size: 0.82rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.directionsItem:hover {
+    background: rgba(96, 165, 250, 0.15);
+    border-color: rgba(96, 165, 250, 0.3);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.directionsIcon {
+    font-size: 1.1rem;
+}
+
+.mapStyleDropdown {
+    position: absolute;
+    top: 3.3rem;
+    right: 0;
+    width: 15rem;
+    padding: 0.75rem;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.35);
+    z-index: 2010;
+}
+
+.styleMenuHeader {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+    padding-left: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.styleGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.styleCard {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.4rem;
+    border-radius: 0.6rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    color: #cbd5e1;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.styleCard:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.styleCardActive {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.25);
+    color: #60a5fa;
+}
+
+.stylePreview {
+    width: 2.2rem;
+    height: 1.6rem;
+    border-radius: 0.3rem;
+    flex-shrink: 0;
+}
+
+.previewLight {
+    background: linear-gradient(135deg, #e2e8f0 50%, #cbd5e1 50%);
+    border: 1px solid #cbd5e1;
+}
+
+.previewDark {
+    background: linear-gradient(135deg, #1e293b 50%, #0f172a 50%);
+    border: 1px solid #334155;
+}
+
+.previewSatellite {
+    background: linear-gradient(135deg, #065f46 50%, #064e3b 50%);
+    border: 1px solid #064e3b;
+}
+
+.styleName {
+    font-size: 0.8rem;
+    font-weight: 500;
+}

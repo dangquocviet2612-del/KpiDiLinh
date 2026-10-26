@@ -1,0 +1,411 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 4rem);
+  color: var(--foreground);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary-foreground);
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius, 1rem);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  color: var(--card-foreground);
+}
+
+.controlsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--card-foreground);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Template Selector */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.templateItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--border);
+  background: color-mix(in srgb, var(--card) 60%, var(--background));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.templateItem:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
+.templateItemActive {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 15%, var(--card));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.templateThumb {
+  width: 100%;
+  aspect-ratio: 1024 / 682;
+  object-fit: cover;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+
+.templateName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--card-foreground);
+  line-height: 1.25;
+}
+
+/* Form Groups */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--card-foreground);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--foreground);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.input::placeholder {
+  color: var(--secondary-foreground);
+  opacity: 0.55;
+}
+
+.inputSmall {
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  padding: 0.6rem 0.85rem;
+}
+
+/* Format Pills */
+.formatPills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pill:hover {
+  background: color-mix(in srgb, var(--primary) 12%, var(--secondary));
+  color: var(--foreground);
+  border-color: var(--primary);
+}
+
+.pillActive {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+/* Color & Slider Controls */
+.controlsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.colorPickerWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.colorInput {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  background: var(--secondary);
+}
+
+.colorInput::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colorInput::-webkit-color-swatch {
+  border-radius: 0.35rem;
+  border: none;
+}
+
+.sliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.slider {
+  flex: 1;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.sliderVal {
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 2.4rem;
+  color: var(--secondary-foreground);
+}
+
+/* Fine-tune offsets collapsible */
+.accordionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
+  background: none;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.accordionBtn:hover {
+  filter: brightness(1.15);
+}
+
+.fineTuneBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--card) 60%, var(--background));
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Upload Custom Template Box */
+.uploadBox {
+  border: 2px dashed var(--border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: color-mix(in srgb, var(--card) 60%, var(--background));
+}
+
+.uploadBox:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+}
+
+.uploadText {
+  font-size: 0.78rem;
+  color: var(--secondary-foreground);
+  margin-top: 0.25rem;
+}
+
+/* Preview Panel */
+.previewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.canvasContainer {
+  position: relative;
+  width: 100%;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 100%;
+  aspect-ratio: 1024 / 682;
+}
+
+.actionsBar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 0.625rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+.btnPrimary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btnSecondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 0.625rem;
+  background: var(--secondary);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background: color-mix(in srgb, var(--primary) 12%, var(--secondary));
+  border-color: var(--primary);
+  color: var(--foreground);
+}
+
+.noticeBox {
+  font-size: 0.825rem;
+  color: var(--secondary-foreground);
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  line-height: 1.5;
+}

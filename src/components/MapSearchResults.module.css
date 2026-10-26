@@ -1,0 +1,134 @@
+.header {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.32rem;
+  max-height: min(18rem, 34vh);
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.18rem;
+  border-radius: 0.78rem;
+  transition: background-color 140ms ease;
+}
+
+.item:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.item.active {
+  background: rgba(96, 165, 250, 0.16);
+  box-shadow: inset 3px 0 0 rgba(96, 165, 250, 0.78);
+}
+
+.selectButton {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.44rem 0.5rem;
+  border: 0;
+  border-radius: 0.66rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectButton:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.72);
+  outline-offset: 1px;
+}
+
+.details {
+  flex: 1;
+  min-width: 0;
+}
+
+.primary {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.secondary {
+  margin-top: 0.16rem;
+  font-size: 0.74rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.36rem;
+  flex-shrink: 0;
+}
+
+.more {
+  text-align: center;
+  padding: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.73rem;
+}
+
+.empty {
+  padding: 0.92rem 0.9rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.6rem 0.72rem;
+    font-size: 0.72rem;
+  }
+
+  .list {
+    padding: 0.24rem;
+    max-height: min(15rem, 30vh);
+  }
+
+  .item {
+    gap: 0.48rem;
+    padding: 0.16rem;
+    border-radius: 0.72rem;
+  }
+
+  .selectButton {
+    padding: 0.36rem 0.4rem;
+  }
+
+  .primary {
+    font-size: 0.78rem;
+  }
+
+  .secondary {
+    margin-top: 0.12rem;
+    font-size: 0.68rem;
+  }
+
+  .actions {
+    gap: 0.28rem;
+  }
+
+  .more,
+  .empty {
+    font-size: 0.68rem;
+  }
+}

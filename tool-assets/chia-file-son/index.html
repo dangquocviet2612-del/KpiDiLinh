@@ -1,0 +1,342 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chia file</title>
+    <link rel="stylesheet" href="style.css?v=20260329a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const requestedView = String(params.get("view") || "").trim().toLowerCase();
+            const validViews = ["receipt", "excel", "photo"];
+            const initialView = validViews.includes(requestedView) ? requestedView : "receipt";
+
+            if (window.self !== window.top || params.get("embedded") === "1") {
+                document.body.classList.add("is-embedded");
+            }
+            if (params.get("single") === "1") {
+                document.body.classList.add("single-view", `single-view-${initialView}`);
+            }
+            document.body.classList.add(`view-${initialView}`);
+        })();
+    </script>
+    <div class="app-container">
+        <header class="tool-topbar">
+            <div class="tool-brand">
+                <div class="tool-brand-mark">VT</div>
+                <div class="tool-brand-copy">
+                    <p class="tool-eyebrow">Tiện ích nội bộ</p>
+                    <h1 class="tool-title">Chia file</h1>
+                    <p class="tool-subtitle">In phiếu thu, lọc Excel và sửa ảnh trên cùng một màn hình.</p>
+                </div>
+            </div>
+
+            <div class="nav-menu">
+                <button id="nav-receipt" class="nav-btn active" type="button">Phiếu thu</button>
+                <button id="nav-excel" class="nav-btn" type="button">Excel</button>
+                <button id="nav-photo" class="nav-btn" type="button">Sửa ảnh</button>
+            </div>
+        </header>
+
+        <div id="workspace" class="workspace receipt-mode">
+            <aside id="tool-sidebar" class="sidebar">
+                <div class="sidebar-card receipt-rail">
+                    <div class="sidebar-head receipt-rail-head">
+                        <div>
+                            <p class="sidebar-eyebrow">Phiếu thu</p>
+                            <h2>Cấu hình người thu</h2>
+                        </div>
+                        <button id="btnToggleReceiptSettings" class="btn-secondary btn-inline receipt-rail-toggle" type="button" aria-expanded="false">Sửa cấu hình</button>
+                    </div>
+
+                    <div class="receipt-summary" id="receiptSummary">
+                        <div class="receipt-summary-item">
+                            <span class="receipt-summary-label">Người thu</span>
+                            <strong id="summaryCollectorName">LÊ TRỌNG AN</strong>
+                        </div>
+                        <div class="receipt-summary-item">
+                            <span class="receipt-summary-label">SĐT</span>
+                            <strong id="summaryCollectorPhone">0869 121 952</strong>
+                        </div>
+                        <div class="receipt-summary-item receipt-summary-item--wide">
+                            <span class="receipt-summary-label">Đơn vị</span>
+                            <strong id="summaryUnitName">VIETTEL LÂM ĐỒNG - VIETTEL DI LINH</strong>
+                        </div>
+                        <div class="receipt-summary-item">
+                            <span class="receipt-summary-label">Kỳ cước</span>
+                            <strong id="summaryBillingMonth">03/2026</strong>
+                        </div>
+                    </div>
+
+                    <div id="sidebar-receipt-settings" class="settings-group">
+                        <div class="settings-section">
+                            <h3>Thông tin người thu</h3>
+                            <label for="collectorName">Họ tên người thu</label>
+                            <input type="text" id="collectorName" value="LÊ TRỌNG AN">
+
+                            <label for="collectorPhone">SĐT người thu</label>
+                            <input type="text" id="collectorPhone" value="0869 121 952">
+
+                            <label for="unitName">Đơn vị thu</label>
+                            <input type="text" id="unitName" value="VIETTEL LÂM ĐỒNG - VIETTEL DI LINH">
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Thông tin kỳ cước</h3>
+                            <label for="billingMonth">Tháng/Năm</label>
+                            <input type="month" id="billingMonth">
+                            <div class="mini-hint">Ngày in mặc định là hôm nay.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sidebar-receipt-actions" class="actions panel-actions receipt-rail-actions">
+                    <button id="btnPrint" class="btn-primary" type="button">In phiếu (Ctrl+P)</button>
+                    <button id="btnExport" class="btn-secondary" type="button">Lưu dữ liệu</button>
+                </div>
+
+                <div class="footer-note">
+                    <p>Copyright &copy; 2026</p>
+                    <div class="footer-note-sub">Created by AntiGravity</div>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <section id="view-receipt" class="app-view active">
+                    <header class="tool-page-header">
+                        <div>
+                            <p class="section-eyebrow">Phiếu thu</p>
+                            <h1>Danh sách khách hàng</h1>
+                            <p class="tool-page-desc">Nhập danh sách, rà nhanh và in phiếu trong cùng một vùng làm việc.</p>
+                            <div class="receipt-page-meta">
+                                <span id="receiptCustomerCount" class="receipt-page-pill">0 khách hàng</span>
+                                <span id="receiptTotalAmount" class="receipt-page-pill">0 đ</span>
+                            </div>
+                        </div>
+                        <div class="header-actions receipt-toolbar-actions">
+                            <input type="file" id="fileInput" accept=".xlsx, .xls" hidden>
+                            <div class="header-action-cluster header-action-cluster--secondary">
+                                <button id="btnDownloadSample" class="btn-secondary btn-inline" type="button">Tệp mẫu</button>
+                                <button id="btnImport" class="btn-secondary btn-inline" type="button">Nhập danh sách</button>
+                            </div>
+                            <div class="header-action-cluster header-action-cluster--primary">
+                                <button id="btnAddRow" class="btn-add" type="button">+ Thêm khách</button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="table-container">
+                        <table id="customerTable" class="receipt-grid">
+                            <colgroup>
+                                <col style="width: 56px;">
+                                <col style="width: 208px;">
+                                <col style="width: 208px;">
+                                <col style="width: 156px;">
+                                <col>
+                                <col style="width: 142px;">
+                                <col style="width: 84px;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th style="width: 56px;">STT</th>
+                                    <th>Mã khách hàng (Account)</th>
+                                    <th>Tên khách hàng</th>
+                                    <th>SĐT liên hệ</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Tổng cước</th>
+                                    <th style="width: 120px;">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="view-photo" class="app-view app-view-photo">
+                    <iframe src="./sua-anh/index.html?embedded=1" class="photo-frame" title="Công cụ sửa ảnh"></iframe>
+                </section>
+
+                <section id="view-excel" class="app-view">
+                    <div class="excel-shell">
+                        <header class="tool-page-header excel-header">
+                            <div>
+                                <p class="section-eyebrow">Excel</p>
+                                <h1>Lọc Excel và giữ nguyên định dạng</h1>
+                                <p class="tool-page-desc">Làm theo 3 bước: chọn file, cấu hình lọc, rồi xuất kết quả.</p>
+                            </div>
+                            <div class="status-badge" id="et-fileStatus">Chưa chọn file</div>
+                        </header>
+
+                        <div class="excel-flow" aria-label="Quy trình xử lý Excel">
+                            <div class="excel-flow-step is-current">
+                                <span class="excel-flow-index">B1</span>
+                                <div>
+                                    <strong>Chọn file</strong>
+                                    <small>Tải workbook nguồn lên trình duyệt.</small>
+                                </div>
+                            </div>
+                            <div class="excel-flow-step">
+                                <span class="excel-flow-index">B2</span>
+                                <div>
+                                    <strong>Thiết lập lọc</strong>
+                                    <small>Chọn cột, giá trị và thêm nhanh mã nhân viên.</small>
+                                </div>
+                            </div>
+                            <div class="excel-flow-step">
+                                <span class="excel-flow-index">B3</span>
+                                <div>
+                                    <strong>Xuất file</strong>
+                                    <small>Gộp 1 file hoặc tách tự động theo cột.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="excel-layout">
+                            <section class="excel-card excel-card-main">
+                                <div class="excel-section">
+                                    <div class="excel-section-head">
+                                        <div>
+                                            <span class="section-step">Bước 1</span>
+                                            <h2>Chọn file nguồn</h2>
+                                            <p>Tải file Excel nguồn để bắt đầu xử lý.</p>
+                                        </div>
+                                    </div>
+                                    <label class="field-label" for="et-inputFile">File nguồn (.xlsx, .xls)</label>
+                                    <label class="file-drop" id="et-fileDrop" for="et-inputFile">
+                                        <input type="file" id="et-inputFile" accept=".xlsx, .xls" hidden>
+                                        <span class="file-drop-icon">&#128193;</span>
+                                        <span class="file-drop-copy">
+                                            <strong>Chọn file Excel tại đây</strong>
+                                            <small>Tệp sẽ được đọc trực tiếp trên trình duyệt. Bạn cũng có thể kéo thả file vào vùng này.</small>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div class="excel-section">
+                                    <div class="excel-section-head">
+                                        <div>
+                                            <span class="section-step">Bước 2</span>
+                                            <h2>Thiết lập bộ lọc</h2>
+                                            <p>Áp dụng điều kiện AND giữa các cột, và OR giữa các giá trị trong cùng một cột.</p>
+                                        </div>
+                                        <button id="et-addFilterRow" class="btn-secondary btn-inline" type="button">+ Thêm dòng lọc</button>
+                                    </div>
+
+                                    <div class="filter-guide">
+                                        Ví dụ: cột <strong>Mã CTV</strong> lọc các giá trị <strong>CTV01, CTV02</strong>. Không phân biệt hoa thường.
+                                    </div>
+
+                                    <div class="staff-picker-panel" id="et-staffPickerPanel">
+                                        <div class="staff-picker-head">
+                                            <div>
+                                                <h3>Thêm nhanh mã nhân viên</h3>
+                                                <p>Tách riêng khối này để chọn dòng đích, quản lý và mã NV nhanh hơn.</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="staff-picker-grid">
+                                            <label class="staff-picker-field" for="et-targetFilterRow">
+                                                <span>Thêm vào dòng lọc</span>
+                                                <select id="et-targetFilterRow" class="filter-select"></select>
+                                            </label>
+
+                                            <label class="staff-picker-field" for="et-globalManagerSelect">
+                                                <span>NV quản lý</span>
+                                                <select id="et-globalManagerSelect" class="filter-select"></select>
+                                            </label>
+
+                                            <label class="staff-picker-field" for="et-globalEmployeeSelect">
+                                                <span>Mã NV</span>
+                                                <select id="et-globalEmployeeSelect" class="filter-select"></select>
+                                            </label>
+                                        </div>
+
+                                        <div class="staff-picker-actions">
+                                            <button id="et-addAllEmployees" class="btn-secondary btn-inline" type="button">+ Thêm tất cả nhân viên của quản lý này</button>
+                                            <div class="staff-picker-note" id="et-staffPickerNote">Chọn dòng lọc đích rồi chọn quản lý và mã NV để thêm vào ô giá trị.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="filter-head">
+                                        <span>Tên cột</span>
+                                        <span>Giá trị</span>
+                                    </div>
+                                    <div id="et-filterRows" class="filter-rows"></div>
+                                </div>
+
+                                <div class="excel-section">
+                                    <div class="excel-section-head">
+                                        <div>
+                                            <span class="section-step">Bước 3</span>
+                                            <h2>Chọn chế độ xuất</h2>
+                                            <p>Chọn cách xuất tệp sau khi đã lọc xong dữ liệu.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="mode-grid">
+                                        <label class="mode-card active-mode">
+                                            <input type="radio" name="et-outputMode" value="merge" checked>
+                                            <span class="mode-card-title">Gộp thành 1 file</span>
+                                            <span class="mode-card-copy">Giữ toàn bộ sheet sau lọc trong một workbook duy nhất.</span>
+                                        </label>
+                                        <label class="mode-card">
+                                            <input type="radio" name="et-outputMode" value="auto">
+                                            <span class="mode-card-title">Tách tự động theo cột</span>
+                                            <span class="mode-card-copy">Sinh nhiều file theo giá trị của một cột chỉ định.</span>
+                                        </label>
+                                    </div>
+
+                                    <div id="et-splitSettings" class="split-settings is-hidden">
+                                        <label class="field-label" for="et-splitColumn">Cột dùng để tách file</label>
+                                        <input type="text" id="et-splitColumn" placeholder="Ví dụ: Mã CTV">
+                                    </div>
+                                </div>
+
+                                <div class="excel-actions">
+                                    <button id="et-btnRun" class="btn-primary excel-run" type="button">
+                                        <span id="et-loadingSpinner" class="loading-spinner is-hidden" aria-hidden="true"></span>
+                                        <span>Chạy xử lý</span>
+                                    </button>
+                                    <div id="et-statusMessage" class="status-message">Sẵn sàng xử lý dữ liệu.</div>
+                                </div>
+                            </section>
+
+                            <aside class="excel-card excel-card-side">
+                                <div class="excel-section">
+                                    <div class="excel-section-head compact">
+                                        <div>
+                                            <h2>Lưu ý nhanh</h2>
+                                        </div>
+                                    </div>
+                                    <ul class="tips-list">
+                                        <li>Dùng đúng tên cột trong file Excel để bộ lọc chạy chính xác.</li>
+                                        <li>Nếu muốn tách nhiều file, hãy chọn chế độ tách và nhập đúng tên cột.</li>
+                                        <li>Tên file xuất sẽ giữ lại tên gốc để dễ tra cứu.</li>
+                                        <li>Workbook gốc không bị chỉnh sửa, chỉ tạo file mới để tải về.</li>
+                                    </ul>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script src="script.js?v=20260326o"></script>
+    <script src="excel-tool.js?v=20260326o"></script>
+</body>
+
+</html>

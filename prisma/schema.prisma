@@ -1,0 +1,418 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String        @id @default(uuid())
+  username      String        @unique
+  password      String
+  role          String        @default("CTV") // "ADMIN" | "MANAGER" | "CTV"
+  managerCode   String?
+  secondaryCode String?
+  canUseGps     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  edits         EditHistory[]
+  notes         CustomerNote[]
+
+  @@index([managerCode])
+  @@index([secondaryCode])
+  @@index([role, managerCode, username])
+  @@index([role, secondaryCode])
+}
+
+model Customer {
+  id             String        @id @default(uuid())
+  name           String
+  account        String?
+  subscriberType String        // "FIXED" | "MOBILE"
+  phone          String?
+  package        String?
+  price          Float?
+  address        String?
+  nodeName       String?
+  latitude       Float?
+  longitude      Float?
+  ctvCode        String?
+  billingType    String?       // "PREPAID" | "MONTHLY"
+  prepaidPeriod  Int?          // number of months e.g. 6, 12
+  renewalMonth   DateTime?
+  expirationDate DateTime?
+  status         String        @default("Hoạt động") // "Hoạt động" | "Rời mạng"
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  edits          EditHistory[]
+  notes          CustomerNote[]
+
+  @@index([phone])
+  @@index([account])
+  @@index([ctvCode])
+  @@index([status])
+  @@index([expirationDate])
+  @@index([ctvCode, status])
+  @@index([latitude, longitude])
+}
+
+model EditHistory {
+  id         String   @id @default(uuid())
+  customerId String
+  userId     String
+  details    String   // JSON string describing the change
+  createdAt  DateTime @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CustomerNote {
+  id         String   @id @default(uuid())
+  customerId String
+  userId     String
+  content    String
+  createdAt  DateTime @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Node {
+  id               String    @id @default(uuid())
+  name             String
+  description      String?
+  latitude         Float
+  longitude        Float
+  totalIntPort     Int?
+  usedPort         Int?
+  portEfficiency   Float?
+  dateKd           DateTime?
+  efficiencyStatus String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model KpiMetricConfig {
+  id          Int      @id @default(autoincrement())
+  kpiCode     String   @unique
+  kpiName     String?
+  displayName String?
+  mergeGroup  String?
+  baseScore   Float?
+  maxPercent  Float?
+  sortOrder   Int?
+  isEnabled   Int      @default(1)
+  isNegative  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model KpiDailyResult {
+  id                Int      @id @default(autoincrement())
+  reportDate        String
+  ctvUser           String
+  kpiCode           String
+  kpiName           String?
+  khThang           Float?
+  thNgay            Float?
+  thLuyKe           Float?
+  completionPercent Float?
+  growthPercent     Float?
+  rawPayload        String?
+  createdAt         DateTime @default(now())
+
+  @@unique([reportDate, ctvUser, kpiCode])
+  @@index([reportDate, ctvUser])
+  @@index([ctvUser, reportDate])
+}
+
+model CuocDailyResult {
+  id                Int      @id @default(autoincrement())
+  reportDate        String
+  ctvUser           String
+  employeeCodeRaw   String?
+  managerCodeRaw    String?
+  targetAmount      Float?
+  collectedAmount   Float?
+  completionPercent Float?
+  missingAmount     Float?
+  createdAt         DateTime @default(now())
+
+  @@unique([reportDate, ctvUser])
+  @@index([reportDate, ctvUser])
+  @@index([ctvUser, reportDate])
+  @@index([reportDate, completionPercent])
+}
+
+model CuocCdDailyResult {
+  id              Int      @id @default(autoincrement())
+  reportDate      String
+  ctvUser         String
+  employeeCodeRaw String
+  managerCodeRaw  String?
+  dauKy           Float    @default(0)
+  luyKe           Float    @default(0)
+  thuaThieu       Float    @default(0)
+  tonChuaThu      Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([reportDate, employeeCodeRaw])
+  @@index([reportDate, ctvUser])
+  @@index([reportDate, employeeCodeRaw])
+  @@index([reportDate, managerCodeRaw])
+}
+
+model ManagerKpiDailyResult {
+  id              Int      @id @default(autoincrement())
+  reportDate      String
+  managerUser     String
+  managerName     String?
+  jobTitle        String?
+  metricCode      String
+  metricName      String?
+  metricLabel     String?
+  khToDate        Float?
+  khMonth         Float?
+  thDay           Float?
+  thLuyKe         Float?
+  percentToDate   Float?
+  percentMonth    Float?
+  samePeriodValue Float?
+  growthPercent   Float?
+  rawPayload      String?
+  createdAt       DateTime @default(now())
+
+  @@unique([reportDate, managerUser, metricCode])
+  @@index([reportDate, managerUser])
+  @@index([reportDate, metricCode])
+  @@index([managerUser, metricCode])
+}
+
+model CdtTransaction {
+  id              Int      @id @default(autoincrement())
+  transactionDate String
+  transactionTime String?
+  ctvUser         String
+  subscriberType  String?
+  account         String
+  amount          Float    @default(0)
+  months          Int      @default(0)
+  sourceFile      String?
+  createdAt       DateTime @default(now())
+
+  @@unique([transactionDate, ctvUser, account, amount, months])
+  @@index([transactionDate, ctvUser])
+  @@index([ctvUser, transactionDate])
+  @@index([account, transactionDate])
+}
+
+model CdtOutstandingRecord {
+  id             Int      @id @default(autoincrement())
+  reportMonth    String
+  account        String
+  customerName   String?
+  phone          String?
+  address        String?
+  ctvCode        String
+  serviceName    String?
+  expiryDateText String?
+  expiryMonth    String
+  statusCheck    String
+  subscriberType String   @default("Khác")
+  sourceFile     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@unique([reportMonth, account, expiryMonth])
+  @@index([reportMonth, ctvCode])
+  @@index([reportMonth, expiryMonth])
+  @@index([ctvCode, statusCheck])
+}
+
+model DisconnectRecord {
+  id                Int      @id @default(autoincrement())
+  reportMonth       String
+  sourceType        String   @default("TH")
+  account           String
+  serviceName       String?
+  ctvCode           String
+  suspendedDateIso  String?
+  suspendedDateText String?
+  cancelDateIso     String?
+  cancelDateText    String?
+  cancelMonth       String
+  sourceFile        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@unique([reportMonth, sourceType, account])
+  @@index([reportMonth, ctvCode])
+  @@index([reportMonth, cancelMonth])
+  @@index([ctvCode, cancelDateIso])
+}
+
+model ArchiveLog {
+  id              Int       @id @default(autoincrement())
+  archiveMonth    String    @unique
+  archivedBy      String
+  archivedAt      DateTime  @default(now())
+  purgeAfter      DateTime
+  purgedAt        DateTime?
+  kpiRecordCount  Int       @default(0)
+  cuocRecordCount Int       @default(0)
+  fileName        String?
+
+  @@index([purgedAt, purgeAfter])
+}
+
+model ArchiveExportLog {
+  id           Int      @id @default(autoincrement())
+  archiveMonth String   @unique
+  exportedBy   String
+  exportedAt   DateTime @default(now())
+  fileName     String
+
+  @@index([archiveMonth, exportedAt])
+}
+
+model CuocConfig {
+  id                Int      @id @default(1)
+  targetRatePercent Float    @default(97)
+  updatedAt         DateTime @default(now()) @updatedAt
+}
+
+model CuocCdConfig {
+  id                Int      @id @default(1)
+  targetRatePercent Float    @default(99.5)
+  updatedAt         DateTime @default(now()) @updatedAt
+}
+
+model ChurnRiskRecord {
+  id           Int      @id @default(autoincrement())
+  reportMonth  String
+  ctvCode      String
+  customerName String?
+  phone        String?
+  packageName  String?
+  address      String?
+  sourceFile   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@index([reportMonth, ctvCode])
+  @@index([ctvCode, reportMonth])
+  @@index([reportMonth])
+}
+
+model CustomerNodeMapping {
+  id             String   @id @default(uuid())
+  account        String
+  accountKey     String   @unique
+  nodeName       String
+  accountAddress String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([nodeName])
+}
+
+model OfficialDocument {
+  id          String                      @id @default(uuid())
+  title       String
+  category    String
+  summary     String?
+  content     String?
+  status      String                      @default("DRAFT")
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  isPinned    Int                         @default(0)
+  createdBy   String?
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @default(now()) @updatedAt
+  assets      OfficialDocumentAsset[]
+  revisions   OfficialDocumentRevision[]
+
+  @@index([status, publishedAt])
+  @@index([category, status])
+  @@index([isPinned, publishedAt])
+}
+
+model OfficialDocumentAsset {
+  id          Int              @id @default(autoincrement())
+  documentId  String
+  type        String
+  fileUrl     String
+  fileName    String
+  mimeType    String?
+  size        Int              @default(0)
+  storageKind String           @default("EXTERNAL")
+  fileData    String?
+  createdAt   DateTime         @default(now())
+
+  document    OfficialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model OfficialDocumentTempAsset {
+  id        String   @id @default(uuid())
+  type      String
+  fileName  String
+  mimeType  String?
+  size      Int      @default(0)
+  fileData  String
+  createdAt DateTime @default(now())
+}
+
+model OfficialDocumentRevision {
+  id         Int              @id @default(autoincrement())
+  documentId String
+  changeType String
+  changedBy  String?
+  changedAt  DateTime         @default(now())
+  title      String
+  summary    String?
+  content    String?
+  status     String
+  category   String
+  isPinned   Int              @default(0)
+
+  document   OfficialDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model Node0Tb {
+  id              String    @id @default(cuid())
+  nodeCode        String    @unique
+  dateKd          DateTime?
+  dateKdRaw       String?
+  dateKdFormatted String?
+  totalPort       Int?
+  usedPort        Int?      @default(0)
+  categoryKd      String?
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  @@index([categoryKd])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  username  String
+  action    String
+  resource  String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+

@@ -1,0 +1,96 @@
+.skeletonText {
+    width: 5rem;
+    height: 14px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--input) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: loadingPulse 1.5s infinite;
+}
+
+.checkboxColumn {
+    width: 40px;
+}
+
+.checkboxCell {
+    text-align: center;
+}
+
+.actionIcons {
+    display: flex;
+    gap: 0.35rem;
+}
+
+thead th:nth-child(2) .skeletonText,
+thead th:nth-child(7) .skeletonText {
+    width: 6.25rem;
+}
+
+thead th:nth-child(4) .skeletonText,
+thead th:nth-child(10) .skeletonText,
+thead th:nth-child(11) .skeletonText {
+    width: 3.75rem;
+}
+
+tbody td:nth-child(2) .skeletonText {
+    width: 7.5rem;
+}
+
+tbody td:nth-child(5) .skeletonText {
+    width: 6.875rem;
+}
+
+tbody td:nth-child(6) .skeletonText,
+tbody td:nth-child(10) .skeletonText {
+    width: 3.75rem;
+}
+
+tbody td:nth-child(9) .skeletonText {
+    width: 4.375rem;
+}
+
+.skeletonCheckbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, var(--border) 25%, var(--input) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: loadingPulse 1.5s infinite;
+}
+
+.skeletonBadge {
+    width: 60px;
+    height: 20px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--input) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: loadingPulse 1.5s infinite;
+}
+
+.skeletonIcon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--input) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: loadingPulse 1.5s infinite;
+}
+
+@keyframes loadingPulse {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeletonText,
+    .skeletonCheckbox,
+    .skeletonBadge,
+    .skeletonIcon {
+        animation: none;
+    }
+}

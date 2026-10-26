@@ -1,0 +1,144 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+        var(--background);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative gradient orbs */
+.container::before {
+    content: '';
+    position: absolute;
+    top: -150px;
+    right: -150px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.12), transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatOrb 8s ease-in-out infinite alternate;
+}
+
+.container::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -100px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1), transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatOrb 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes floatOrb {
+    from {
+        transform: translate(0, 0) scale(1);
+    }
+
+    to {
+        transform: translate(30px, -20px) scale(1.1);
+    }
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+    animation: scaleIn 0.5s ease-out;
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+.logoArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.logoIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+}
+
+.title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: var(--secondary-foreground);
+    text-align: center;
+    opacity: 0.7;
+}
+
+.error {
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    background-color: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    font-size: 0.85rem;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    text-align: center;
+    animation: slideUp 0.3s ease-out;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+}
+
+.helpText {
+    margin-top: 1rem;
+    font-size: 0.78rem;
+    color: var(--secondary-foreground);
+    text-align: center;
+    opacity: 0.5;
+    line-height: 1.6;
+}

@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa ảnh Viettel</title>
+    <link rel="stylesheet" href="style.css?v=20260326c">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Oswald:wght@700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+
+<body>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            if (window.self !== window.top || params.get("embedded") === "1") {
+                document.body.classList.add("is-embedded");
+            }
+            if (params.get("single") === "1") {
+                document.body.classList.add("single-view");
+            }
+        })();
+    </script>
+    <div class="photo-app">
+        <div class="photo-layout">
+            <aside class="photo-sidebar">
+                <section class="panel-card control-shell">
+                    <header class="photo-header compact-header">
+                        <div>
+                            <p class="photo-eyebrow">Sửa ảnh</p>
+                            <h1>Đóng dấu ảnh hiện trường</h1>
+                            <p class="photo-subtitle">Thêm tên đơn vị, thời gian và tọa độ lên ảnh để dùng nhanh trong
+                                báo cáo hiện trường.</p>
+                        </div>
+                    </header>
+
+                    <div class="control-section">
+                        <div class="section-tag">Bước 1</div>
+                        <div class="section-headline">
+                            <h2>Tệp đầu vào</h2>
+                            <p>Chọn ảnh nền và thay logo nếu cần.</p>
+                        </div>
+                        <div class="upload-stack">
+                            <label class="upload-row" for="imageInput">
+                                <input type="file" id="imageInput" accept="image/*" hidden>
+                                <span class="upload-icon">🖼️</span>
+                                <span class="upload-copy">
+                                    <strong>Chọn ảnh nền</strong>
+                                    <small>Tải ảnh hiện trường cần đóng dấu.</small>
+                                </span>
+                            </label>
+                            <label class="upload-row secondary" for="logoInput">
+                                <input type="file" id="logoInput" accept="image/*" hidden>
+                                <span class="upload-icon">🏷️</span>
+                                <span class="upload-copy">
+                                    <strong>Đổi logo</strong>
+                                    <small>Dùng logo khác nếu cần thay mẫu mặc định.</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="section-tag">Bước 2</div>
+                        <div class="section-headline">
+                            <h2>Nội dung hiển thị</h2>
+                            <p>Điền thông tin cần đóng dấu lên ảnh.</p>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-field full-span">
+                                <label for="nameInput">Tên hiển thị</label>
+                                <input type="text" id="nameInput" value="VIETTEL DI LINH 3">
+                            </div>
+
+                            <div class="form-field">
+                                <label for="dateInput">Ngày</label>
+                                <input type="date" id="dateInput">
+                            </div>
+
+                            <div class="form-field">
+                                <label for="timeInput">Giờ</label>
+                                <input type="time" id="timeInput">
+                            </div>
+
+                            <label class="toggle-row full-span" for="useCurrentTime">
+                                <input type="checkbox" id="useCurrentTime" checked>
+                                <span>Dùng ngày giờ hiện tại</span>
+                            </label>
+
+                            <div class="form-field full-span">
+                                <label for="coordsInput">Tọa độ</label>
+                                <div class="coords-actions">
+                                    <input type="text" id="coordsInput" value="11.539336, 107.944720">
+                                    <button id="getLocationBtn" class="icon-btn" type="button"
+                                        title="Lấy tọa độ hiện tại">📍</button>
+                                    <button id="openMapBtn" class="icon-btn" type="button"
+                                        title="Chọn trên bản đồ">🗺️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="section-tag">Bước 3</div>
+                        <div class="section-headline">
+                            <h2>Kích thước đóng dấu</h2>
+                            <p>Phóng to hoặc thu nhỏ phần đóng dấu trên ảnh.</p>
+                        </div>
+                        <div class="zoom-control">
+                            <button id="zoomOutBtn" class="icon-btn zoom-btn" type="button" title="Thu nhỏ">−</button>
+                            <input type="range" id="zoomSlider" min="30" max="200" value="100" step="5"
+                                title="Zoom đóng dấu">
+                            <button id="zoomInBtn" class="icon-btn zoom-btn" type="button" title="Phóng to">+</button>
+                            <span id="zoomValue" class="zoom-value">100%</span>
+                        </div>
+                    </div>
+
+                    <div class="helper-note">
+                        <strong>Làm nhanh:</strong>
+                        <span>Tải ảnh hiện trường, kiểm tra thời gian và tọa độ, sau đó bấm <b>Tải ảnh đã đóng dấu</b>
+                            để lưu kết quả.</span>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="photo-preview-shell">
+                <div class="panel-card preview-card">
+                    <div class="preview-header">
+                        <div>
+                            <p class="panel-eyebrow">Xem trước</p>
+                            <h2>Ảnh kết quả</h2>
+                        </div>
+                        <div class="preview-toolbar">
+                            <div class="preview-badge">Xem trước trực tiếp</div>
+                            <button id="downloadBtn" class="primary-btn preview-download" type="button">Tải ảnh</button>
+                        </div>
+                    </div>
+
+                    <div id="captureTarget" class="canvas-container">
+                        <img id="previewImage" src="" alt="Xem trước ảnh" style="display: none;">
+                        <div id="overlay" class="overlay" style="display: none;">
+                            <div class="watermark-logo">
+                                <img src="logo-viettel.png" alt="Logo Viettel" id="logoImage">
+                            </div>
+
+                            <div class="info-group">
+                                <div class="name-text" id="displayName">VIETTEL DI LINH 3</div>
+                                <div class="time-group">
+                                    <span id="displayTime" class="time-large">14:35</span>
+                                    <div class="date-small-group">
+                                        <span id="displayDate">10/02/2026</span>
+                                        <span id="displayDay">th3</span>
+                                    </div>
+                                </div>
+                                <div class="coords-text" id="displayCoords">Tọa độ: 11.539336, 107.944720</div>
+                            </div>
+                        </div>
+                        <div id="placeholderText" class="placeholder">
+                            <div class="placeholder-icon">🖼️</div>
+                            <div class="placeholder-copy">
+                                <strong>Chọn ảnh để bắt đầu chỉnh sửa</strong>
+                                <span>Ảnh xem trước sẽ xuất hiện ngay tại đây sau khi tải lên.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="mapModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" type="button" aria-label="Đóng">×</button>
+            <h2>Chọn tọa độ trên bản đồ</h2>
+            <div id="map"></div>
+            <button id="confirmCoordsBtn" class="primary-btn modal-confirm" type="button">Dùng tọa độ này</button>
+        </div>
+    </div>
+
+    <script src="script.js?v=20260326c"></script>
+</body>
+
+</html>
