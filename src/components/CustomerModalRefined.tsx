@@ -216,7 +216,8 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
             setFormData((prev) => ({ ...prev, [name]: numericValue }));
             return;
         }
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        const fieldName = name === "customerNodeName" ? "nodeName" : name;
+        setFormData((prev) => ({ ...prev, [fieldName]: value }));
     };
 
     const handleRenewalDisplayChange = (rawValue: string) => {
@@ -387,7 +388,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                                     </div>
                                     <input
                                         id="customer-node"
-                                        name="nodeName"
+                                        name="customerNodeName"
                                         className="input-base"
                                         value={formData.nodeName}
                                         onChange={handleChange}

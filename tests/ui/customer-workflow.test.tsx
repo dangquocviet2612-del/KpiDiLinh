@@ -78,7 +78,10 @@ describe("customer workflow", () => {
     expect(screen.getByRole("spinbutton", { name: "Vĩ độ (Latitude)" })).toBeInTheDocument();
   });
 
-  it("keeps the node field editable and submits the typed node", async () => {
+  it.each([
+    { entryPoint: "customer list", defaultLocation: undefined },
+    { entryPoint: "customer map", defaultLocation: { latitude: 11.535, longitude: 108.08 } },
+  ])("keeps the node field DOM-safe and submits the typed node from $entryPoint", async ({ defaultLocation }) => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     const onRefresh = vi.fn();
@@ -89,17 +92,24 @@ describe("customer workflow", () => {
 
     const { container } = render(
       <ConfirmDialogProvider>
-        <CustomerModalRefined customer={null} onClose={onClose} onRefresh={onRefresh} />
+        <CustomerModalRefined customer={null} onClose={onClose} onRefresh={onRefresh} defaultLocation={defaultLocation} />
       </ConfirmDialogProvider>,
     );
 
     const nameInput = container.querySelector<HTMLInputElement>("#customer-name")!;
     const nodeInput = container.querySelector<HTMLInputElement>("#customer-node")!;
 
+    expect(nodeInput).toHaveAttribute("name", "customerNodeName");
+    expect(nodeInput.form?.elements.namedItem("nodeName")).toBeNull();
+
+    await waitFor(() => expect(container.querySelector('button[aria-label="Đóng"]')).toHaveFocus());
+
     await user.type(nameInput, "Nguyen Van A");
     await user.type(nodeInput, "NODE-01");
 
     expect(nodeInput).toHaveValue("NODE-01");
+
+    expect(nameInput).toHaveValue("Nguyen Van A");
 
     await user.click(container.querySelector<HTMLButtonElement>('button[type="submit"]')!);
 
