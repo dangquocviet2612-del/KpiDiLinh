@@ -13,12 +13,13 @@
 | GitHub mới | `https://github.com/dangquocviet2612-del/KpiDiLinh.git` |
 | Git remote `origin` | Đã trỏ tới GitHub mới |
 | Lịch sử Git cũ | Đã cất riêng; chưa đưa sang repo mới |
-| Commit/push lên GitHub mới | **Đã push nhánh `main`**; commit source đầu tiên `1f0d456`, đã đối chiếu hash local/GitHub |
+| Commit/push lên GitHub mới | **Đã push nhánh `main`**; bản sửa thêm khách hàng `3f89383` đã được đối chiếu hash local/GitHub |
 | Database đang dùng | SQLite local: `data/kpidi-linh.sqlite` |
 | Dữ liệu nghiệp vụ | Đã phục hồi từ backup của `https://cumtomer.vercel.app` |
 | Địa chỉ chạy local | `http://localhost:3000` |
 | Database online mới | Turso `kpidi-linh`, đã nhập và xác minh 25 bảng / 133.752 bản ghi |
 | Web Production mới | **https://kpidi-linh.vercel.app**; Vercel project `kpidi-linh`, đã triển khai và kiểm tra |
+| Thêm mới khách hàng | Đã sửa và kiểm tra lưu thật ở cả menu khách hàng và bản đồ khách hàng; xem mục 14 |
 | Cách triển khai hiện tại | Vercel CLI trực tiếp; chưa kết nối tự động deploy từ GitHub |
 | Bảo mật còn phải xử lý | Token Turso cũ đã gửi trong chat vẫn hợp lệ ở lần kiểm tra gần nhất; cần thu hồi có kế hoạch |
 
@@ -232,6 +233,7 @@ Các đường dẫn bắt đầu bằng `.local/` hoặc `data/` được tính
 | 26/10/2026 | Nhận token thay thế, bảo vệ file cấu hình, đổi mật khẩu admin bị lộ trên database online mới |
 | 26/10/2026 | Tạo project Vercel `kpidi-linh`, deploy trực tiếp bằng CLI, xác minh web Production và dữ liệu sau migration |
 | 26/10/2026 | Quét 331 file bằng Gitleaks, tạo commit source `1f0d456`, xác thực đúng tài khoản và push nhánh `main` lên GitHub mới |
+| 26/10/2026 | Sửa lỗi DOM của form thêm khách hàng, push `3f89383`, deploy và kiểm tra lưu thật qua cả danh sách/bản đồ |
 
 ## 10. Chuẩn bị chuyển online ngày 26/10/2026
 
@@ -329,3 +331,32 @@ Các kiểm tra trên là HTTP/API smoke test, **không phải** xác nhận m�
 Bằng chứng riêng tư: `.local/github-publish/preflight-report.json`, `gitleaks-staged-report.json`, `gitleaks-reviewed-staged-report.json`, `gitleaks-commit-report.json`, `push-report.json` (đều trong `.local/github-publish/`). Báo cáo Gitleaks đã redact; một cảnh báo khóa giả CI được ghi nhận riêng thay vì khẳng định mặc định scanner không có cảnh báo.
 
 GitHub lưu mã nguồn, **không lưu dữ liệu Turso/SQLite hoặc backup**. Việc push không thu hồi token Turso cũ; đầu việc bảo mật ở mục 12 vẫn còn.
+
+## 14. Sửa lỗi thêm mới khách hàng ngày 26/10/2026
+
+### Triệu chứng và nguyên nhân đã xác minh
+
+- Người dùng không thêm được khách hàng trên `https://kpidi-linh.vercel.app` ở cả menu khách hàng và bản đồ khách hàng.
+- Hai màn hình cùng dùng `src/components/CustomerModalRefined.tsx`. Input Node có `name="nodeName"`, khiến cơ chế named access của trình duyệt ghi đè thuộc tính DOM `form.nodeName` bằng chính input thay vì chuỗi tên thẻ `FORM`.
+- Tái hiện bằng Chrome thật: lỗi JavaScript `nodeName.toLowerCase is not a function`, không có POST tạo khách hàng được gửi. Đây là lỗi ở form trước khi gọi API, không phải lỗi thiếu dữ liệu hoặc hết quyền ghi Turso.
+
+### Bản sửa và kiểm thử
+
+- [x] Đổi tên control HTML thành `customerNodeName`; ánh xạ lại vào state/payload `nodeName`. Giữ nguyên API, schema và trường dữ liệu Node hiện có.
+- [x] Thêm regression case cho cả danh sách và bản đồ có tọa độ mặc định. Test kiểm tra tên control không chiếm `form.nodeName`, vẫn nhập/sửa được Node và gửi đúng `nodeName`.
+- [x] Chạy test trước sửa để xác nhận hai case bắt đúng lỗi; sau sửa toàn bộ **37 file / 127 test đạt**.
+- [x] TypeScript `tsc --noEmit` đạt; lint không có error, còn 4 warning cũ ở mục 5; kiểm tra whitespace và Gitleaks cho các file sửa đều đạt.
+- [x] Kiểm tra Chrome trên bản local: cả hai màn hình không còn lỗi JavaScript, nút Lưu gửi được POST; bước local chặn ghi dữ liệu thật.
+- [x] Người dùng xác nhận cho phép cập nhật web mới và commit/push GitHub.
+- [x] Push [commit sửa lỗi `3f89383`](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/3f893830667ab94da9999913613415589e8680b1) lên `main`; đối chiếu GitHub và local cùng hash.
+- [x] Deploy đúng project Vercel mới `kpidi-linh`, deployment `dpl_6vS42qZLk96eek3F4HCi8jikpQg7` đạt `READY`; domain Production giữ nguyên **https://kpidi-linh.vercel.app**.
+- [x] Kiểm tra từ đầu đến cuối trên Production bằng Chrome: thêm đúng một khách hàng TEST từ `/customers` và một khách hàng TEST từ `/map`; cả hai trả **HTTP 201**, dữ liệu được lưu thật trong Turso, giữ đúng Node và tọa độ.
+- [x] Xóa đúng hai bản ghi TEST định danh ngẫu nhiên và lịch sử tạo của chính chúng sau kiểm tra; không sửa/xóa khách cũ. Database có **200 khách hàng trước và sau kiểm tra**, không còn hai bản ghi TEST.
+
+### Bằng chứng và phạm vi
+
+- Source: `src/components/CustomerModalRefined.tsx`; regression test: `tests/ui/customer-workflow.test.tsx`.
+- Deployment: [Vercel bản sửa](https://vercel.com/vietdq9/kpidi-linh/6vS42qZLk96eek3F4HCi8jikpQg7).
+- Báo cáo riêng tư, không commit: `.local/customer-create-debug/browser-local-fixed.json`, `.local/customer-create-debug/production-create-verification.json`, `.local/customer-create-debug/customer-fix-release-report.json`. Báo cáo Production xác nhận cả hai POST 201, dữ liệu Turso khớp, cleanup thành công và không có lỗi JavaScript.
+- Kiểm tra tạo thật sử dụng role ADMIN; chưa thay thế kiểm thử quyền MANAGER/CTV hoặc kiểm thử mọi thao tác sửa/import/export. Không đổi cấu hình phân quyền hoặc schema trong bản sửa này.
+- Không tác động web cũ; không đổi cách deploy CLI hiện tại và chưa kết nối tự động deploy từ GitHub. Nếu trình duyệt vẫn giữ bản cũ, tải lại trang/`Ctrl+F5` trước khi thử.
