@@ -15,7 +15,6 @@ import { ensureCustomerSchema } from "@/lib/ensure-customer-schema";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        await ensureCustomerSchema();
         const { id } = await params;
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,6 +36,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
+        await ensureCustomerSchema();
+
         const mappedNodeName = await getMappedNodeNameForAccount(customer.account);
         return NextResponse.json(mappedNodeName ? { ...customer, nodeName: mappedNodeName } : customer);
     } catch (error: any) {
@@ -46,18 +47,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        await ensureCustomerSchema();
         const { id } = await params;
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-        const existingCustomer = await prisma.customer.findUnique({ where: { id } });
-        if (!existingCustomer) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-        const canAccess = await canAccessCustomerByCtvCode(session, existingCustomer.ctvCode);
-        if (!canAccess) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
 
         const rawBody = await request.json();
         const parseResult = customerUpdateSchema.safeParse(rawBody);
@@ -66,6 +58,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: errorDetails }, { status: 422 });
         }
         const body = parseResult.data;
+
+        const existingCustomer = await prisma.customer.findUnique({ where: { id } });
+        if (!existingCustomer) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+        const canAccess = await canAccessCustomerByCtvCode(session, existingCustomer.ctvCode);
+        if (!canAccess) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         if (session.user.role === "MANAGER" && body.ctvCode !== undefined) {
             const accessibleCtvCodes = await getAccessibleCtvCodes(session);
@@ -115,6 +115,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                 );
             }
         }
+
+        await ensureCustomerSchema();
 
         const nextAccount = body.account !== undefined ? body.account : existingCustomer.account;
         const finalLat = safeLat !== undefined ? safeLat : existingCustomer.latitude;

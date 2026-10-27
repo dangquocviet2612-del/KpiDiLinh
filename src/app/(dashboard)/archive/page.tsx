@@ -136,7 +136,8 @@ export default function ArchivePage() {
     setBusyAction("export");
     try {
       const res = await fetch(
-        `/api/archive/export?month=${encodeURIComponent(selectedMonth)}`
+        `/api/archive/export?month=${encodeURIComponent(selectedMonth)}`,
+        { method: "POST" }
       );
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));

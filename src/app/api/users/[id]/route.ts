@@ -8,24 +8,15 @@ import { userUpdateSchema } from "@/lib/validations/user.schema";
 import { recordAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
 async function ensureManagerCodeColumn() {
-    try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "managerCode" TEXT`);
-    } catch {
-        // Column already exists or DB does not need migration.
-    }
-    try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "secondaryCode" TEXT`);
-    } catch {
-        // Column already exists or DB does not need migration.
-    }
+    await ensureRuntimeSchema("users");
 }
 
 // PUT update a User (Admin only)
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        await ensureManagerCodeColumn();
         const { id } = await params;
         const authResult = await requireAuth({ roles: ["ADMIN"] });
         if (authResult.errorResponse) return authResult.errorResponse;
@@ -38,6 +29,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
 
         const { username, password, role, canUseGps, managerCode, secondaryCode } = parseResult.data;
+
+        await ensureManagerCodeColumn();
 
         const updateData: any = {};
 

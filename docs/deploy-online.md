@@ -11,7 +11,11 @@ Ngày chuẩn bị: **26/10/2026**. Đây là hướng dẫn triển khai; trạ
 
 Mã nguồn đã được commit và push lên nhánh `main` của GitHub KpiDiLinh. Database Turso mới đã được nhập và xác minh 25 bảng; web Production đã triển khai tại **https://kpidi-linh.vercel.app**. Chưa kết nối tự động deploy từ GitHub với Vercel.
 
-## Trạng thái đã thực hiện
+**Phân biệt local và live:** các kết quả triển khai trong tài liệu này thuộc release Production cũ, có build kèm migration. Batch LOCAL đã tách `build` thành `next build` duy nhất và giữ `db:migrate` là `node scripts/migrate.mjs` để gọi riêng; batch này đã kiểm thử local, chưa commit/push/deploy. Production vẫn chạy release cũ, không tự nhận thay đổi local; kết quả local ở mục 16 của `tiendokpi.md`.
+
+Batch3 LOCAL tiếp tục thay toàn bộ runtime `ensure` có DDL bằng guard chỉ đọc column/PK/unique và sự hiện diện của default bắt buộc. Migration thứ 5 `20261026000000_runtime_schema_readiness` thêm 6 index không trùng và 3 dòng default bằng `ON CONFLICT DO NOTHING`, không sửa 4 SQL lịch sử. Không đọc hoặc thay đổi SQLite phục hồi/Turso thật trong batch này; các kết quả local không xác nhận readiness hay độ trễ cloud của Production.
+
+## Trạng thái đã thực hiện (release Production cũ)
 
 - Database đích: `kpidi-linh-dangquocviet2612-del.aws-ap-northeast-1.turso.io`.
 - Xác nhận database trống trước khi nhập, sau đó nhập schema/index và dữ liệu bằng SDK theo từng lô nhỏ trực tiếp từ máy Windows.
@@ -20,10 +24,10 @@ Mã nguồn đã được commit và push lên nhánh `main` của GitHub KpiDiL
 - Báo cáo và trạng thái nhập ở `.local/deployment/turso-import-report.json`, `.local/deployment/turso-import-state.json`.
 - File `.local/deployment/vercel-production.env` đã có URL database, token thay thế và khóa Production mới; đã cấu hình lên đúng project mới. File người dùng điền nhầm ở gốc repo đã chuyển vào `.local/deployment/`.
 - Đã đổi mật khẩu của admin từng lộ trong seed cũ **chỉ trên database online mới**; mật khẩu mới ở `.local/deployment/online-admin-credentials.txt`. Tài khoản `admin` phục hồi vẫn dùng thông tin tại `.local/admin-credentials.txt`.
-- Build Vercel đạt; đăng nhập ADMIN, 18 trang và 15 API đã qua smoke test. Database sau migration còn nguyên số dòng 25 bảng / 133.752 bản ghi; checksum Node 0TB khớp nguồn. Báo cáo chi tiết trong `.local/deployment/vercel-smoke-report.json`, `post-deploy-database-verification.json` và `tiendokpi.md`.
+- Ở lần triển khai release cũ, build Vercel có chạy migration và đã đạt; đăng nhập ADMIN, 18 trang và 15 API đã qua smoke test. Database sau migration còn nguyên số dòng 25 bảng / 133.752 bản ghi; checksum Node 0TB khớp nguồn. Đây là kết quả lịch sử, không phải xác nhận runner an toàn để chạy lại. Báo cáo chi tiết trong `.local/deployment/vercel-smoke-report.json`, `post-deploy-database-verification.json` và `tiendokpi.md`.
 - **Token cũ đã gửi trong chat vẫn hợp lệ ở lần kiểm tra trước deploy.** Việc tạo token thay thế không tự thu hồi token cũ; đây là việc bảo mật còn phải xử lý, không đánh dấu hoàn tất.
 
-Các bước bên dưới tiếp tục là quy trình triển khai/tham chiếu. Không chạy nhập lại vào database đã có dữ liệu mà bỏ qua kiểm tra.
+Các bước bên dưới tiếp tục là quy trình triển khai/tham chiếu, không phải yêu cầu deploy batch LOCAL này. Không chạy nhập lại vào database đã có dữ liệu mà bỏ qua kiểm tra; không chạy `db:migrate` trên database đã nhập/phục hồi hoặc Production.
 
 ## 2. Dữ liệu chuẩn bị trên máy
 
@@ -81,7 +85,7 @@ Project `kpidi-linh` đã được tạo và triển khai trong scope `vietdq9` 
 
 1. Đăng nhập `https://vercel.com` bằng tài khoản có quyền truy cập repo mới.
 2. Chọn **Add New / Project**, import repo **KpiDiLinh**.
-3. Framework: **Next.js**. Root Directory: gốc repo. Build command hiện tại: `npm run build`.
+3. Framework: **Next.js**. Root Directory: gốc repo. Build command: `npm run build`. Release Production cũ được build với migration; chỉ source đã áp dụng batch LOCAL mới có script `build` là `next build` duy nhất. Không deploy source build cũ vào database đã nhập/phục hồi để thử lại.
 4. Đặt biến môi trường cho Production trước khi deploy:
 
 | Biến | Giá trị |
@@ -96,9 +100,13 @@ Project `kpidi-linh` đã được tạo và triển khai trong scope `vietdq9` 
 
 Trong deployment đã xác minh, `AUTH_URL` được để không cấu hình và đăng nhập hoạt động với NextAuth `trustHost: true` trên domain Production. Không cần đặt localhost hoặc URL deployment tạm vào Production. Chỉ pin URL HTTPS chính thức nếu cấu hình thực tế yêu cầu.
 
-`NODE_0TB_DEFAULT_FILE_PATH` và `CUOC_CD_DEFAULT_FILE_PATH` không trỏ tới file trên ổ D: khi chạy Vercel. Các API setup/seed không cần được mở để nhập dữ liệu vì tài khoản đã có trong database phục hồi.
+Source batch3 LOCAL bỏ tự import Excel từ GET; `NODE_0TB_DEFAULT_FILE_PATH` và `CUOC_CD_DEFAULT_FILE_PATH` là tên env cũ bị bỏ qua, đã bỏ khỏi `.env.example`. Import thủ công qua Admin UI/API vẫn giữ nguyên. Không thay env deployment đang chạy trong batch local này. Các API setup/seed không cần được mở để nhập dữ liệu vì tài khoản đã có trong database phục hồi.
 
-Không dùng chung database Production cho Preview: build hiện chạy migration, nên Preview có thể tác động dữ liệu nếu dùng cùng URL/token. Chỉ bật Preview sau khi cấu hình database riêng phù hợp.
+Không dùng chung database Production cho Preview, kể cả sau khi áp dụng batch3 LOCAL: guard mới không ghi DDL/seed nhưng các thao tác nghiệp vụ và cron vẫn ghi dữ liệu. Tách migration khỏi build và bỏ runtime DDL không có nghĩa toàn bộ app chỉ đọc. Build của release cũ còn gọi migration, thêm rủi ro nếu dùng chung URL/token. Chỉ bật Preview sau khi cấu hình URL/token của database riêng, không dùng thông tin kết nối Production.
+
+Trước cutover sang source LOCAL mới, cần preflight chỉ đọc trên đúng snapshot/target được phê duyệt bằng `npm run db:check-schema` (`scripts/check-runtime-schema.mjs`). Mặc định kiểm tra cả 7 domain, có thể chọn `-- --domain kpi`; phải truyền `DATABASE_URL` tường minh trong process, không tự đọc env file, không migrate/seed/adopt. Remote cần `--allow-remote` cùng phê duyệt riêng; network/UNC không hỗ trợ. Batch này không chạy lệnh đó trên target thật.
+
+Database đủ runtime contract có thể phục vụ GET dù chưa có ledger, nhưng release apply vẫn bị chặn tới khi adoption được xác minh. Thiếu column/PK/unique/default báo `SCHEMA_NOT_READY`, không tự sửa database. Nếu thiếu, phải kiểm chứng upgrade trên bản tách riêng và owner duyệt rollout/rollback trước cutover; không replay SQL lịch sử hoặc baseline/no-op mù quáng. Xem [migration safety](migration-safety.md).
 
 Vercel áp dụng thay đổi biến môi trường vào deployment mới; cập nhật biến sau khi deploy thì cần redeploy.
 
@@ -111,7 +119,9 @@ Nguồn: [Import Git repository vào Vercel](https://vercel.com/docs/git), [Envi
 - Cần thu hồi token cũ đã gửi trong chat. Lệnh Turso `db tokens invalidate` có thể vô hiệu hóa token của **cả group**, không chỉ token cũ hoặc riêng một app. Xác minh database nào dùng chung group trước khi thực hiện; chuẩn bị thay token cho các app bị ảnh hưởng và redeploy Vercel sau cập nhật. Không tự vô hiệu hóa toàn group khi chưa biết tác động. Nguồn: [Turso invalidate tokens](https://docs.turso.tech/cli/db/tokens/invalidate).
 - Kiểm tra ảnh/tệp đính kèm cần lưu bền vững; file ghi vào ổ đĩa của Function không thay thế được kho lưu trữ dữ liệu lâu dài.
 - Kiểm tra cron trong `vercel.json`: `/api/archive/cron` có lịch `0 2 * * *`; endpoint có thể purge dữ liệu archive hết hạn khi được xác thực.
-- `npm run build` chạy `scripts/migrate.mjs` trước Next.js. Chỉ trỏ vào database mới đã sao lưu và kiểm tra trước khi deploy; việc này không phải chỉ đóng gói giao diện.
+- Batch LOCAL đã tách `npm run build` thành `next build`; đây chưa phải cấu hình của release Production đang live. Không tự chạy migration trước build/test/lint.
+- `db:migrate` vẫn gọi `node scripts/migrate.mjs`, nhưng wrapper local mới đã thay runner replay bằng check mặc định và apply tường minh với ledger/checksum/write transaction. Không auto-load env file; remote cần opt-in. Database đã nhập/phục hồi chưa có ledger được adoption sẽ bị từ chối trước ghi; **không tự baseline hoặc thử apply trên Production**. Xem `docs/migration-safety.md`; rollout/adoption thật chưa được thực hiện.
+- Backup kiểm tra cấu trúc riêng với full runtime readiness, cho phép phục hồi backup cũ thiếu default. Chỉ POST restore được cấp quyền mới bổ sung 3 dòng default bắt buộc sau các dòng phục hồi trong transaction hiện có bằng `ON CONFLICT DO NOTHING`; không seed trên GET, không ghi đè rate tùy chỉnh hoặc bật lại `CUOC_N1_N3_RATE` đã tắt. JSON backup v10 vẫn không chứa ledger; restore không xác lập adoption.
 
 Backup JSON đã phục hồi khoảng 73 MB. Vercel Functions có giới hạn payload request 4,5 MB, nên không dùng trang restore trên Vercel để tải nguyên backup này lên. Cấu hình `proxyClientMaxBodySize: "64mb"` trong Next.js không nâng được giới hạn của nền tảng Vercel. Nhập dữ liệu trực tiếp vào Turso từ máy.
 

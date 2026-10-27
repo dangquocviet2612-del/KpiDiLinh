@@ -4,15 +4,12 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
-  checkAndPurgeExpired,
   getArchiveExportReadiness,
   getArchiveStatus,
   upsertArchiveConfirmation,
 } from "@/lib/archive";
 
 export async function POST(request: Request) {
-  checkAndPurgeExpired().catch((error) => console.error("AUTO_PURGE_ERROR", error));
-
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {

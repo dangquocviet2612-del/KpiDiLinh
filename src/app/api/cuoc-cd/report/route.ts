@@ -7,68 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
 import { getCache, setCache } from "@/lib/kpi-cache";
-import { buildCuocCdSummaryRow, loadDefaultCuocCdWorkbook, CuocCdRow } from "@/lib/cuoc-cd";
-
-async function autoSyncDefaultFileIfNeeded() {
-  try {
-    const countResult = await prisma.$queryRawUnsafe<Array<{ cnt: number }>>(
-      `SELECT COUNT(*) as cnt FROM "CuocCdDailyResult"`
-    );
-    const count = Number(countResult[0]?.cnt || 0);
-    if (count === 0) {
-      const parsedRows = loadDefaultCuocCdWorkbook();
-      if (parsedRows && parsedRows.length > 0) {
-        const users = await prisma.user.findMany({
-          select: { username: true, secondaryCode: true },
-        } as any);
-
-        const mapSecondary = new Map<string, string>();
-        const mapUsername = new Map<string, string>();
-        for (const user of users as any[]) {
-          const username = String(user.username || "").trim();
-          if (username) mapUsername.set(username.toLowerCase(), username);
-          const secondary = String(user.secondaryCode || "").trim();
-          if (secondary) mapSecondary.set(secondary.toLowerCase(), username);
-        }
-
-        const normalized = parsedRows.map((row) => {
-          const code = String(row.employeeCodeRaw || "").trim();
-          const codeLower = code.toLowerCase();
-          const ctvUser = mapSecondary.get(codeLower) || mapUsername.get(codeLower) || code;
-          return { ...row, ctvUser };
-        });
-
-        const reportDate = normalized[0].reportDate;
-        const chunkSize = 300;
-        for (let i = 0; i < normalized.length; i += chunkSize) {
-          const chunk = normalized.slice(i, i + chunkSize);
-          const valuesSql = chunk.map(() => `(?, ?, ?, ?, ?, ?, ?, ?)`).join(", ");
-          const params = chunk.flatMap((row) => [
-            row.reportDate,
-            row.ctvUser,
-            row.employeeCodeRaw,
-            row.managerCodeRaw,
-            row.dauKy,
-            row.luyKe,
-            row.thuaThieu,
-            row.tonChuaThu,
-          ]);
-
-          await prisma.$executeRawUnsafe(
-            `
-            INSERT INTO "CuocCdDailyResult"
-            ("reportDate","ctvUser","employeeCodeRaw","managerCodeRaw","dauKy","luyKe","thuaThieu","tonChuaThu")
-            VALUES ${valuesSql}
-            `,
-            ...params
-          );
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Auto sync CuocCd default file error:", err);
-  }
-}
+import { buildCuocCdSummaryRow, CuocCdRow } from "@/lib/cuoc-cd";
 
 export async function GET(request: Request) {
   try {
@@ -88,7 +27,6 @@ export async function GET(request: Request) {
     }
 
     await ensureKpiTables();
-    await autoSyncDefaultFileIfNeeded();
 
     const role = session.user.role;
     const username = session.user.name || "";

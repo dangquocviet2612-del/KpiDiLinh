@@ -35,7 +35,7 @@ function pad2(value: number) {
 }
 
 function isValidMonth(month: string) {
-  return /^\d{4}-\d{2}$/.test(month);
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
 function toMonthText(date: Date) {
@@ -74,25 +74,29 @@ export function getMonthRange(month: string) {
 }
 
 export async function getArchiveStatus(month: string) {
-  await ensureKpiTables();
   const rows = await prisma.$queryRawUnsafe<ArchiveLogRecord[]>(
-    `SELECT * FROM "ArchiveLog" WHERE "archiveMonth" = ? LIMIT 1`,
+    `SELECT "id", "archiveMonth", "archivedBy",
+      CAST("archivedAt" AS TEXT) AS "archivedAt",
+      CAST("purgeAfter" AS TEXT) AS "purgeAfter",
+      CAST("purgedAt" AS TEXT) AS "purgedAt",
+      "kpiRecordCount", "cuocRecordCount", "fileName"
+     FROM "ArchiveLog" WHERE "archiveMonth" = ? LIMIT 1`,
     month
   );
   return rows[0] || null;
 }
 
 export async function getArchiveExportStatus(month: string) {
-  await ensureKpiTables();
   const rows = await prisma.$queryRawUnsafe<ArchiveExportLogRecord[]>(
-    `SELECT * FROM "ArchiveExportLog" WHERE "archiveMonth" = ? LIMIT 1`,
+    `SELECT "id", "archiveMonth", "exportedBy",
+      CAST("exportedAt" AS TEXT) AS "exportedAt", "fileName"
+     FROM "ArchiveExportLog" WHERE "archiveMonth" = ? LIMIT 1`,
     month
   );
   return rows[0] || null;
 }
 
 export async function countRecords(month: string) {
-  await ensureKpiTables();
   const { startDate, endDate } = getMonthRange(month);
   const [kpiRows, cuocRows] = await Promise.all([
     prisma.$queryRawUnsafe<Array<{ total: number }>>(
@@ -122,7 +126,6 @@ export async function countRecords(month: string) {
 }
 
 export async function getLatestMonthDataTimestamp(month: string) {
-  await ensureKpiTables();
   const { startDate, endDate } = getMonthRange(month);
   const [kpiRows, cuocRows] = await Promise.all([
     prisma.$queryRawUnsafe<Array<{ createdAt: string | null }>>(
@@ -238,29 +241,37 @@ export async function recordArchiveExport(month: string, exportedBy: string, fil
   return getArchiveExportStatus(month);
 }
 
-export async function purgeMonthData(month: string) {
-  await ensureKpiTables();
+export async function purgeMonthData(month: string, options: { requireExpired?: boolean } = {}) {
   const { startDate, endDate } = getMonthRange(month);
-  await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(
+  const purged = await prisma.$transaction(async (transaction) => {
+    const claimed = await transaction.$executeRawUnsafe(
+      `UPDATE "ArchiveLog" SET "purgedAt" = CURRENT_TIMESTAMP
+       WHERE "archiveMonth" = ? AND "purgedAt" IS NULL
+         AND (? = 0 OR datetime("purgeAfter") <= datetime('now'))`,
+      month,
+      options.requireExpired === false ? 0 : 1
+    );
+    if (claimed !== 1) return false;
+
+    await transaction.$executeRawUnsafe(
       `DELETE FROM "KpiDailyResult" WHERE "reportDate" >= ? AND "reportDate" < ?`,
       startDate,
       endDate
     );
-    await tx.$executeRawUnsafe(
+    await transaction.$executeRawUnsafe(
       `DELETE FROM "CuocDailyResult" WHERE "reportDate" >= ? AND "reportDate" < ?`,
       startDate,
       endDate
     );
-    await tx.$executeRawUnsafe(
-      `UPDATE "ArchiveLog" SET "purgedAt" = CURRENT_TIMESTAMP WHERE "archiveMonth" = ? AND "purgedAt" IS NULL`,
-      month
-    );
+    return true;
   });
+
+  if (!purged) return false;
 
   clearCacheByPrefix("kpi:");
   clearCacheByPrefix("cuoc:");
   clearCacheByPrefix("prepaid:");
+  return true;
 }
 
 export async function upsertArchiveConfirmation(month: string, archivedBy: string, fileName?: string) {
@@ -269,6 +280,7 @@ export async function upsertArchiveConfirmation(month: string, archivedBy: strin
     throw new Error("Only past months can be archived");
   }
 
+  await ensureKpiTables();
   const counts = await countRecords(month);
   if ((counts.kpiCount || 0) + (counts.cuocCount || 0) <= 0) {
     throw new Error("No KPI/Cước data found for the selected month");
@@ -276,7 +288,7 @@ export async function upsertArchiveConfirmation(month: string, archivedBy: strin
   const purgeAfter = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   const purgeAfterSql = toSqliteDatetime(purgeAfter);
 
-  await prisma.$executeRawUnsafe(
+  const confirmed = await prisma.$executeRawUnsafe(
     `
     INSERT INTO "ArchiveLog" ("archiveMonth","archivedBy","purgeAfter","kpiRecordCount","cuocRecordCount","fileName","purgedAt")
     VALUES (?, ?, ?, ?, ?, ?, NULL)
@@ -286,8 +298,8 @@ export async function upsertArchiveConfirmation(month: string, archivedBy: strin
       "purgeAfter" = excluded."purgeAfter",
       "kpiRecordCount" = excluded."kpiRecordCount",
       "cuocRecordCount" = excluded."cuocRecordCount",
-      "fileName" = excluded."fileName",
-      "purgedAt" = NULL
+      "fileName" = excluded."fileName"
+    WHERE "ArchiveLog"."purgedAt" IS NULL
     `,
     month,
     archivedBy,
@@ -297,6 +309,8 @@ export async function upsertArchiveConfirmation(month: string, archivedBy: strin
     fileName || null
   );
 
+  if (confirmed !== 1) throw new Error("Cannot confirm a purged archive");
+
   return getArchiveStatus(month);
 }
 
@@ -305,8 +319,8 @@ export async function cancelArchiveConfirmation(month: string) {
   if (!existing) return null;
   if (existing.purgedAt) throw new Error("Cannot cancel a purged archive");
 
-  await prisma.$executeRawUnsafe(`DELETE FROM "ArchiveLog" WHERE "archiveMonth" = ? AND "purgedAt" IS NULL`, month);
-  return true;
+  const cancelled = await prisma.$executeRawUnsafe(`DELETE FROM "ArchiveLog" WHERE "archiveMonth" = ? AND "purgedAt" IS NULL`, month);
+  return cancelled === 1;
 }
 
 export async function assertArchiveMonthWritable(month: string) {
@@ -327,11 +341,14 @@ export async function checkAndPurgeExpired() {
     `
   );
 
+  let purgedCount = 0;
   for (const row of due) {
-    await purgeMonthData(row.archiveMonth);
+    if (await purgeMonthData(row.archiveMonth)) {
+      purgedCount += 1;
+    }
   }
 
-  return due.length;
+  return purgedCount;
 }
 
 export function canArchiveMonth(month: string, archive: ArchiveLogRecord | null) {

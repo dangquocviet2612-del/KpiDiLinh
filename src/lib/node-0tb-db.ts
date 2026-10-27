@@ -1,51 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { parseImportDate, parseImportInteger, toTrimmedString } from "@/lib/import-utils";
-import fs from "fs";
-import * as xlsx from "xlsx";
+import { parseImportDate, toTrimmedString } from "@/lib/import-utils";
+import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 import type { Node0TbItem, Node0TbApiResponse } from "@/types";
 
-let ensurePromise: Promise<void> | null = null;
-
 export async function ensureNode0TbTable() {
-  if (ensurePromise) {
-    await ensurePromise;
-    return;
-  }
-
-  ensurePromise = (async () => {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Node0Tb" (
-        "id" TEXT PRIMARY KEY,
-        "nodeCode" TEXT NOT NULL,
-        "dateKd" DATETIME,
-        "dateKdRaw" TEXT,
-        "dateKdFormatted" TEXT,
-        "totalPort" INTEGER,
-        "usedPort" INTEGER DEFAULT 0,
-        "categoryKd" TEXT,
-        "note" TEXT,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await prisma.$executeRawUnsafe(`
-      CREATE UNIQUE INDEX IF NOT EXISTS "idx_node_0tb_node_code"
-      ON "Node0Tb" ("nodeCode")
-    `);
-
-    await prisma.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "idx_node_0tb_category_kd"
-      ON "Node0Tb" ("categoryKd")
-    `);
-  })();
-
-  try {
-    await ensurePromise;
-  } catch (error) {
-    ensurePromise = null;
-    throw error;
-  }
+  await ensureRuntimeSchema("node0tb");
 }
 
 export function formatDateToVn(date: Date | null): string | null {
@@ -70,104 +29,6 @@ export function parseFlexibleDate(value: unknown): { date: Date | null; formatte
   }
 
   return { date: null, formatted: raw, raw };
-}
-
-export async function seedNode0TbIfEmpty(): Promise<number> {
-  await ensureNode0TbTable();
-
-  const countRows = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
-    `SELECT COUNT(*) as count FROM "Node0Tb"`
-  );
-  const currentCount = Number(countRows[0]?.count || 0);
-  if (currentCount > 0) {
-    return currentCount;
-  }
-
-  const defaultFilePath = process.env.NODE_0TB_DEFAULT_FILE_PATH || "";
-  if (!defaultFilePath || !fs.existsSync(defaultFilePath)) {
-    return 0;
-  }
-
-  try {
-    const fileBuffer = fs.readFileSync(defaultFilePath);
-    const wb = xlsx.read(fileBuffer, { type: "buffer", dense: true });
-    
-    // Choose sheet 'ĐH NODE 0Tb' or first sheet
-    let targetSheetName = wb.SheetNames.find((s) => s.toLowerCase().includes("0tb") || s.toLowerCase().includes("node"));
-    if (!targetSheetName) {
-      targetSheetName = wb.SheetNames[0];
-    }
-    if (!targetSheetName) return 0;
-
-    const sheet = wb.Sheets[targetSheetName];
-    const matrix = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
-    if (!matrix || matrix.length <= 1) return 0;
-
-    // Detect header row index
-    let headerRowIndex = 0;
-    for (let r = 0; r < Math.min(10, matrix.length); r++) {
-      const row = matrix[r] || [];
-      const rowStr = row.map((c) => String(c || "").toUpperCase()).join(" ");
-      if (rowStr.includes("NODE") || rowStr.includes("PORT") || rowStr.includes("KD")) {
-        headerRowIndex = r;
-        break;
-      }
-    }
-
-    const rows = matrix.slice(headerRowIndex + 1);
-    const itemsToInsert: Array<{
-      nodeCode: string;
-      dateKd: Date | null;
-      dateKdRaw: string;
-      dateKdFormatted: string | null;
-      totalPort: number | null;
-      usedPort: number | null;
-      categoryKd: string | null;
-    }> = [];
-
-    for (const r of rows) {
-      const nodeCode = toTrimmedString(r[0]);
-      if (!nodeCode || nodeCode.toLowerCase() === "node_code" || nodeCode.toLowerCase() === "mã node") {
-        continue;
-      }
-
-      const dateParsed = parseFlexibleDate(r[1]);
-      const totalPort = parseImportInteger(r[2]);
-      
-      // Col 3 might be used_port or categoryKd depending on sheet format
-      let usedPort = 0;
-      let categoryKd = "";
-
-      if (r.length >= 5) {
-        usedPort = parseImportInteger(r[3]) ?? 0;
-        categoryKd = toTrimmedString(r[4]);
-      } else {
-        categoryKd = toTrimmedString(r[3]);
-      }
-
-      if (!categoryKd && typeof r[4] !== "undefined") {
-        categoryKd = toTrimmedString(r[4]);
-      }
-
-      itemsToInsert.push({
-        nodeCode,
-        dateKd: dateParsed.date,
-        dateKdRaw: dateParsed.raw,
-        dateKdFormatted: dateParsed.formatted,
-        totalPort,
-        usedPort,
-        categoryKd: categoryKd || "Chưa phân loại",
-      });
-    }
-
-    if (itemsToInsert.length === 0) return 0;
-
-    await upsertNode0TbBatch(itemsToInsert);
-    return itemsToInsert.length;
-  } catch (err) {
-    console.error("Error seeding Node0Tb:", err);
-    return 0;
-  }
 }
 
 export async function upsertNode0TbBatch(
@@ -235,7 +96,6 @@ export async function getNode0TbList(options?: {
   category?: string;
 }): Promise<Node0TbApiResponse> {
   await ensureNode0TbTable();
-  await seedNode0TbIfEmpty();
 
   // 1. Fetch all Node0Tb rows
   const node0TbRows = await prisma.$queryRawUnsafe<

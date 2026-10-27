@@ -19,7 +19,6 @@ function parsePositiveInt(value: string | null, fallback: number, max: number) {
 
 export async function GET(request: Request) {
     try {
-        await ensureCustomerSchema();
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -98,6 +97,8 @@ export async function GET(request: Request) {
             };
         }
 
+        await ensureCustomerSchema();
+
         const rows = await prisma.customer.findMany({
             where,
             skip,
@@ -155,7 +156,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        await ensureCustomerSchema();
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -189,6 +189,8 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: "Bạn không có quyền gán khách cho CTV này." }, { status: 403 });
             }
         }
+
+        await ensureCustomerSchema();
 
         const safeNumber = (val: any, isFloat: boolean) => {
             if (val === null || val === undefined || String(val).trim() === "") return null;

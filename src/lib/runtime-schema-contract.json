@@ -1,0 +1,528 @@
+{
+  "kpi": {
+    "KpiMetricConfig": {
+      "columns": [
+        "id",
+        "kpiCode",
+        "kpiName",
+        "displayName",
+        "mergeGroup",
+        "baseScore",
+        "maxPercent",
+        "sortOrder",
+        "isEnabled",
+        "isNegative",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "kpiCode"
+        ]
+      ]
+    },
+    "KpiDailyResult": {
+      "columns": [
+        "id",
+        "reportDate",
+        "ctvUser",
+        "kpiCode",
+        "kpiName",
+        "khThang",
+        "thNgay",
+        "thLuyKe",
+        "completionPercent",
+        "growthPercent",
+        "rawPayload",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportDate",
+          "ctvUser",
+          "kpiCode"
+        ]
+      ]
+    },
+    "CuocDailyResult": {
+      "columns": [
+        "id",
+        "reportDate",
+        "ctvUser",
+        "employeeCodeRaw",
+        "managerCodeRaw",
+        "targetAmount",
+        "collectedAmount",
+        "completionPercent",
+        "missingAmount",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportDate",
+          "ctvUser"
+        ]
+      ]
+    },
+    "CuocCdDailyResult": {
+      "columns": [
+        "id",
+        "reportDate",
+        "ctvUser",
+        "employeeCodeRaw",
+        "managerCodeRaw",
+        "dauKy",
+        "luyKe",
+        "thuaThieu",
+        "tonChuaThu",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportDate",
+          "employeeCodeRaw"
+        ]
+      ]
+    },
+    "ManagerKpiDailyResult": {
+      "columns": [
+        "id",
+        "reportDate",
+        "managerUser",
+        "managerName",
+        "jobTitle",
+        "metricCode",
+        "metricName",
+        "metricLabel",
+        "khToDate",
+        "khMonth",
+        "thDay",
+        "thLuyKe",
+        "percentToDate",
+        "percentMonth",
+        "samePeriodValue",
+        "growthPercent",
+        "rawPayload",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportDate",
+          "managerUser",
+          "metricCode"
+        ]
+      ]
+    },
+    "CdtTransaction": {
+      "columns": [
+        "id",
+        "transactionDate",
+        "transactionTime",
+        "ctvUser",
+        "subscriberType",
+        "account",
+        "amount",
+        "months",
+        "sourceFile",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "transactionDate",
+          "ctvUser",
+          "account",
+          "amount",
+          "months"
+        ]
+      ]
+    },
+    "CdtOutstandingRecord": {
+      "columns": [
+        "id",
+        "reportMonth",
+        "account",
+        "customerName",
+        "phone",
+        "address",
+        "ctvCode",
+        "serviceName",
+        "expiryDateText",
+        "expiryMonth",
+        "statusCheck",
+        "subscriberType",
+        "sourceFile",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportMonth",
+          "account",
+          "expiryMonth"
+        ]
+      ]
+    },
+    "DisconnectRecord": {
+      "columns": [
+        "id",
+        "reportMonth",
+        "sourceType",
+        "account",
+        "serviceName",
+        "ctvCode",
+        "suspendedDateIso",
+        "suspendedDateText",
+        "cancelDateIso",
+        "cancelDateText",
+        "cancelMonth",
+        "sourceFile",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "reportMonth",
+          "sourceType",
+          "account"
+        ]
+      ]
+    },
+    "ArchiveLog": {
+      "columns": [
+        "id",
+        "archiveMonth",
+        "archivedBy",
+        "archivedAt",
+        "purgeAfter",
+        "purgedAt",
+        "kpiRecordCount",
+        "cuocRecordCount",
+        "fileName"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "archiveMonth"
+        ]
+      ]
+    },
+    "ArchiveExportLog": {
+      "columns": [
+        "id",
+        "archiveMonth",
+        "exportedBy",
+        "exportedAt",
+        "fileName"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "archiveMonth"
+        ]
+      ]
+    },
+    "CuocConfig": {
+      "columns": [
+        "id",
+        "targetRatePercent",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "CuocCdConfig": {
+      "columns": [
+        "id",
+        "targetRatePercent",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "ChurnRiskRecord": {
+      "columns": [
+        "id",
+        "reportMonth",
+        "ctvCode",
+        "customerName",
+        "phone",
+        "packageName",
+        "address",
+        "sourceFile",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "User": {
+      "columns": [
+        "id",
+        "username",
+        "password",
+        "role",
+        "managerCode",
+        "secondaryCode",
+        "canUseGps",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "username"
+        ]
+      ]
+    }
+  },
+  "customer": {
+    "Customer": {
+      "columns": [
+        "id",
+        "name",
+        "account",
+        "subscriberType",
+        "phone",
+        "package",
+        "price",
+        "address",
+        "nodeName",
+        "latitude",
+        "longitude",
+        "ctvCode",
+        "billingType",
+        "prepaidPeriod",
+        "renewalMonth",
+        "expirationDate",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    }
+  },
+  "users": {
+    "User": {
+      "columns": [
+        "id",
+        "username",
+        "password",
+        "role",
+        "managerCode",
+        "secondaryCode",
+        "canUseGps",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "username"
+        ]
+      ]
+    }
+  },
+  "node0tb": {
+    "Node0Tb": {
+      "columns": [
+        "id",
+        "nodeCode",
+        "dateKd",
+        "dateKdRaw",
+        "dateKdFormatted",
+        "totalPort",
+        "usedPort",
+        "categoryKd",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "nodeCode"
+        ]
+      ]
+    },
+    "Node": {
+      "columns": [
+        "id",
+        "name",
+        "description",
+        "latitude",
+        "longitude",
+        "totalIntPort",
+        "usedPort",
+        "portEfficiency",
+        "dateKd",
+        "efficiencyStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    }
+  },
+  "mapping": {
+    "CustomerNodeMapping": {
+      "columns": [
+        "id",
+        "account",
+        "accountKey",
+        "nodeName",
+        "accountAddress",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "accountKey"
+        ]
+      ]
+    }
+  },
+  "node": {
+    "Node": {
+      "columns": [
+        "id",
+        "name",
+        "description",
+        "latitude",
+        "longitude",
+        "totalIntPort",
+        "usedPort",
+        "portEfficiency",
+        "dateKd",
+        "efficiencyStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    }
+  },
+  "documents": {
+    "OfficialDocument": {
+      "columns": [
+        "id",
+        "title",
+        "category",
+        "summary",
+        "content",
+        "status",
+        "publishedAt",
+        "expiresAt",
+        "isPinned",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "OfficialDocumentAsset": {
+      "columns": [
+        "id",
+        "documentId",
+        "type",
+        "fileUrl",
+        "fileName",
+        "mimeType",
+        "size",
+        "storageKind",
+        "fileData",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "OfficialDocumentTempAsset": {
+      "columns": [
+        "id",
+        "type",
+        "fileName",
+        "mimeType",
+        "size",
+        "fileData",
+        "createdAt"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    },
+    "OfficialDocumentRevision": {
+      "columns": [
+        "id",
+        "documentId",
+        "changeType",
+        "changedBy",
+        "changedAt",
+        "title",
+        "summary",
+        "content",
+        "status",
+        "category",
+        "isPinned"
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "unique": []
+    }
+  }
+}

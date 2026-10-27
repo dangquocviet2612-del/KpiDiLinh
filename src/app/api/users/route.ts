@@ -9,28 +9,21 @@ import { userInputSchema } from "@/lib/validations/user.schema";
 import { recordAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import { clearCacheByPrefix, getCache, setCache } from "@/lib/kpi-cache";
+import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
 async function ensureManagerCodeColumn() {
-    try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "managerCode" TEXT`);
-    } catch {
-        // Column already exists or DB does not need migration.
-    }
-    try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "secondaryCode" TEXT`);
-    } catch {
-        // Column already exists or DB does not need migration.
-    }
+    await ensureRuntimeSchema("users");
 }
 
 // GET users for dropdown/management
 export async function GET(request: Request) {
     try {
-        await ensureManagerCodeColumn();
         const session = await auth();
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        await ensureManagerCodeColumn();
 
         const roleFilter = new URL(request.url).searchParams.get("role");
         const where: any = {};
@@ -104,7 +97,6 @@ export async function GET(request: Request) {
 // POST create a new User (Admin only)
 export async function POST(request: Request) {
     try {
-        await ensureManagerCodeColumn();
         const authResult = await requireAuth({ roles: ["ADMIN"] });
         if (authResult.errorResponse) return authResult.errorResponse;
 
@@ -116,6 +108,8 @@ export async function POST(request: Request) {
         }
 
         const { username, password, canUseGps, role, managerCode, secondaryCode } = parseResult.data;
+
+        await ensureManagerCodeColumn();
 
         const existingUser = await prisma.user.findUnique({ where: { username } });
         if (existingUser) {

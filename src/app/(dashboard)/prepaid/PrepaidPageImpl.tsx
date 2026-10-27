@@ -13,6 +13,7 @@ import {
   isCuocN1N3MetricKey,
 } from "@/lib/kpi-scoring";
 import { sortKpiRowsByCompletion } from "@/lib/kpi-row-sorting";
+import { kpiReportRequestKey, useLatestKpiRequest } from "@/hooks/useLatestKpiRequest";
 import {
   filterIncompleteKpiSummaryRows,
   sortKpiSummaryRowsByCompletion,
@@ -148,6 +149,8 @@ export default function KpiPage() {
   const role = session?.user?.role || "";
   const canAdmin = role === "ADMIN";
   const canSelectCtv = role === "ADMIN" || role === "MANAGER";
+  const hasSession = Boolean(session?.user);
+  const scopeKey = JSON.stringify([session?.user?.id || "", session?.user?.name || "", role]);
   const canViewSummary = canSelectCtv;
   const canViewManagerKpi = role === "ADMIN" || role === "MANAGER";
   const canViewCuoc = role === "ADMIN" || role === "MANAGER" || role === "CTV";
@@ -205,15 +208,21 @@ export default function KpiPage() {
   const [debouncedManagerIndicator, setDebouncedManagerIndicator] = useState("");
   const [managerFilter, setManagerFilter] = useState("");
   const [debouncedManagerFilter, setDebouncedManagerFilter] = useState("");
-  const personalReqRef = useRef(0);
   const summaryReqRef = useRef(0);
   const managerSummaryReqRef = useRef(0);
-  const lastPersonalKeyRef = useRef("");
   const lastSummaryKeyRef = useRef("");
   const lastManagerSummaryKeyRef = useRef("");
   const hasPersonalDataRef = useRef(false);
+  const { run: runPersonal, cancel: cancelPersonal, reset: resetPersonal } = useLatestKpiRequest<{ rows?: KpiRow[]; reportDate?: string | null; totalBaseScore?: number; totalAchievedScore?: number }>();
   const hasSummaryDataRef = useRef(false);
   const hasManagerSummaryDataRef = useRef(false);
+
+  useEffect(() => {
+    resetPersonal();
+    hasPersonalDataRef.current = false;
+    setReportRows([]);
+    setTotals({ totalBaseScore: 0, totalAchievedScore: 0 });
+  }, [resetPersonal, scopeKey]);
   useEffect(() => {
     const id = setTimeout(() => setDebouncedDate(reportDate), 320);
     return () => clearTimeout(id);
@@ -244,53 +253,54 @@ export default function KpiPage() {
     router.replace("/prepaid");
   }, [router, shouldRedirectManagerSummary]);
 
-  const fetchPersonal = useCallback(async (options?: { force?: boolean }) => {
-    if (!session?.user) return;
-    const requestKey = [debouncedCtv || "", debouncedDate || ""].join("|");
-    if (!options?.force && hasPersonalDataRef.current && lastPersonalKeyRef.current === requestKey) {
-      return;
-    }
+  const fetchPersonal = useCallback(async (options?: { force?: boolean; latest?: boolean }) => {
+    if (!hasSession) return;
+    const ctv = canSelectCtv ? debouncedCtv : "";
+    const requestedDate = options?.latest ? "" : debouncedDate;
     const hadPersonalData = hasPersonalDataRef.current;
-    lastPersonalKeyRef.current = requestKey;
-    const reqId = ++personalReqRef.current;
-    setPersonalErrorMessage(null);
-    if (!hadPersonalData) setLoading(true);
-    else setRefreshing(true);
-    try {
-      const params = new URLSearchParams();
-      if (debouncedCtv && canSelectCtv) params.set("ctvUser", debouncedCtv);
-      if (debouncedDate) params.set("reportDate", debouncedDate);
-      const res = await fetch(`/api/kpi/report?${params.toString()}`);
-      const data = await res.json();
-      if (reqId !== personalReqRef.current) return;
-      if (!res.ok) throw new Error(data?.error || "Không tải được dữ liệu KPI");
-      setPersonalErrorMessage(null);
-      setReportRows(data.rows || []);
-      hasPersonalDataRef.current = true;
-      setTotals({
-        totalBaseScore: Number(data.totalBaseScore || 0),
-        totalAchievedScore: Number(data.totalAchievedScore || 0),
-      });
-      if (data.reportDate && !dateInitialized) {
-        setReportDate(data.reportDate);
-        setDateInitialized(true);
-      }
-    } catch (error: any) {
-      if (reqId !== personalReqRef.current) return;
-      const nextError = error.message || "Không tải được dữ liệu KPI";
-      setPersonalErrorMessage(nextError);
-      toast.error(nextError);
-      if (!hadPersonalData) {
-        setReportRows([]);
-        setTotals({ totalBaseScore: 0, totalAchievedScore: 0 });
-      }
-    } finally {
-      if (reqId === personalReqRef.current) {
+    return runPersonal({
+      key: kpiReportRequestKey(scopeKey, ctv, requestedDate),
+      force: options?.force,
+      resolvedKeys: (data) => [kpiReportRequestKey(scopeKey, ctv, data.reportDate || requestedDate)],
+      onStart: () => {
+        setPersonalErrorMessage(null);
+        if (!hadPersonalData) setLoading(true);
+        else setRefreshing(true);
+      },
+      load: async (signal) => {
+        const params = new URLSearchParams();
+        if (ctv) params.set("ctvUser", ctv);
+        if (requestedDate) params.set("reportDate", requestedDate);
+        const res = await fetch(`/api/kpi/report?${params.toString()}`, { signal });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Không tải được dữ liệu KPI");
+        return data;
+      },
+      onSuccess: (data) => {
+        setPersonalErrorMessage(null);
+        setReportRows(data.rows || []);
+        hasPersonalDataRef.current = true;
+        setTotals({ totalBaseScore: Number(data.totalBaseScore || 0), totalAchievedScore: Number(data.totalAchievedScore || 0) });
+        if (data.reportDate && (!dateInitialized || options?.latest)) {
+          setReportDate(data.reportDate);
+          setDateInitialized(true);
+        }
+      },
+      onError: (error) => {
+        const nextError = error instanceof Error ? error.message : "Không tải được dữ liệu KPI";
+        setPersonalErrorMessage(nextError);
+        toast.error(nextError);
+        if (!hadPersonalData) {
+          setReportRows([]);
+          setTotals({ totalBaseScore: 0, totalAchievedScore: 0 });
+        }
+      },
+      onSettled: () => {
         setLoading(false);
         setRefreshing(false);
-      }
-    }
-  }, [canSelectCtv, dateInitialized, debouncedCtv, debouncedDate, session?.user]);
+      },
+    });
+  }, [canSelectCtv, dateInitialized, debouncedCtv, debouncedDate, hasSession, runPersonal, scopeKey]);
 
   const fetchIndicatorList = useCallback(async (options?: { force?: boolean }) => {
     if (!session?.user || !canViewSummary) return;
@@ -463,33 +473,42 @@ export default function KpiPage() {
     hasSession: !!session?.user,
   });
 
+  const handleResolvedReportDate = useCallback((value: string) => {
+    setReportDate(value);
+    setDateInitialized(true);
+  }, []);
+
   const kpiCalculatorPanel = useKpiCalculator({
     enabled: isKpiCalculatorView,
     hasSession: !!session?.user,
     canSelectCtv,
     selectedCtv,
     reportDate,
-    onResolvedReportDate: (value) => {
-      setReportDate(value);
-      setDateInitialized(true);
-    },
+    onResolvedReportDate: handleResolvedReportDate,
+    scopeKey,
   });
 
   useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
     const init = async () => {
-      if (!session?.user) return;
+      if (!hasSession) return;
       if (canSelectCtv) {
-        const res = await fetch("/api/me");
+        const res = await fetch("/api/me", { signal: controller.signal });
         if (res.ok) {
           const me = await res.json();
+          if (!active) return;
           const users = Array.isArray(me?.ctvList) ? me.ctvList : [];
           setCtvOptions(users);
-          if (!selectedCtv && users.length > 0) setSelectedCtv(users[0].username);
+          setSelectedCtv((current) => users.some((user: { username: string }) => user.username === current) ? current : users[0]?.username || "");
         }
       }
     };
-    void init();
-  }, [canSelectCtv, selectedCtv, session?.user]);
+    void init().catch(() => {
+      if (active && !controller.signal.aborted) toast.error("Không tải được danh sách CTV");
+    });
+    return () => { active = false; controller.abort(); };
+  }, [canSelectCtv, hasSession, scopeKey]);
 
   useEffect(() => {
     if (!session?.user || !isSummaryView) return;
@@ -502,7 +521,7 @@ export default function KpiPage() {
   }, [fetchManagerIndicatorList, isManagerSummaryView, session?.user]);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!hasSession) { cancelPersonal(); return; }
     if (
       isOfficialView ||
       isCdtReportView ||
@@ -512,11 +531,13 @@ export default function KpiPage() {
       isSummaryView ||
       isManagerSummaryView ||
       isCuocView ||
-      isCuocCdView
-    ) return;
-    if (canSelectCtv && !selectedCtv) return;
+      isCuocCdView ||
+      isKpiCalculatorView
+    ) { cancelPersonal(); return; }
+    if (canSelectCtv && (!debouncedCtv || debouncedCtv !== selectedCtv)) { cancelPersonal(); return; }
+    if (debouncedDate !== reportDate) { cancelPersonal(); return; }
     void fetchPersonal();
-  }, [canSelectCtv, fetchPersonal, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, selectedCtv, session?.user]);
+  }, [cancelPersonal, canSelectCtv, debouncedCtv, debouncedDate, fetchPersonal, hasSession, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, reportDate, selectedCtv]);
 
   useEffect(() => {
     setSummaryPage(1);
@@ -537,9 +558,8 @@ export default function KpiPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Import KPI thất bại");
       toast.success(`Import KPI thành công (${data.inserted} dòng)`);
-      setReportDate("");
-      setDateInitialized(false);
-      await Promise.all([fetchPersonal({ force: true }), fetchIndicatorList({ force: true })]);
+      resetPersonal();
+      await Promise.all([fetchPersonal({ force: true, latest: true }), fetchIndicatorList({ force: true })]);
     } catch (error: any) {
       toast.error(error.message || "Import KPI thất bại");
     } finally {

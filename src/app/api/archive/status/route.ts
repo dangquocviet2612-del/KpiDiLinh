@@ -5,15 +5,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
   canArchiveMonth,
-  checkAndPurgeExpired,
   countRecords,
   getArchiveExportReadiness,
   getArchiveStatus,
 } from "@/lib/archive";
 
 export async function GET(request: Request) {
-  checkAndPurgeExpired().catch((error) => console.error("AUTO_PURGE_ERROR", error));
-
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {

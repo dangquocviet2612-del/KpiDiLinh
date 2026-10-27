@@ -3,11 +3,9 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { cancelArchiveConfirmation, checkAndPurgeExpired } from "@/lib/archive";
+import { cancelArchiveConfirmation } from "@/lib/archive";
 
 export async function POST(request: Request) {
-  checkAndPurgeExpired().catch((error) => console.error("AUTO_PURGE_ERROR", error));
-
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {
@@ -26,8 +24,8 @@ export async function POST(request: Request) {
       );
     }
 
-    await cancelArchiveConfirmation(month);
-    return NextResponse.json({ month, cancelled: true });
+    const cancelled = await cancelArchiveConfirmation(month);
+    return NextResponse.json({ month, cancelled: Boolean(cancelled) });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Không thể hủy xác nhận lưu trữ" },

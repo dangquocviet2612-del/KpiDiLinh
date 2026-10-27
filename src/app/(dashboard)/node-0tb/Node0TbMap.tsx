@@ -200,7 +200,7 @@ function MapRefBridge({ mapInstanceRef }: { mapInstanceRef: React.MutableRefObje
 function VanillaMarkerCluster({
   nodes,
   userLocationRef,
-  markersRefObj,
+  markersRefObj: markersRef,
 }: {
   nodes: Node0TbItem[];
   userLocationRef: React.MutableRefObject<[number, number] | null>;
@@ -275,7 +275,7 @@ function VanillaMarkerCluster({
     });
 
     clusterRef.current = cg;
-    markersRefObj.current = {};
+    markersRef.current = {};
 
     const validNodes = nodes.filter((n) => n.latitude !== null && n.longitude !== null);
 
@@ -301,7 +301,7 @@ function VanillaMarkerCluster({
         maxWidth: 340,
       });
 
-      markersRefObj.current[item.nodeCode] = { marker, cg };
+      markersRef.current[item.nodeCode] = { marker, cg };
       return marker;
     });
 
@@ -311,7 +311,7 @@ function VanillaMarkerCluster({
     return () => {
       map.removeLayer(cg);
     };
-  }, [nodes, ready, map, userLocationRef, markersRefObj]);
+  }, [nodes, ready, map, userLocationRef, markersRef]);
 
   return null;
 }

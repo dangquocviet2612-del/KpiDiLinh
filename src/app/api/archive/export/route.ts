@@ -3,11 +3,16 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { checkAndPurgeExpired, exportMonthToExcel, recordArchiveExport } from "@/lib/archive";
+import { exportMonthToExcel, recordArchiveExport } from "@/lib/archive";
 
-export async function GET(request: Request) {
-  checkAndPurgeExpired().catch((error) => console.error("AUTO_PURGE_ERROR", error));
+export async function GET() {
+  return NextResponse.json(
+    { error: "Hãy tải lại trang và dùng POST để xuất file lưu trữ" },
+    { status: 405, headers: { Allow: "POST" } }
+  );
+}
 
+export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {

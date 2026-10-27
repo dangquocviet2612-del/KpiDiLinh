@@ -8,13 +8,10 @@ import { ensureKpiTables } from "@/lib/kpi-db";
 import { parseGbocWorkbook } from "@/lib/kpi";
 import { clearCacheByPrefix } from "@/lib/kpi-cache";
 import { assertArchiveMonthWritable } from "@/lib/archive";
+import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
 async function ensureUserSecondaryCodeColumn() {
-  try {
-    await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "secondaryCode" TEXT`);
-  } catch {
-    // Column already exists or DB does not need migration.
-  }
+  await ensureRuntimeSchema("users");
 }
 
 export async function POST(request: Request) {
@@ -26,9 +23,6 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-
-    await ensureKpiTables();
-    await ensureUserSecondaryCodeColumn();
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -46,6 +40,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    await ensureKpiTables();
+    await ensureUserSecondaryCodeColumn();
 
     let ctvUsers: Array<{ username: string; secondaryCode: string | null }> = [];
     try {

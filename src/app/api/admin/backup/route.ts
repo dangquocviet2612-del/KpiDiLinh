@@ -5,7 +5,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { clearCacheByPrefix } from "@/lib/kpi-cache";
 import { ensureNodeEfficiencyColumns } from "@/lib/node-efficiency-db";
-import { ensureKpiTables } from "@/lib/kpi-db";
+import { ensureRuntimeSchema } from "@/lib/runtime-schema";
+import { applyRestoreSystemDefaults } from "@/lib/restore-system-defaults";
 import { invalidateNearestNodeCache } from "@/lib/nodeUtils";
 import { ensureOfficialDocTables } from "@/lib/official-docs-db";
 import { ensureCustomerNodeMappingTable } from "@/lib/customer-node-mapping-db";
@@ -869,7 +870,7 @@ export async function GET() {
 
         await Promise.all([
             ensureNodeEfficiencyColumns(),
-            ensureKpiTables(),
+            ensureRuntimeSchema("kpi", { requireDefaults: false }),
             ensureOfficialDocTables(),
             ensureCustomerNodeMappingTable(),
             ensureNode0TbTable(),
@@ -1168,7 +1169,7 @@ export async function POST(request: Request) {
 
         await Promise.all([
             ensureNodeEfficiencyColumns(),
-            ensureKpiTables(),
+            ensureRuntimeSchema("kpi", { requireDefaults: false }),
             ensureOfficialDocTables(),
             ensureCustomerNodeMappingTable(),
             ensureNode0TbTable(),
@@ -1542,6 +1543,7 @@ export async function POST(request: Request) {
                     node0TbPreparation.preparedRows
                 );
             }
+            await applyRestoreSystemDefaults(tx);
         });
 
         clearRestoreCaches();

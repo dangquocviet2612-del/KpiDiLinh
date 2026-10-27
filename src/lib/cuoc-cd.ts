@@ -1,5 +1,4 @@
 import * as xlsx from "xlsx";
-import fs from "fs";
 
 export type ParsedCuocCdRow = {
   reportDate: string;
@@ -118,21 +117,4 @@ export function buildCuocCdSummaryRow(rows: CuocCdRow[]): CuocCdSummaryRow | nul
     tonChuaThu: Math.round(totalTonChuaThu),
     isSummary: true,
   };
-}
-
-export function getDefaultCuocCdFilePath(): string {
-  return process.env.CUOC_CD_DEFAULT_FILE_PATH || "";
-}
-
-export function loadDefaultCuocCdWorkbook(): ParsedCuocCdRow[] | null {
-  const filePath = getDefaultCuocCdFilePath();
-  if (filePath && fs.existsSync(filePath)) {
-    try {
-      const buffer = fs.readFileSync(filePath);
-      return parseCuocCdWorkbook(buffer);
-    } catch (err) {
-      console.error("Error reading default Cước CD file:", err);
-    }
-  }
-  return null;
 }

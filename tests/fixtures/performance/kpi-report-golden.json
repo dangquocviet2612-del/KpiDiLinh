@@ -1,0 +1,280 @@
+{
+  "format": "sha256 of full response JSON; recursively sort object keys with en locale, retain array order; status stored separately",
+  "capture": "Frozen original report/summary handlers, auth-only mock, real migrated PrismaLibSql synthetic fixtures; manually captured once, never updated during routine tests.",
+  "source": {
+    "report": "e397d9e0620ade9ef8029784405085bedc14b586273ed5e27f2f82a6aa82ee5f",
+    "summary": "30866e64e2861635cde196e04a4a3aa0ee69bbbcecb03529f6b3ad14ee49cdbd"
+  },
+  "originalNormalSummaryExplicitDateObservations": [
+    {
+      "role": "ADMIN",
+      "coldQueries": 6,
+      "warmQueries": 0,
+      "metadataQueries": 2,
+      "metadataRows": 15,
+      "rawRows": 191
+    },
+    {
+      "role": "MANAGER",
+      "coldQueries": 6,
+      "warmQueries": 0,
+      "metadataQueries": 2,
+      "metadataRows": 15,
+      "rawRows": 188
+    }
+  ],
+  "cases": {
+    "report-ADMIN": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-MANAGER": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-CTV": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-ctv-tamper-fixture-ctv-c": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-ctv-tamper-fixture-secondary-a": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-manager-default": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "report-manager-beta": {
+      "status": 200,
+      "sha256": "fc502f14e7b9a5d39ee77e4fc6497302658ea4ca4d171196cd3003c57081f000"
+    },
+    "report-manager-denied-fixture-ctv-c": {
+      "status": 403,
+      "sha256": "99b9d17af7ac5787871649385a79a49051370c1db7ea32a85352434e861b5e6b"
+    },
+    "report-manager-denied-fixture-secondary-a": {
+      "status": 403,
+      "sha256": "99b9d17af7ac5787871649385a79a49051370c1db7ea32a85352434e861b5e6b"
+    },
+    "report-manager-denied-fixture-missing": {
+      "status": 403,
+      "sha256": "99b9d17af7ac5787871649385a79a49051370c1db7ea32a85352434e861b5e6b"
+    },
+    "report-admin-secondary": {
+      "status": 200,
+      "sha256": "37b50ae60a55d3e7056030c1df94682b74c642605491f50ac84167f8f6493eff"
+    },
+    "report-history-latest-cuoc": {
+      "status": 200,
+      "sha256": "bd2caf7c6771913245e2f12b3a7fdcde28c95705467fb9036da3384e19cad0e9"
+    },
+    "report-admin-all-latest": {
+      "status": 200,
+      "sha256": "0e0f99dc93593df2f2d87743c991f850743240aac4011e6d19ba02a6b1bb5ee3"
+    },
+    "report-admin-all-2026-10-20": {
+      "status": 200,
+      "sha256": "805b488b8df7be8e4d77cc03d799cb45b4f7e67a3db271ffd286f148fa1f726c"
+    },
+    "report-empty-fixture-manager-empty": {
+      "status": 200,
+      "sha256": "ecc21283fbf6726257d31f715dcfb2e6a2766c1753ecb19f4520ec586e9cec0c"
+    },
+    "report-empty-fixture-manager-no-dates": {
+      "status": 200,
+      "sha256": "ecc21283fbf6726257d31f715dcfb2e6a2766c1753ecb19f4520ec586e9cec0c"
+    },
+    "report-unknown-no-date": {
+      "status": 200,
+      "sha256": "ecc21283fbf6726257d31f715dcfb2e6a2766c1753ecb19f4520ec586e9cec0c"
+    },
+    "report-explicit-no-rows": {
+      "status": 200,
+      "sha256": "6ce148cf4e384b7419acb0dc0ab7413ad714e8cf8a92762c294254d9dc5fd7e0"
+    },
+    "report-no-dates": {
+      "status": 200,
+      "sha256": "ecc21283fbf6726257d31f715dcfb2e6a2766c1753ecb19f4520ec586e9cec0c"
+    },
+    "summary-sales-first": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "summary-sales-explicit": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "summary-sales-trimmed": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "summary-group-Loss": {
+      "status": 200,
+      "sha256": "920c7e0e141069f8c7996076e11fb743d6db28e1831a743d023016d15b99bc5c"
+    },
+    "summary-group-Churn alias": {
+      "status": 200,
+      "sha256": "d742103f83262ba83ba665c2e6c68c5344b5130e318c3134929f173a0a57c302"
+    },
+    "summary-group-Bundle": {
+      "status": 200,
+      "sha256": "66fd743c836b8885e8229142334a1ad6987cc3de4cb31ef35c3e19fc39d1ee89"
+    },
+    "summary-group-Zero target": {
+      "status": 200,
+      "sha256": "bd07938cc0d4d1d16a483113e78f45ecce28417e3ed050fad37b51a06542a465"
+    },
+    "summary-group-Null values": {
+      "status": 200,
+      "sha256": "b5509e0f4448137f107c601dcc47da1c3165cb0504d9e8c3f8bf30f763ccca52"
+    },
+    "summary-group-Zero base": {
+      "status": 200,
+      "sha256": "75ac3d7015c46a2c9ada0203cf8ebdcf9434d85dafaf93f83a47aef9d8498434"
+    },
+    "summary-group-sales": {
+      "status": 200,
+      "sha256": "f9b133e1e240c5cfd3b6b9d4111813bd29e2b82f5ed2c90165f703a58873ed42"
+    },
+    "summary-group-Đồng hạng": {
+      "status": 200,
+      "sha256": "023029ca47bba745cc9363c1f78c629c9d544edbd3a051e247875a9c5b8d602f"
+    },
+    "summary-group-Tie Alpha": {
+      "status": 200,
+      "sha256": "9b6efbaaa2e13daa71a166705b875361b0a5b69beeee47abe352fd4590a46cf4"
+    },
+    "summary-group-Tie Zulu": {
+      "status": 200,
+      "sha256": "17348656af09d5e440565178d5d6678621bd5ca387f1acd8874524512e6ddd6e"
+    },
+    "summary-raw-Unknown": {
+      "status": 200,
+      "sha256": "103bb44d2f68858ba2cacc8b81caf424ddc7da7541114a384d6288ee06a79d6d"
+    },
+    "summary-raw-Hidden": {
+      "status": 200,
+      "sha256": "c816cb4507cc4f324dd309e7bde07096c83089a9e429be29a5e6d9bd42d65095"
+    },
+    "summary-raw-Padded group": {
+      "status": 200,
+      "sha256": "8ce16caa1f9dc115208ae7b20dfd7a9abf2c4fb79f2948443bd5664a155a0fd9"
+    },
+    "summary-raw-SALES": {
+      "status": 200,
+      "sha256": "dab5a71040224b87a9571d4347c024b5055be79ebc6a4370325fb56526ca346c"
+    },
+    "summary-admin-all": {
+      "status": 200,
+      "sha256": "222422ade3a9d291d4581eb6c140cceb7dc9b7be9ea679c8d04a53b2be806921"
+    },
+    "summary-admin-manager-filter": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "summary-manager-tamper": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "summary-admin-latest": {
+      "status": 200,
+      "sha256": "5163db289fe7c5058be021dd2c85d71ca6449ad4f4caad189ac11c47b1547124"
+    },
+    "summary-empty-fixture-manager-empty": {
+      "status": 200,
+      "sha256": "0db26d5ad0de2be616f3a8fcf8882a979cd6f52b7fc36bd3dc495bb8457bc304"
+    },
+    "summary-empty-fixture-manager-no-dates": {
+      "status": 200,
+      "sha256": "0db26d5ad0de2be616f3a8fcf8882a979cd6f52b7fc36bd3dc495bb8457bc304"
+    },
+    "summary-no-scoped-users": {
+      "status": 200,
+      "sha256": "8539ccc20cd1293227690b386191413df8b30e0d0b676b89b1726ff8674f4cfb"
+    },
+    "summary-no-dates": {
+      "status": 200,
+      "sha256": "0db26d5ad0de2be616f3a8fcf8882a979cd6f52b7fc36bd3dc495bb8457bc304"
+    },
+    "summary-no-indicators": {
+      "status": 200,
+      "sha256": "b5f8cd215f9997aaaf302cf347f394f10b6d14d02247b514c637f529652ae207"
+    },
+    "cuoc-display-name-is-ordinary-group": {
+      "status": 200,
+      "sha256": "4fb26802a411f7d5bcb3ceb10069bc47efbcb64750aeebda33585c202f0f0da1"
+    },
+    "cuoc-same-date-partial": {
+      "status": 200,
+      "sha256": "d7c38a285f0672ca5c2ab588ba2b1451f795c04f654f746ab10a823e64c8f0ce"
+    },
+    "cuoc-manager-fallback": {
+      "status": 200,
+      "sha256": "6d277e8ae5f8d51a86fc4cd853139d0f8808b9e8efee33e449fef9e84e1eca9c"
+    },
+    "cuoc-admin-whole-scope-fallback": {
+      "status": 200,
+      "sha256": "f3c0099ec3a1b360165629d0f6d4ce01d30a768a8a023ab88316b0be1386c9a9"
+    },
+    "cuoc-admin-manager-fallback": {
+      "status": 200,
+      "sha256": "6d277e8ae5f8d51a86fc4cd853139d0f8808b9e8efee33e449fef9e84e1eca9c"
+    },
+    "cuoc-no-data": {
+      "status": 200,
+      "sha256": "862c9f6a8817b3578d2814e9dffcf1c4b197bee98c5032965763e41024bde14f"
+    },
+    "cuoc-null-present": {
+      "status": 200,
+      "sha256": "96c99e77a303a0b164199ab5266b372ae8aa40f43fd4eaba7efe5beab0997a4a"
+    },
+    "unauthenticated-report": {
+      "status": 401,
+      "sha256": "0218f171f7920199e5ba087efb5cecdc16bd310748e5cba965d5c8528b35129e"
+    },
+    "unauthenticated-summary": {
+      "status": 401,
+      "sha256": "0218f171f7920199e5ba087efb5cecdc16bd310748e5cba965d5c8528b35129e"
+    },
+    "ctv-summary-forbidden": {
+      "status": 403,
+      "sha256": "c53efb6a8aed66112d7f52751638e423dfe0c09d5e09c2240989d5429c123e67"
+    },
+    "cache-report-ADMIN": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "cache-report-MANAGER": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "cache-report-CTV": {
+      "status": 200,
+      "sha256": "2d9e2c9b060a2a9a545329e04f682448e7ab7d6edd5b89011723c09100e8ddd8"
+    },
+    "cache-summary-ADMIN": {
+      "status": 200,
+      "sha256": "222422ade3a9d291d4581eb6c140cceb7dc9b7be9ea679c8d04a53b2be806921"
+    },
+    "cache-summary-MANAGER": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    },
+    "cache-isolated-beta": {
+      "status": 200,
+      "sha256": "fc502f14e7b9a5d39ee77e4fc6497302658ea4ca4d171196cd3003c57081f000"
+    },
+    "cache-summary-other-manager": {
+      "status": 200,
+      "sha256": "89f8453fcb4d8b63907c138fcd21e6c4cf9ea807cbdbfc8039a853ef67d9adb4"
+    },
+    "cache-summary-filtered-admin": {
+      "status": 200,
+      "sha256": "41256ea14bb3987e02b1371587bb9a0fbf0abadf4d503c821d8048c860edf870"
+    }
+  }
+}

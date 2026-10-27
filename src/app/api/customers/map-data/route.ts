@@ -11,7 +11,6 @@ export const revalidate = 60;
 
 export async function GET(request: Request) {
   try {
-    await ensureCustomerSchema();
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -42,6 +41,8 @@ export async function GET(request: Request) {
     ].join("|");
     const cached = getCache<any>(cacheKey);
     if (cached) return NextResponse.json(cached);
+
+    await ensureCustomerSchema();
 
     const customers = await prisma.customer.findMany({
       where: whereClause,

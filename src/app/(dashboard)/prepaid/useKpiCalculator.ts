@@ -15,6 +15,7 @@ import {
   stepKpiCalculatorValue,
 } from "@/lib/kpi-calculator";
 import { sortKpiRowsByCompletion } from "@/lib/kpi-row-sorting";
+import { kpiReportRequestKey, useLatestKpiRequest } from "@/hooks/useLatestKpiRequest";
 
 function normalizeDraftMap(rows: KpiReportGroupedRow[]) {
   return rows.reduce<Record<string, string>>((acc, row) => {
@@ -30,76 +31,85 @@ type UseKpiCalculatorOptions = {
   selectedCtv: string;
   reportDate: string;
   onResolvedReportDate?: (value: string) => void;
+  scopeKey?: string;
 };
 
 export default function useKpiCalculator(options: UseKpiCalculatorOptions) {
-  const { enabled, hasSession, canSelectCtv, selectedCtv, reportDate, onResolvedReportDate } = options;
+  const { enabled, hasSession, canSelectCtv, selectedCtv, reportDate, onResolvedReportDate, scopeKey = "" } = options;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sourceRows, setSourceRows] = useState<KpiReportGroupedRow[]>([]);
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
-  const requestRef = useRef(0);
   const hasDataRef = useRef(false);
-  const lastKeyRef = useRef("");
   const wasEnabledRef = useRef(false);
+  const resolvedDateRef = useRef(onResolvedReportDate);
+  const { run, cancel, reset } = useLatestKpiRequest<{ rows?: KpiReportGroupedRow[]; reportDate?: string | null }>();
+
+  useEffect(() => {
+    resolvedDateRef.current = onResolvedReportDate;
+  }, [onResolvedReportDate]);
+
+  useEffect(() => {
+    reset();
+    hasDataRef.current = false;
+    wasEnabledRef.current = false;
+    setSourceRows([]);
+    setDraftValues({});
+  }, [reset, scopeKey]);
 
   const fetchCalculator = useCallback(
     async (fetchOptions?: { force?: boolean }) => {
-      if (!hasSession || !enabled) return;
-      if (canSelectCtv && !selectedCtv) return;
-
-      const requestKey = [selectedCtv || "", reportDate || ""].join("|");
-      if (!fetchOptions?.force && hasDataRef.current && lastKeyRef.current === requestKey) {
-        return;
-      }
-
+      if (!hasSession || !enabled || (canSelectCtv && !selectedCtv)) return;
+      const ctv = canSelectCtv ? selectedCtv : "";
       const hadData = hasDataRef.current;
-      lastKeyRef.current = requestKey;
-      const reqId = ++requestRef.current;
-      setErrorMessage(null);
-      if (!hadData) setLoading(true);
-      else setRefreshing(true);
-
-      try {
-        const params = new URLSearchParams();
-        if (canSelectCtv && selectedCtv) params.set("ctvUser", selectedCtv);
-        if (reportDate) params.set("reportDate", reportDate);
-        const res = await fetch(`/api/kpi/report?${params.toString()}`);
-        const data = await res.json();
-        if (reqId !== requestRef.current) return;
-        if (!res.ok) throw new Error(data?.error || "Không tải được dữ liệu tính KPI");
-
-        const nextRows = Array.isArray(data?.rows) ? (data.rows as KpiReportGroupedRow[]) : [];
-        setSourceRows(nextRows);
-        setDraftValues(normalizeDraftMap(nextRows));
-        hasDataRef.current = true;
-        setErrorMessage(null);
-
-        if (data?.reportDate && !reportDate) {
-          onResolvedReportDate?.(String(data.reportDate));
-        }
-      } catch (error: any) {
-        if (reqId !== requestRef.current) return;
-        const nextError = error?.message || "Không tải được dữ liệu tính KPI";
-        setErrorMessage(nextError);
-        toast.error(nextError);
-        if (!hadData) {
-          setSourceRows([]);
-          setDraftValues({});
-        }
-      } finally {
-        if (reqId === requestRef.current) {
+      return run({
+        key: kpiReportRequestKey(scopeKey, ctv, reportDate),
+        force: fetchOptions?.force,
+        resolvedKeys: (data) => [kpiReportRequestKey(scopeKey, ctv, data.reportDate || reportDate)],
+        onStart: () => {
+          setErrorMessage(null);
+          if (!hadData) setLoading(true);
+          else setRefreshing(true);
+        },
+        load: async (signal) => {
+          const params = new URLSearchParams();
+          if (ctv) params.set("ctvUser", ctv);
+          if (reportDate) params.set("reportDate", reportDate);
+          const res = await fetch(`/api/kpi/report?${params.toString()}`, { signal });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || "Không tải được dữ liệu tính KPI");
+          return data;
+        },
+        onSuccess: (data) => {
+          const nextRows = Array.isArray(data.rows) ? data.rows : [];
+          setSourceRows(nextRows);
+          setDraftValues(normalizeDraftMap(nextRows));
+          hasDataRef.current = true;
+          setErrorMessage(null);
+          if (data.reportDate && !reportDate) resolvedDateRef.current?.(String(data.reportDate));
+        },
+        onError: (error) => {
+          const nextError = error instanceof Error ? error.message : "Không tải được dữ liệu tính KPI";
+          setErrorMessage(nextError);
+          toast.error(nextError);
+          if (!hadData) {
+            setSourceRows([]);
+            setDraftValues({});
+          }
+        },
+        onSettled: () => {
           setLoading(false);
           setRefreshing(false);
-        }
-      }
+        },
+      });
     },
-    [canSelectCtv, enabled, hasSession, onResolvedReportDate, reportDate, selectedCtv]
+    [canSelectCtv, enabled, hasSession, reportDate, run, scopeKey, selectedCtv]
   );
 
   useEffect(() => {
     if (!enabled || !hasSession) {
+      cancel();
       wasEnabledRef.current = false;
       return;
     }
@@ -107,7 +117,7 @@ export default function useKpiCalculator(options: UseKpiCalculatorOptions) {
     const shouldForceRefresh = !wasEnabledRef.current;
     wasEnabledRef.current = true;
     void fetchCalculator(shouldForceRefresh ? { force: true } : undefined);
-  }, [enabled, fetchCalculator, hasSession]);
+  }, [cancel, enabled, fetchCalculator, hasSession]);
 
   const calculatorRows = useMemo<KpiCalculatorRow[]>(
     () => sortKpiRowsByCompletion(createKpiCalculatorRows(sourceRows)),

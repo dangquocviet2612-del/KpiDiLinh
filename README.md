@@ -24,8 +24,8 @@ Hệ thống quản lý khách hàng viễn thông, bản đồ node/hạ tầng
 ## 2. Yêu Cầu Môi Trường & Cài Đặt
 
 ### Yêu Cầu
-- **Node.js**: Phiên bản 20+ (hoặc 18 LTS trở lên)
-- **Cơ sở dữ liệu**: Turso Cloud Database (`libsql://...`) hoặc SQLite local (`file:dev.db`)
+- **Node.js**: Node 24 cho bộ công cụ/CI local hiện tại (Vitest 5 không hỗ trợ Node 18/20).
+- **Cơ sở dữ liệu**: Turso Cloud Database (`libsql://...`) hoặc SQLite local (ví dụ database bỏ đi `file:.local/migration-demo.sqlite`)
 
 ### Cài Đặt
 ```bash
@@ -36,12 +36,13 @@ npm install
 cp .env.example .env
 # Chỉnh sửa file .env với thông tin kết nối database và AUTH_SECRET của bạn
 
-# 3. Đồng bộ cấu trúc cơ sở dữ liệu
-npm run db:migrate
-
-# 4. Khởi động môi trường phát triển (Development)
+# 3. Chỉ khởi động sau khi database đã qua preflight bên dưới
 npm run dev
 ```
+
+**Preflight trước khi dùng source LOCAL mới với database hiện có.** `npm run db:check-schema` kiểm tra chỉ đọc column/PK/unique và sự hiện diện của các dòng default bắt buộc; phải truyền `DATABASE_URL` tường minh trong process, không tự đọc env file. Thiếu contract báo `SCHEMA_NOT_READY`, không tự tạo bảng/index, seed hay sửa database. Ví dụ chỉ dành cho SQLite bỏ đi và quy trình cutover nằm trong [migration safety](docs/migration-safety.md).
+
+**Không tự migrate database đã phục hồi hoặc Production.** Database chưa có ledger vẫn có thể phục vụ GET nếu đủ runtime contract, nhưng release apply vẫn bị chặn cho tới khi adoption được xác minh. Runner migration mặc định chỉ check; `--apply` cần ledger/checksum hợp lệ hoặc database mới, trống. Thiếu schema trên database hiện có cần kế hoạch upgrade đã kiểm chứng, không replay SQL lịch sử hoặc baseline/no-op mù quáng.
 
 ---
 
@@ -50,10 +51,16 @@ npm run dev
 | Lệnh | Ý nghĩa |
 |---|---|
 | `npm run dev` | Khởi chạy server development (Turbopack) tại `http://localhost:3000` |
-| `npm run build` | Build bundle production chuẩn tối ưu hóa |
+| `npm run build` | Chỉ chạy `next build`; không gọi migration |
 | `npm run start` | Khởi chạy server production |
 | `npm run lint` | Kiểm tra cú pháp và code style bằng ESLint (`src/`) |
-| `npm run db:migrate` | Áp dụng toàn bộ migrations lên database (hỗ trợ Turso & SQLite) |
+| `npm run db:check` | Đọc trạng thái migration; không DDL/seed/ghi ledger |
+| `npm run db:check-schema` | Preflight runtime chỉ đọc qua `scripts/check-runtime-schema.mjs`; mặc định cả 7 domain, có thể chọn `-- --domain kpi` |
+| `npm run db:migrate` | Mặc định check; `-- --apply` chỉ cho database thử riêng mới hoặc đã có ledger được xác minh |
+
+Batch3 đã thay toàn bộ runtime `ensure` có DDL bằng guard chỉ đọc; migration thứ 5 `20261026000000_runtime_schema_readiness` bổ sung 6 index không trùng và 3 dòng default bằng `ON CONFLICT DO NOTHING`, giữ nguyên 4 SQL lịch sử. Chủ dự án cho phép công bố source các batch 1–4 lên `main` ngày 27/10/2026; xem checkpoint ở mục 20 của `tiendokpi.md`. Push nguồn có thể kích hoạt Vercel nếu đã liên kết Git, nhưng không xác nhận database đã đủ runtime contract, verified adoption hoặc rollout đã được kiểm chứng. Không tự chèn migration trước build/test/lint. Preview vẫn phải dùng database riêng vì thao tác nghiệp vụ và cron còn ghi dữ liệu, không phải vì guard mới ghi DDL; xem [hướng dẫn triển khai](docs/deploy-online.md) và [migration safety](docs/migration-safety.md).
+
+GET không còn tự import Excel từ `NODE_0TB_DEFAULT_FILE_PATH` / `CUOC_CD_DEFAULT_FILE_PATH`; các tên env cũ này bị bỏ qua. Import thủ công qua Admin UI/API vẫn giữ nguyên. Chỉ POST restore được cấp quyền mới bổ sung lại 3 default còn thiếu sau các dòng phục hồi trong cùng transaction; không seed trên GET hay ghi đè cấu hình tùy chỉnh. Backup JSON v10 vẫn không chứa migration ledger; restore không đồng nghĩa đã adoption.
 
 ---
 

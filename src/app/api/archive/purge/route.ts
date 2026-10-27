@@ -3,12 +3,10 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { checkAndPurgeExpired, getArchiveStatus, purgeMonthData } from "@/lib/archive";
+import { getArchiveStatus, purgeMonthData } from "@/lib/archive";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
-  checkAndPurgeExpired().catch((error) => console.error("AUTO_PURGE_ERROR", error));
-
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {
@@ -33,8 +31,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ month, purged: false, reason: "already_purged" });
       }
 
-      await purgeMonthData(month);
-      return NextResponse.json({ month, purged: true });
+      const purged = await purgeMonthData(month, { requireExpired: false });
+      return NextResponse.json({ month, purged });
     }
 
     const due = await prisma.$queryRawUnsafe<Array<{ archiveMonth: string }>>(
@@ -45,13 +43,16 @@ export async function POST(request: Request) {
       ORDER BY "archiveMonth" ASC
       `
     );
+    const purgedMonths: string[] = [];
     for (const row of due) {
-      await purgeMonthData(row.archiveMonth);
+      if (await purgeMonthData(row.archiveMonth)) {
+        purgedMonths.push(row.archiveMonth);
+      }
     }
 
     return NextResponse.json({
-      purgedMonths: due.map((item) => item.archiveMonth),
-      count: due.length,
+      purgedMonths,
+      count: purgedMonths.length,
     });
   } catch (error: any) {
     return NextResponse.json(

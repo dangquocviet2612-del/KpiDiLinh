@@ -18,7 +18,6 @@ function normalize(value: string): string {
 
 export async function GET(request: Request) {
     try {
-        await ensureCustomerSchema();
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -55,6 +54,8 @@ export async function GET(request: Request) {
         if (accessibleCtvCodes !== null) {
             whereClause.ctvCode = { in: accessibleCtvCodes };
         }
+
+        await ensureCustomerSchema();
 
         const candidateTake = Math.max(limit * 2, 20);
         const raw = await prisma.customer.findMany({
