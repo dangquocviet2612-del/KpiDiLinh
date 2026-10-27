@@ -97,7 +97,7 @@ async function getExistingCustomerNodeMappingsByAccounts(accounts: unknown[]) {
   return mapping;
 }
 
-export async function upsertCustomerNodeMappings(rows: CustomerNodeMappingInput[]) {
+export async function upsertCustomerNodeMappings(rows: CustomerNodeMappingInput[], onCommittedWrite?: () => void) {
   await ensureCustomerNodeMappingTable();
 
   const deduped = new Map<string, CustomerNodeMappingInput>();
@@ -159,7 +159,7 @@ export async function upsertCustomerNodeMappings(rows: CustomerNodeMappingInput[
       row.accountAddress,
     ]);
 
-    await prisma.$executeRawUnsafe(
+    const affectedRows = await prisma.$executeRawUnsafe(
       `
         INSERT INTO "CustomerNodeMapping" ("id", "account", "accountKey", "nodeName", "accountAddress", "createdAt", "updatedAt")
         VALUES ${valuesSql}
@@ -171,6 +171,7 @@ export async function upsertCustomerNodeMappings(rows: CustomerNodeMappingInput[
       `,
       ...params,
     );
+    if (affectedRows > 0) onCommittedWrite?.();
   }
 
   for (const row of rowsToWrite) {
@@ -222,7 +223,7 @@ export async function syncMappedNodesToCustomers() {
   return affectedCustomers;
 }
 
-export async function syncMappedNodesToCustomersByAccounts(accounts: unknown[]) {
+export async function syncMappedNodesToCustomersByAccounts(accounts: unknown[], onCommittedWrite?: () => void) {
   await ensureCustomerNodeMappingTable();
 
   const accountKeys = Array.from(
@@ -258,7 +259,7 @@ export async function syncMappedNodesToCustomersByAccounts(accounts: unknown[]) 
 
     affectedCustomers += Number(rows[0]?.count || 0);
 
-    await prisma.$executeRawUnsafe(
+    const affectedRows = await prisma.$executeRawUnsafe(
       `
         UPDATE "Customer"
         SET "nodeName" = (
@@ -277,6 +278,7 @@ export async function syncMappedNodesToCustomersByAccounts(accounts: unknown[]) 
       `,
       ...chunk,
     );
+    if (affectedRows > 0) onCommittedWrite?.();
   }
 
   return affectedCustomers;

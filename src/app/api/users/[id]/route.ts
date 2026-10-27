@@ -7,7 +7,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { userUpdateSchema } from "@/lib/validations/user.schema";
 import { recordAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
-import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
 async function ensureManagerCodeColumn() {
@@ -16,6 +16,7 @@ async function ensureManagerCodeColumn() {
 
 // PUT update a User (Admin only)
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    let writeCommitted = false;
     try {
         const { id } = await params;
         const authResult = await requireAuth({ roles: ["ADMIN"] });
@@ -60,6 +61,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                     updatedAt: true,
                 }
             });
+            writeCommitted = Object.keys(updateData).length > 0;
         } catch {
             const fallbackData = { ...updateData };
             delete fallbackData.managerCode;
@@ -76,36 +78,35 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                     updatedAt: true,
                 }
             });
+            writeCommitted = Object.keys(fallbackData).length > 0;
             if (managerCode !== undefined) {
-                await prisma.$executeRawUnsafe(
+                const affectedRows = await prisma.$executeRawUnsafe(
                     `UPDATE "User" SET managerCode = ? WHERE id = ?`,
                     managerCode ? String(managerCode) : null,
                     String(id)
                 );
+                if (affectedRows > 0) writeCommitted = true;
                 (updatedUser as any).managerCode = managerCode ? String(managerCode) : null;
             } else {
                 (updatedUser as any).managerCode = null;
             }
             if (secondaryCode !== undefined) {
-                await prisma.$executeRawUnsafe(
+                const affectedRows = await prisma.$executeRawUnsafe(
                     `UPDATE "User" SET secondaryCode = ? WHERE id = ?`,
                     secondaryCode ? String(secondaryCode) : null,
                     String(id)
                 );
+                if (affectedRows > 0) writeCommitted = true;
                 (updatedUser as any).secondaryCode = secondaryCode ? String(secondaryCode) : null;
             } else {
                 (updatedUser as any).secondaryCode = null;
             }
         }
 
-        clearCacheByPrefix("users:list|");
-        clearCacheByPrefix("user:me|");
-        clearCacheByPrefix("scope:ctv|");
-        clearCacheByPrefix("prepaid:");
-        clearCacheByPrefix("kpi:summary");
-        clearCacheByPrefix("kpi:report");
-        clearCacheByPrefix("cuoc:report");
-        clearCacheByPrefix("cdt:");
+        if (writeCommitted) {
+            invalidateCacheForMutation("users");
+            writeCommitted = false;
+        }
 
         await recordAuditLog({
             userId: authResult.user.id,
@@ -128,6 +129,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: "Tên đăng nhập đã tồn tại" }, { status: 400 });
         }
         return NextResponse.json({ error: error.message || "Lỗi cập nhật người dùng" }, { status: 500 });
+    } finally {
+        if (writeCommitted) invalidateCacheForMutation("users");
     }
 }
 
@@ -154,14 +157,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
             where: { id }
         });
 
-        clearCacheByPrefix("users:list|");
-        clearCacheByPrefix("user:me|");
-        clearCacheByPrefix("scope:ctv|");
-        clearCacheByPrefix("prepaid:");
-        clearCacheByPrefix("kpi:summary");
-        clearCacheByPrefix("kpi:report");
-        clearCacheByPrefix("cuoc:report");
-        clearCacheByPrefix("cdt:");
+        invalidateCacheForMutation("users");
 
         await recordAuditLog({
             userId: authResult.user.id,

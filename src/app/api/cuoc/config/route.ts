@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
-import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 
 export async function GET() {
   try {
@@ -51,9 +51,7 @@ export async function POST(request: Request) {
       `,
       targetRatePercent
     );
-    clearCacheByPrefix("cuoc:report");
-    clearCacheByPrefix("kpi:report");
-    clearCacheByPrefix("prepaid:");
+    invalidateCacheForMutation("cuoc");
 
     return NextResponse.json({ ok: true, targetRatePercent });
   } catch (error: any) {

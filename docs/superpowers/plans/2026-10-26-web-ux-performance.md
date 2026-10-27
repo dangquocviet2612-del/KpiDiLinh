@@ -18,6 +18,8 @@
 
 **Checkpoint batch 4, 27/10/2026:** Phần đầu Task 6: metadata summary 2 reads → 1, personal và summary cước chạy query độc lập song song sau các gate cũ. 63 golden status/body hashes giữ nguyên qua native Prisma fixtures; 33 API responses và calculator/summary Chrome desktop/mobile đã đối chiếu. Có EXPLAIN local-only dùng chung SQL, không thêm index/region hoặc cache policy mới. Chưa benchmark cloud/real data, Task 6 còn EXPLAIN workload mục tiêu/region và rollout; chi tiết ở `docs/kpi-query-performance.md`, mục 19 của `tiendokpi.md`.
 
+**Checkpoint batch 5, 27/10/2026:** Slice đầu Task 7 local: dependency invalidation CUOC/node/user/restore, cap/LRU/TTL của store kpi-cache, callback theo từng commit và cleanup cho import/fallback ghi một phần. 16 core/matrix test và 52 native mutation test đạt; giữ audit/SQL/transaction/API semantics. Có baseline mở rộng bị native worker crash, giữ log và không coi lỗi native đã được sửa. JWT revocation, shared version nhiều instance, in-flight refill và single-flight **chưa làm**, nên chưa hoàn thành Task 7/đợt 2. Xem `docs/cache-correctness.md`, `docs/cache-permission-gaps.md`, mục 21 của `tiendokpi.md`.
+
 ---
 
 ## 1. Quyết định đề xuất
@@ -189,10 +191,12 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - Create: `src/lib/cache-tags.ts`, `tests/integration/cache-invalidation.test.ts`, `tests/integration/permission-revocation.test.ts`.
 - Modify đúng dependency: `src/app/api/cuoc/import/route.ts`, user mutation routes, node upload/search routes, restore route và customer/report lookup liên quan.
 
-- [ ] Viết test FAIL: import cước làm mới KPI summary; upload node làm mới `node:search`; user đổi scope không lấy cached customer/report cũ.
+- [x] Regression same-process: import/config cước làm mới KPI summary; upload node làm mới `node:search` và customer list khi mapping đổi; user đổi manager scope/restore xóa cached customer/report cũ. Auth fixture giữ nguyên role; không coi đây là chứng minh JWT/đa instance đã revoke quyền.
 - [ ] Lập tag/dependency matrix, invalidate sau commit thành công; restore cũng phải đổi version/invalidate đầy đủ.
+- Đã có matrix typed và clear store trong process sau write đã commit, kể cả request 500 vì commit một phần; full rollback/no-write/no-op giữ cache. Chưa có version dùng chung hoặc invalidation process khác.
 - [ ] Key dùng stable identity và scope/permission version; scope được xác minh trước trả private cache.
 - [ ] Bổ sung bound/eviction, TTL và single-flight; không dùng TTL đơn thuần làm cơ chế thu hồi quyền.
+- Bound/LRU tối đa 1.000 entry và TTL/prune đã có test RED/GREEN; chưa có byte budget, single-flight hoặc generation chống stale refill. TTL không được coi là SLA quyền.
 - [ ] Test với hai instance/process. Chọn shared version/invalidation nhẹ phù hợp; Redis hoặc dịch vụ trả phí chỉ là lựa chọn sau benchmark/duyệt chi phí.
 - [ ] Chốt và test SLA revocation khi đổi role, manager, xóa user/đổi mật khẩu; không hy sinh bảo mật để giảm query.
 

@@ -7,7 +7,7 @@ import AdmZip from "adm-zip";
 import { DOMParser } from "@xmldom/xmldom";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureNodeEfficiencyColumns } from "@/lib/node-efficiency-db";
 import {
   syncMappedNodesToCustomersByAccounts,
@@ -32,12 +32,6 @@ type ParsedNodeRow = {
   latitude: number;
   longitude: number;
 };
-
-function clearNodeRelatedCaches() {
-  clearCacheByPrefix("nodes:");
-  clearCacheByPrefix("map:data");
-  clearCacheByPrefix("map:detail");
-}
 
 function getFileExtension(fileName: string) {
   const match = /\.([^.]+)$/.exec(fileName.toLowerCase());
@@ -273,7 +267,7 @@ async function importNodePositions(file: File, buffer: Buffer) {
   });
 
   invalidateNearestNodeCache();
-  clearNodeRelatedCaches();
+  invalidateCacheForMutation("nodes");
 
   return {
     mode: "NODE_POSITIONS" as const,
@@ -343,7 +337,7 @@ async function importNodeEfficiency(rows: SheetRow[]) {
   const batchSize = 120;
   for (let index = 0; index < updates.length; index += batchSize) {
     const chunk = updates.slice(index, index + batchSize);
-    await Promise.all(
+    const results = await Promise.allSettled(
       chunk.map((row) =>
         prisma.$executeRawUnsafe(
           `
@@ -366,10 +360,12 @@ async function importNodeEfficiency(rows: SheetRow[]) {
         ),
       ),
     );
-    updated += chunk.length;
+    const committed = results.filter((result) => result.status === "fulfilled").length;
+    updated += committed;
+    if (committed > 0) invalidateCacheForMutation("nodes");
+    const firstFailure = results.find((result) => result.status === "rejected");
+    if (firstFailure) throw firstFailure.reason;
   }
-
-  clearNodeRelatedCaches();
 
   return {
     mode: "NODE_EFFICIENCY" as const,
@@ -445,10 +441,9 @@ async function importAccountNodeMap(rows: SheetMatrixRow[]) {
     validRows.push({ account, nodeName, accountAddress });
   }
 
-  const summary = await upsertCustomerNodeMappings(validRows);
-  const syncedCustomers = await syncMappedNodesToCustomersByAccounts(summary.changedAccountKeys);
-
-  clearNodeRelatedCaches();
+  const onCommittedWrite = () => invalidateCacheForMutation("nodes");
+  const summary = await upsertCustomerNodeMappings(validRows, onCommittedWrite);
+  const syncedCustomers = await syncMappedNodesToCustomersByAccounts(summary.changedAccountKeys, onCommittedWrite);
 
   return {
     mode: "ACCOUNT_NODE_MAP" as const,

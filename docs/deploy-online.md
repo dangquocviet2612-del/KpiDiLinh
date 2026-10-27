@@ -11,7 +11,7 @@ Ngày chuẩn bị: **26/10/2026**. Đây là hướng dẫn triển khai; trạ
 
 Mã nguồn đã được commit và push lên nhánh `main` của GitHub KpiDiLinh. Database Turso mới đã được nhập và xác minh 25 bảng; web Production đã triển khai tại **https://kpidi-linh.vercel.app**. Chưa kết nối tự động deploy từ GitHub với Vercel.
 
-**Phân biệt local và live:** các kết quả triển khai trong tài liệu này thuộc release Production cũ, có build kèm migration. Batch LOCAL đã tách `build` thành `next build` duy nhất và giữ `db:migrate` là `node scripts/migrate.mjs` để gọi riêng; batch này đã kiểm thử local, chưa commit/push/deploy. Production vẫn chạy release cũ, không tự nhận thay đổi local; kết quả local ở mục 16 của `tiendokpi.md`.
+**Phân biệt checkpoint và live:** các kết quả triển khai lịch sử bên dưới thuộc release Production cũ, có build kèm migration. Source hiện tại đã tách `build` thành `next build` duy nhất; `db:migrate` là lệnh riêng, không chạy trong deploy. Batch 1–4 đã push tại `5193010`; batch 5 đã qua kiểm thử local và được chủ dự án yêu cầu push/deploy ngày 27/10/2026. Không suy ra web đã nhận source chỉ từ commit: đối chiếu SHA/deployment READY/alias và smoke report tại mục 22 `tiendokpi.md`, evidence `.local/performance/github-deploy-batch5-20261027/`. Không tự migrate/seed/adopt dữ liệu thật để vượt readiness gate.
 
 Batch3 LOCAL tiếp tục thay toàn bộ runtime `ensure` có DDL bằng guard chỉ đọc column/PK/unique và sự hiện diện của default bắt buộc. Migration thứ 5 `20261026000000_runtime_schema_readiness` thêm 6 index không trùng và 3 dòng default bằng `ON CONFLICT DO NOTHING`, không sửa 4 SQL lịch sử. Không đọc hoặc thay đổi SQLite phục hồi/Turso thật trong batch này; các kết quả local không xác nhận readiness hay độ trễ cloud của Production.
 

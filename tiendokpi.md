@@ -533,3 +533,39 @@ Hướng dẫn: `docs/kpi-query-performance.md`; plan chi tiết: `docs/superpow
 - Không xác minh kết nối GitHub → Vercel do ngoài phạm vi truy cập được duyệt. Nếu đã bật liên kết, push có thể kích hoạt deploy tự động; không chạy lệnh deploy Vercel, không chạm database thật. Readiness/adoption của SQLite phục hồi/Turso vẫn chưa được xác minh, vì vậy công bố source không chứng minh rollout an toàn hoặc web mới đã qua smoke test.
 - Các dòng **"chưa commit/push/deploy"** ở mục 16–19 và plan từng batch là nhật ký checkpoint local trước lần cho phép công bố này, không phải trạng thái nhánh Git sau push. SHA ở GitHub phải được đối chiếu với HEAD local sau khi push; không coi chỉ tạo commit là đã đưa lên remote.
 - Evidence riêng tư của bước công bố ở `.local/performance/github-publish-20261027/`; không đưa token, file env, database, credentials, session hoặc báo cáo dữ liệu riêng tư vào commit.
+
+## 21. Cache correctness sau mutation — batch local 5, 27/10/2026
+
+### Phạm vi đã sửa
+
+- [x] Tiếp tục slice đầu Task 7, **chỉ local**, base đã công bố `5193010`. Snapshot 373 file, đối chiếu 308 source/config file trước sửa; tái sử dụng checkout có HEAD cũ `1ecfa38` nhưng app source bằng primary, không reset/commit/branch/push hoặc chạm dữ liệu thật.
+- [x] Matrix `cache-tags.ts`: import/config cước clear `cuoc:`/`kpi:`/`prepaid:`; upload node clear `node:`/`nodes:`/`map:`/`customers:` vì mapping sync ghi nodeName; user create/update/delete và restore clear toàn bộ store `kpi-cache` trong process. Nearest-node invalidation riêng được giữ; không xóa JWT, rate limiter hoặc mọi memo khác.
+- [x] Cache memory có cap **1.000 entry**, LRU và prune expired khi ghi; hết hạn tại đúng boundary, TTL không hợp lệ/không dương không lưu. Get không kéo dài TTL; giữ ba export và kiểu giá trị cache cũ. Cap theo số entry, chưa theo byte.
+- [x] Không chỉ sửa success path: node efficiency đợi `allSettled` rồi clear khi có row write commit; mapping có optional callback sau mỗi batch upsert/sync; user fallback clear nếu write đầu commit rồi raw-field update sau lỗi. Không thêm DML/transaction hoặc biến import thành atomic. Full rollback/401/403/validation/no-write vẫn giữ cache.
+- [x] User PUT no-op/fallback `data: {}` không bị coi là write; raw update thành công vẫn được đánh dấu khi update sau lỗi. Giữ audit/response/SQL semantics, không thay cách tính KPI hoặc quyền hiện có.
+
+### Bằng chứng hiện có
+
+- Core: **8 fail/4 pass → 12/12 GREEN**, thêm 4 matrix case. Review bổ sung dependency customer của node có RED 1/4 → GREEN 4/4.
+- Native Prisma/libSQL, chỉ mock auth: baseline đầu **14 fail/16 pass (30)**; mở rộng **24 fail/14 pass/6 pending (44)** rồi worker crash `0xC0000005`. Các ca partial-write tập trung đã fail trước crash; giữ log gốc và hash-checked restoration, không gọi lượt này là clean RED, không retry/ignore/pool-change để che lỗi.
+- Sau sửa partial commits có **44/44 GREEN**. Review no-op tracker tiếp tục có clean **RED 5 fail/47 pass → GREEN 52/52**, không crash; bao gồm user scope cố định-role, XLSX/KML/KMZ, fallback raw fields, commit batch trước rồi lỗi batch sau, rollback toàn bộ, archive/safeguard và audit. Không coi GREEN là đã xác định/sửa nguyên nhân crash native Windows.
+- Các review core và handler đã đóng 4 P2 + 1 P3 sau native regressions, không thấy thêm thay đổi SQL/transaction/formula/API contract ngoài phạm vi. Không dùng mock cache/query để che stale data.
+- Full checkout local đạt **56 file / 572 test + 22 policy test**, TypeScript/build đạt; lint 0 error / 3 warning cũ, 0 broad tracing warning. 33 API status/body hashes khớp trước/sau; 6 calculator cases qua 3 role và 4 summary cases ADMIN/MANAGER desktop/mobile không JS error, calculator vẫn 1 report request. SQLite giả không đổi qua build/GET/browser; chưa suy diễn thời gian cloud.
+- Thư mục chính đã tích hợp **17 file** sau hash-check, lưu bản trước tích hợp; chạy lại full suite tại primary cũng đạt **572 test + 22 policy test**, TypeScript/lint đạt (3 warning cũ). Source app/tests/scripts/config đối chiếu byte với checkout đã build; secret scan trên tập file tích hợp không phát hiện secret. Preview fixture cổng 3005 đã dừng, hash SQLite giả vẫn bằng trước build; không chạy build bằng env/database thật của primary.
+
+### Chưa hoàn thành — không đánh dấu xong đợt 2
+
+- **JWT/session revocation chưa sửa:** đổi role/xóa user/đổi password không tự hủy claims/cookie cũ. Clear store không phải xác minh lại quyền; cần chốt legacy-session/password policy và subject validation. Phân tích evidence: `docs/cache-permission-gaps.md`.
+- **Chưa có shared version/invalidation đa instance**, single-flight, generation chống loader cũ refill sau clear, stable identity/permission-version cho mọi key. Tests same-process không chứng minh các mục đó.
+- Chưa đo cloud p50/p95, cold Function, CPU/byte budget với payload lớn; chưa preflight/adopt database phục hồi/Turso; chưa sửa lifecycle summary/manager, bundle/map DTO/CDT hoặc UI của các đợt sau.
+- **Chưa commit/push/deploy batch 5 hoặc thao tác database thật.** Commit GitHub vẫn là `5193010`; không suy ra trạng thái Vercel sau push trước đó vì chưa xác minh.
+
+Hướng dẫn: `docs/cache-correctness.md`; plan: `docs/superpowers/plans/2026-10-27-cache-correctness-local.md`. Evidence riêng tư `.local/performance/batch5/`; fixtures riêng trong checkout, không đưa env, credentials, cookies, SQLite hoặc response bodies vào Git.
+
+## 22. Công bố batch 5 lên GitHub và Vercel — 27/10/2026
+
+- Chủ dự án yêu cầu **đẩy GitHub và chạy deploy** sau checkpoint local ở mục 21. Phạm vi là batch 5/cache correctness, không phải đã hoàn tất Task 7 hoặc toàn roadmap.
+- Kiểm tra lại trước công bố: 56 file / 572 test + 22 policy test đạt, TypeScript và lint đạt (3 warning cũ). Source đối chiếu checkout đã build bằng fixture giả; quét toàn bộ Git index, giữ env/database/backup/credentials ngoài source upload.
+- Deploy đúng project `kpidi-linh`/scope `vietdq9`, giữ cấu hình môi trường có sẵn. Build là `next build`, không migration/seed/adoption/restore hay chỉnh dữ liệu online. Kiểm tra readiness chỉ đọc metadata và sự hiện diện của default trước khi chuyển alias; thiếu readiness thì dừng và báo, không tự sửa database.
+- Các gap JWT/session revocation, cache nhiều instance và in-flight refill tại mục 21 vẫn còn; deploy không giải quyết những gap này. Không dùng smoke test Production để thử import/restore hoặc tạo dữ liệu giả vào database thật.
+- SHA GitHub, deployment READY/alias và kết quả smoke chỉ được công bố sau xác minh. Báo cáo riêng tư ở `.local/performance/github-deploy-batch5-20261027/`; không commit log chứa credentials, cookies hoặc business rows. Những dòng “chưa commit/push/deploy batch 5” ở mục 21 là checkpoint trước yêu cầu công bố này.

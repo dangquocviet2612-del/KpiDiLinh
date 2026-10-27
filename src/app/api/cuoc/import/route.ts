@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { parseCuocWorkbook } from "@/lib/cuoc";
-import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { assertArchiveMonthWritable } from "@/lib/archive";
 
 export async function POST(request: Request) {
@@ -106,9 +106,7 @@ export async function POST(request: Request) {
       { timeout: 120000, maxWait: 15000 }
     );
 
-    clearCacheByPrefix("cuoc:report");
-    clearCacheByPrefix("kpi:report");
-    clearCacheByPrefix("prepaid:");
+    invalidateCacheForMutation("cuoc");
 
     return NextResponse.json({
       message: "Import cước thành công",

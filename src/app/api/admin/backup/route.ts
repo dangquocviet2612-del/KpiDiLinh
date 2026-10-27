@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureNodeEfficiencyColumns } from "@/lib/node-efficiency-db";
 import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 import { applyRestoreSystemDefaults } from "@/lib/restore-system-defaults";
@@ -849,16 +849,7 @@ function prepareNode0TbRecordsForRestore(rows: Array<Record<string, unknown>>) {
 
 function clearRestoreCaches() {
     invalidateNearestNodeCache();
-    clearCacheByPrefix("map:data");
-    clearCacheByPrefix("map:detail");
-    clearCacheByPrefix("nodes:");
-    clearCacheByPrefix("kpi:");
-    clearCacheByPrefix("cuoc:");
-    clearCacheByPrefix("cuoc-cd:");
-    clearCacheByPrefix("cdt:");
-    clearCacheByPrefix("disconnect:");
-    clearCacheByPrefix("churn-risk:");
-    clearCacheByPrefix("node-0tb:");
+    invalidateCacheForMutation("restore");
 }
 
 export async function GET() {

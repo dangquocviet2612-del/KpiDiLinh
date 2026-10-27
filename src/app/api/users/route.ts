@@ -8,7 +8,8 @@ import { requireAuth } from "@/lib/api-auth";
 import { userInputSchema } from "@/lib/validations/user.schema";
 import { recordAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
-import { clearCacheByPrefix, getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, setCache } from "@/lib/kpi-cache";
+import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
 async function ensureManagerCodeColumn() {
@@ -96,6 +97,7 @@ export async function GET(request: Request) {
 
 // POST create a new User (Admin only)
 export async function POST(request: Request) {
+    let writeCommitted = false;
     try {
         const authResult = await requireAuth({ roles: ["ADMIN"] });
         if (authResult.errorResponse) return authResult.errorResponse;
@@ -140,6 +142,7 @@ export async function POST(request: Request) {
                     updatedAt: true,
                 }
             });
+            writeCommitted = true;
         } catch {
             newUser = await prisma.user.create({
                 data: {
@@ -157,6 +160,7 @@ export async function POST(request: Request) {
                     updatedAt: true,
                 }
             });
+            writeCommitted = true;
             if (managerCode !== undefined && managerCode !== null && managerCode !== "") {
                 await prisma.$executeRawUnsafe(
                     `UPDATE "User" SET managerCode = ? WHERE id = ?`,
@@ -179,14 +183,8 @@ export async function POST(request: Request) {
             }
         }
 
-        clearCacheByPrefix("users:list|");
-        clearCacheByPrefix("user:me|");
-        clearCacheByPrefix("scope:ctv|");
-        clearCacheByPrefix("prepaid:");
-        clearCacheByPrefix("kpi:summary");
-        clearCacheByPrefix("kpi:report");
-        clearCacheByPrefix("cuoc:report");
-        clearCacheByPrefix("cdt:");
+        invalidateCacheForMutation("users");
+        writeCommitted = false;
 
         await recordAuditLog({
             userId: authResult.user.id,
@@ -207,5 +205,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("USERS_POST_ERROR", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    } finally {
+        if (writeCommitted) invalidateCacheForMutation("users");
     }
 }
