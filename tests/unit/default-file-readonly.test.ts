@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   ensureKpiTables: vi.fn(),
   getAccessibleCtvCodes: vi.fn(),
   getCache: vi.fn(),
+  cacheGeneration: Symbol("cache-generation"),
   setCache: vi.fn(),
   clearCacheByPrefix: vi.fn(),
   existsSync: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: mocks.ensureKpiTables }));
 vi.mock("@/lib/scope", () => ({ getAccessibleCtvCodes: mocks.getAccessibleCtvCodes }));
 vi.mock("@/lib/kpi-cache", () => ({
   getCache: mocks.getCache,
+  getCacheGeneration: () => mocks.cacheGeneration,
   setCache: mocks.setCache,
   clearCacheByPrefix: mocks.clearCacheByPrefix,
 }));
@@ -257,7 +259,7 @@ describe("Cuoc CD retained report behavior", () => {
     if (role !== "CTV") expect(payload.rows[1]).toMatchObject({ thuaThieu: 0, tonChuaThu: -0.01 });
     expect(payload.summaryRow).toMatchObject({ dauKy, luyKe, thuaThieu, tonChuaThu, isSummary: true });
     expect(payload.targetRatePercent).toBe(99.5);
-    expect(mocks.setCache).toHaveBeenCalledWith(expect.stringContaining(`cuoc-cd:report|${role}|${username}|${reportDate}|`), payload, 60_000);
+    expect(mocks.setCache).toHaveBeenCalledWith(expect.stringContaining(`cuoc-cd:report|${role}|${username}|${reportDate}|`), payload, 60_000, mocks.cacheGeneration);
     expectNoDefaultFileAccess();
     expectReadOnlyQueries();
   });

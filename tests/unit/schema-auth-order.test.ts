@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   getMappedNodeNameForAccount: vi.fn(),
   getMappedNodeNamesByAccounts: vi.fn(),
   getCache: vi.fn(),
+  cacheGeneration: Symbol("cache-generation"),
   setCache: vi.fn(),
   clearCacheByPrefix: vi.fn(),
   parseGbocWorkbook: vi.fn(),
@@ -64,6 +65,7 @@ vi.mock("@/lib/customer-node-mapping", () => ({
 }));
 vi.mock("@/lib/kpi-cache", () => ({
   getCache: mocks.getCache,
+  getCacheGeneration: () => mocks.cacheGeneration,
   setCache: mocks.setCache,
   clearCacheByPrefix: mocks.clearCacheByPrefix,
 }));

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { ensureCustomerSchema } from "@/lib/ensure-customer-schema";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ function normalize(value: string): string {
 }
 
 export async function GET(request: Request) {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
             items: scored,
             nextCursor: null,
         };
-        setCache(cacheKey, payload, 10_000);
+        setCache(cacheKey, payload, 10_000, cacheGeneration);
         return NextResponse.json(payload);
     } catch (error: any) {
         console.error("search-map customers error", error);

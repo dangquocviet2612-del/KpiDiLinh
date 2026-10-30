@@ -4,10 +4,11 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 
 // GET current user info (including canUseGps)
 export async function GET() {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session || !session.user?.id) {
@@ -60,7 +61,7 @@ export async function GET() {
         }
 
         const payload = { ...user, ctvList };
-        setCache(cacheKey, payload, 30_000);
+        setCache(cacheKey, payload, 30_000, cacheGeneration);
         return NextResponse.json(payload);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { computeWindowedPageMeta } from "@/lib/prepaid-pagination";
 import { getLatestCdtTransactionDate, getScopedPrepaidCtvUsers } from "@/lib/prepaid-query";
 
@@ -21,6 +21,7 @@ type SummaryRow = {
 };
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Bạn chưa đăng nhập" }, { status: 401 });
@@ -173,7 +174,7 @@ export async function GET(request: Request) {
       totals,
       pagination: { page, pageSize, totalCount, totalPages },
     };
-    setCache(cacheKey, payload, 60_000);
+    setCache(cacheKey, payload, 60_000, cacheGeneration);
     return NextResponse.json(payload);
   } catch (error: any) {
     console.error("CDT_SUMMARY_ERROR", error);

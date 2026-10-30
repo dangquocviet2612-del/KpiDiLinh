@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import {
   computeCuocN1N3CompletionPercent,
   computeKpiCompletionPercent,
@@ -24,6 +24,7 @@ type IndicatorRow = {
 };
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Bạn chưa đăng nhập" }, { status: 401 });
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
         maxPercent: DEFAULT_KPI_MAX_PERCENT,
         selectedGroup: "",
       };
-      setCache(cacheKey, payload, 60_000);
+      setCache(cacheKey, payload, 60_000, cacheGeneration);
       return NextResponse.json(payload);
     }
 
@@ -208,7 +209,7 @@ export async function GET(request: Request) {
 
       const allRows = Array.from(managerMap.values()).sort((a, b) => a.managerUser.localeCompare(b.managerUser));
       const allPayload = { reportDate, indicators, allRows, rows: [], isAllView: true, isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT, selectedGroup: "__all__" };
-      setCache(cacheKey, allPayload, 60_000);
+      setCache(cacheKey, allPayload, 60_000, cacheGeneration);
       return NextResponse.json(allPayload);
     }
 
@@ -321,7 +322,7 @@ export async function GET(request: Request) {
       .sort((a, b) => a.managerUser.localeCompare(b.managerUser));
 
     const payload = { reportDate, indicators, rows, isNegativeGroup, maxPercent, selectedGroup: effectiveGroup };
-    setCache(cacheKey, payload, 60_000);
+    setCache(cacheKey, payload, 60_000, cacheGeneration);
     return NextResponse.json(payload);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Load manager summary failed" }, { status: 500 });

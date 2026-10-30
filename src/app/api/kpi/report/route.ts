@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAccessibleCtvCodes } from "@/lib/scope";
 import { ensureKpiTables } from "@/lib/kpi-db";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { calculateKpiReportPayload } from "@/lib/kpi-report-calculation";
 import { ServerTiming } from "@/lib/server-timing";
 import { buildPersonalKpiQuery } from "@/lib/kpi-report-queries";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/prepaid-query";
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   const timing = new ServerTiming();
   const json = (body: Parameters<typeof NextResponse.json>[0], init?: Parameters<typeof NextResponse.json>[1]) =>
     timing.applyTo(timing.measureSync("serialize", () => NextResponse.json(body, init)));
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
       totalMaxScore: calculated.totalMaxScore,
       totalAchievedScore: calculated.totalAchievedScore,
     };
-    timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000));
+    timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000, cacheGeneration));
     return json(responsePayload);
   } catch (error: any) {
     return json({ error: error.message || "Không tải được KPI cá nhân" }, { status: 500 });

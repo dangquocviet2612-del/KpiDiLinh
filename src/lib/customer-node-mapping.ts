@@ -46,7 +46,7 @@ export async function getMappedNodeNamesByAccounts(accounts: unknown[]) {
 
   await ensureCustomerNodeMappingTable();
 
-  const chunkSize = 300;
+  const chunkSize = 900;
   for (let index = 0; index < uniqueAccountKeys.length; index += chunkSize) {
     const chunk = uniqueAccountKeys.slice(index, index + chunkSize);
     const placeholders = chunk.map(() => "?").join(", ");

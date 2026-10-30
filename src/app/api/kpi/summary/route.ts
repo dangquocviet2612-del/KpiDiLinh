@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import {
   getCuocTargetRatePercent,
   getLatestCuocReportDate,
@@ -38,6 +38,7 @@ function isCuocRateGroup(group: string) {
 }
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   const timing = new ServerTiming();
   const json = (body: Parameters<typeof NextResponse.json>[0], init?: Parameters<typeof NextResponse.json>[1]) =>
     timing.applyTo(timing.measureSync("serialize", () => NextResponse.json(body, init)));
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
         isNegativeGroup: false,
         maxPercent: DEFAULT_KPI_MAX_PERCENT,
       };
-      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000));
+      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000, cacheGeneration));
       return json(responsePayload);
     }
 
@@ -120,7 +121,7 @@ export async function GET(request: Request) {
         maxPercent: DEFAULT_KPI_MAX_PERCENT,
         selectedGroup: "",
       };
-      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000));
+      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000, cacheGeneration));
       return json(responsePayload);
     }
 
@@ -205,7 +206,7 @@ export async function GET(request: Request) {
           selectedGroup: effectiveGroup,
         };
       });
-      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000));
+      timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000, cacheGeneration));
       return json(responsePayload);
     }
 
@@ -266,7 +267,7 @@ export async function GET(request: Request) {
 
       return { reportDate, indicators, rows, isNegativeGroup: effectiveNegativeGroup, maxPercent, selectedGroup: effectiveGroup };
     });
-    timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000));
+    timing.measureSync("cache", () => setCache(cacheKey, responsePayload, 60_000, cacheGeneration));
     return json(responsePayload);
   } catch (error: any) {
     return json({ error: error.message || "Load summary failed" }, { status: 500 });

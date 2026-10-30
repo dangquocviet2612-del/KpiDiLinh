@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { clearNode0TbData, getNode0TbList } from "@/lib/node-0tb-db";
+import { projectNode0TbMapData } from "@/lib/node-0tb-map";
 
 export async function GET(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const category = searchParams.get("category") || undefined;
 
     const data = await getNode0TbList({ search, category });
-    return NextResponse.json(data);
+    return NextResponse.json(searchParams.get("projection") === "map" ? projectNode0TbMapData(data) : data);
   } catch (error: any) {
     console.error("Error in GET /api/node-0tb:", error);
     return NextResponse.json(

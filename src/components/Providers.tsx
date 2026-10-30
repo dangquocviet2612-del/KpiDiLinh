@@ -1,12 +1,16 @@
 "use client";
 
+import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { ConfirmDialogProvider } from "@/components/ui/ConfirmDialogProvider";
+import { CurrentUserProvider } from "@/hooks/useCurrentUser";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, session }: { children: React.ReactNode; session: Session | null }) {
     return (
-        <SessionProvider>
-            <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+        <SessionProvider session={session}>
+            <CurrentUserProvider>
+                <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+            </CurrentUserProvider>
         </SessionProvider>
     );
 }

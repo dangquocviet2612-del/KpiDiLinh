@@ -6,10 +6,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { buildCuocCdSummaryRow, CuocCdRow } from "@/lib/cuoc-cd";
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) {
@@ -38,11 +39,18 @@ export async function GET(request: Request) {
 
     // Find latest report date if not specified
     if (!reportDate) {
-      const dates = await prisma.$queryRawUnsafe<Array<{ reportDate: string }>>(
-        `SELECT DISTINCT "reportDate" FROM "CuocCdDailyResult" ORDER BY "reportDate" DESC LIMIT 1`
-      );
-      if (dates.length > 0) {
-        reportDate = dates[0].reportDate;
+      const latestDateCacheKey = "cuoc-cd:report:latest-date";
+      const cachedReportDate = getCache<string>(latestDateCacheKey);
+      if (cachedReportDate !== null) {
+        reportDate = cachedReportDate;
+      } else {
+        const dates = await prisma.$queryRawUnsafe<Array<{ reportDate: string }>>(
+          `SELECT DISTINCT "reportDate" FROM "CuocCdDailyResult" ORDER BY "reportDate" DESC LIMIT 1`
+        );
+        if (dates.length > 0) {
+          reportDate = dates[0].reportDate;
+        }
+        setCache(latestDateCacheKey, reportDate, 30_000, cacheGeneration);
       }
     }
 
@@ -151,7 +159,7 @@ export async function GET(request: Request) {
 
     const summaryRow = buildCuocCdSummaryRow(rows);
     const responsePayload = { reportDate, targetRatePercent, rows, summaryRow };
-    setCache(cacheKey, responsePayload, 60_000);
+    setCache(cacheKey, responsePayload, 60_000, cacheGeneration);
 
     return NextResponse.json(responsePayload);
   } catch (error: any) {

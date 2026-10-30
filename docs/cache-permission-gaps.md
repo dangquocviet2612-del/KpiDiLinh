@@ -1,5 +1,7 @@
 # Khoảng trống quyền/cache — batch5, Task 7
 
+> **Mốc lịch sử 27/10/2026:** Source hashes, số dòng và proof dưới đây thuộc batch5. Cập nhật local 28/10 trong `docs/cache-generation.md` đã chặn stale cache refill cùng process cho các production writer; nhận định “chưa có generation” bên dưới chỉ mô tả baseline, không phải candidate mới. Request đã chạy vẫn có thể nhận kết quả cũ; JWT/revocation/PWA/cross-process và single-flight vẫn chưa được giải quyết. Không dùng tài liệu này làm bằng chứng code hiện tại đã đóng Task 7.
+
 ## Phạm vi và kết luận
 
 - Audit chỉ đọc ngày 2026-10-27 tại `D:/code/webkpimoi/.worktrees/ux-performance-batch1`, HEAD `1ecfa38`; primary HEAD `5193010`. Bốn nguồn auth/guard/scope/prepaid có hash bằng primary. Số dòng dưới đây thuộc working tree đang được parent/worker6 cập nhật, không phải chỉ nội dung commit.

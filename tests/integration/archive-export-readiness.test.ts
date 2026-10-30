@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as xlsx from "xlsx";
 
-const mocks = vi.hoisted(() => ({ query: vi.fn(), execute: vi.fn(), ensure: vi.fn(), auth: vi.fn() }));
+const mocks = vi.hoisted(() => ({ query: vi.fn(), execute: vi.fn(), ensure: vi.fn(), auth: vi.fn(), cacheGeneration: Symbol("cache-generation") }));
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $queryRawUnsafe: mocks.query, $executeRawUnsafe: mocks.execute } }));
 vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: mocks.ensure }));
-vi.mock("@/lib/kpi-cache", () => ({ clearCacheByPrefix: vi.fn() }));
+vi.mock("@/lib/kpi-cache", () => ({ getCacheGeneration: () => mocks.cacheGeneration, clearCacheByPrefix: vi.fn() }));
 
 import {
   countRecords, exportMonthToExcel, getArchiveExportReadiness,

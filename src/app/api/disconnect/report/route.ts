@@ -9,7 +9,7 @@ import {
   normalizeDisconnectSourceType,
 } from "@/lib/disconnect";
 import { buildCdtAccountSearchPattern, normalizeCdtAccountSearch } from "@/lib/cdt-account-search";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { computeWindowedPageMeta } from "@/lib/prepaid-pagination";
 import { getScopedPrepaidCtvUsers } from "@/lib/prepaid-query";
@@ -55,6 +55,7 @@ function normalizeScopeCode(value: string) {
 }
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) {
@@ -258,7 +259,7 @@ export async function GET(request: Request) {
       },
     };
 
-    setCache(cacheKey, payload, 30_000);
+    setCache(cacheKey, payload, 30_000, cacheGeneration);
     return NextResponse.json(payload);
   } catch (error: any) {
     console.error("DISCONNECT_REPORT_ERROR", error);

@@ -1,5 +1,7 @@
 # Cache correctness — local batch 5
 
+**Cập nhật local 28/10/2026:** Phần batch 5 bên dưới là checkpoint lịch sử. Slice tiếp theo đã bổ sung generation fence trong cùng process; xem `docs/cache-generation.md` và mục 27 của `tiendokpi.md` để biết bằng chứng/gate hiện tại. Không phải single-flight, thu hồi JWT hoặc invalidation nhiều instance.
+
 Ngày **27/10/2026**, tiếp tục phần đầu Task 7 sau source `5193010`. Chỉ sửa và kiểm thử local, không push/deploy, không đọc env/database phục hồi hoặc kết nối Turso/Vercel thật.
 
 ## Những lỗi được xử lý
@@ -19,10 +21,10 @@ User PUT rỗng hoặc fallback có `data: {}` chỉ đọc lại record, không
 
 ## Giới hạn cache in-memory
 
-`src/lib/kpi-cache.ts` vẫn giữ `getCache`, `setCache`, `clearCacheByPrefix`, không đổi chữ ký để caller cũ tiếp tục hoạt động.
+`src/lib/kpi-cache.ts` giữ `getCache`, `setCache`, `clearCacheByPrefix`. Bản local 28/10 thêm `getCacheGeneration()` và tham số thứ tư tùy chọn của `setCache`; caller production phải truyền token, dạng ba tham số chỉ giữ tương thích.
 
 - Tối đa **1.000 entry/process**, loại entry ít dùng gần đây nhất khi vượt cap. Get thành công và ghi đè key làm mới thứ tự LRU, không kéo dài TTL khi đọc.
-- Hết hạn ngay tại `now >= expiresAt`. TTL bằng 0/âm/NaN/Infinity không lưu và xóa giá trị cũ của key đó.
+- Hết hạn ngay tại `now >= expiresAt`. TTL bằng 0/âm/NaN/Infinity không lưu và xóa giá trị cũ của key đó; từ slice 28/10, write mang generation cũ bị bỏ trước cả cleanup này nên không xóa giá trị mới.
 - Ghi cache dọn entry đã hết hạn trước khi eviction, tránh loại nhầm entry còn sống. Prefix clear giữ semantics cũ; prefix rỗng xóa tất cả.
 - Cap theo **số entry**, không phải số byte; một payload lớn vẫn có thể tốn nhiều RAM. Prune mỗi write quét tối đa 1.000 entry; chưa khẳng định budget CPU/byte với workload Production.
 
@@ -33,10 +35,10 @@ Mutation regression dùng Prisma/libSQL thật, chỉ mock auth: **52/52** case 
 ## Điều chưa được giải quyết
 
 1. **Không có shared version/invalidation giữa nhiều instance.** Mutation ở A không xóa Map của B; chưa triển khai SLA freshness cross-instance.
-2. **Không có single-flight/generation cho loader đang chạy.** Request đọc bắt đầu trước mutation vẫn có thể ghi kết quả cũ trở lại cache sau invalidation. Không coi việc clear prefix là đã chặn race này.
+2. **Chưa có single-flight.** Slice local 28/10 đã fence các production writer bằng generation tại entry, chặn publish lại sau invalidation cùng process. Request cũ vẫn có thể nhận response cũ; không hủy hoặc re-authorize response, không xử lý race xuyên process. Xem `docs/cache-generation.md`.
 3. **Không sửa JWT/session lifecycle.** Role/id/name vẫn lấy từ JWT theo code auth hiện tại; clear cache không thu hồi cookie của user đã bị đổi role, xóa hoặc đổi mật khẩu. Không coi role claim cũ là đã được server xác minh lại.
 4. **Scope cache/key chưa có permission version/stable identity đầy đủ.** Test manager reassignment trong slice này chỉ chứng minh handler mutation xóa cache trong cùng process với session fixture giữ nguyên role, không chứng minh mọi tình huống thu hồi quyền.
-5. **Source chưa tự được đưa lên GitHub/Vercel và database thật chưa preflight/adopt.** Không tự chạy release migration hoặc thay provider để vượt các checkpoint còn thiếu.
+5. **Không tự công bố bản local mới.** Batch 5 đã công bố tại `9d0365e`; các batch local tiếp theo theo dõi trong `tiendokpi.md`. Không tự chạy release migration hoặc thay provider để vượt checkpoint còn thiếu.
 
 Phân tích chi tiết các gap còn lại: `docs/cache-permission-gaps.md`. Các dòng chưa tick của Task 7 vẫn là backlog; slice này không hoàn tất đợt 2 của roadmap. Ưu tiên tiếp theo phải chốt policy JWT/legacy-session/password revocation, rồi thiết kế scope snapshot/cache version và invalidation nhiều instance; dùng fixture nhiều process, không thử trực tiếp trên dữ liệu thật.
 

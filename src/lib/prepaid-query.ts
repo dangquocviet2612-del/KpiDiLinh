@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { getAccessibleCtvCodes } from "@/lib/scope";
 
 type ScopeOptions = {
@@ -37,6 +37,7 @@ function getScopeCacheKey({ role, sessionName, managerCode }: ReturnType<typeof 
 }
 
 export async function getScopedPrepaidCtvUsers(options: ScopeOptions): Promise<string[]> {
+  const cacheGeneration = getCacheGeneration();
   const normalized = normalizeScopeOptions(options);
   const cacheKey = getScopeCacheKey(normalized);
   const cached = getCache<string[]>(cacheKey);
@@ -72,7 +73,7 @@ export async function getScopedPrepaidCtvUsers(options: ScopeOptions): Promise<s
     users = normalized.sessionName ? [normalized.sessionName] : [];
   }
 
-  setCache(cacheKey, users, 30_000);
+  setCache(cacheKey, users, 30_000, cacheGeneration);
   return users;
 }
 
@@ -82,6 +83,7 @@ async function getLatestDateForScope(params: {
   userColumn: "ctvUser";
   scope: ScopeOptions;
 }) {
+  const cacheGeneration = getCacheGeneration();
   const scope = normalizeScopeOptions(params.scope);
   const cacheKey = `prepaid:latest|${params.table}|${scope.role}|${scope.sessionName}|${scope.managerCode}`;
   const cached = getCache<string>(cacheKey);
@@ -96,7 +98,7 @@ async function getLatestDateForScope(params: {
   } else {
     const scopedUsers = await getScopedPrepaidCtvUsers(scope);
     if (!scopedUsers.length) {
-      setCache(cacheKey, "", 30_000);
+      setCache(cacheKey, "", 30_000, cacheGeneration);
       return "";
     }
     const rows = await prisma.$queryRawUnsafe<Array<{ reportDate?: string; transactionDate?: string }>>(
@@ -108,7 +110,7 @@ async function getLatestDateForScope(params: {
     latestDate = String(rows[0]?.[params.dateColumn] || "").trim();
   }
 
-  setCache(cacheKey, latestDate, 30_000);
+  setCache(cacheKey, latestDate, 30_000, cacheGeneration);
   return latestDate;
 }
 
@@ -118,6 +120,7 @@ async function getLatestDateForSingleUser(params: {
   userColumn: "ctvUser";
   userValue: string;
 }) {
+  const cacheGeneration = getCacheGeneration();
   const normalizedUserValue = String(params.userValue || "").trim();
   if (!normalizedUserValue) return "";
 
@@ -130,7 +133,7 @@ async function getLatestDateForSingleUser(params: {
     normalizedUserValue
   );
   const latestDate = String(rows[0]?.[params.dateColumn] || "").trim();
-  setCache(cacheKey, latestDate, 30_000);
+  setCache(cacheKey, latestDate, 30_000, cacheGeneration);
   return latestDate;
 }
 
@@ -189,6 +192,7 @@ export function getLatestCdtTransactionDateForCtv(ctvUser: string) {
 }
 
 export async function getLatestManagerKpiReportDate(managerUser?: string) {
+  const cacheGeneration = getCacheGeneration();
   const normalizedManagerUser = String(managerUser || "").trim().toUpperCase();
   const cacheKey = `prepaid:latest|ManagerKpiDailyResult|${normalizedManagerUser || "all"}`;
   const cached = getCache<string>(cacheKey);
@@ -201,11 +205,12 @@ export async function getLatestManagerKpiReportDate(managerUser?: string) {
     ...(normalizedManagerUser ? [normalizedManagerUser] : [])
   );
   const latestDate = String(rows[0]?.reportDate || "").trim();
-  setCache(cacheKey, latestDate, 30_000);
+  setCache(cacheKey, latestDate, 30_000, cacheGeneration);
   return latestDate;
 }
 
 export async function getCuocTargetRatePercent() {
+  const cacheGeneration = getCacheGeneration();
   const cacheKey = "prepaid:cuoc-config";
   const cached = getCache<number>(cacheKey);
   if (typeof cached === "number") return cached;
@@ -214,11 +219,12 @@ export async function getCuocTargetRatePercent() {
     `SELECT "targetRatePercent" FROM "CuocConfig" WHERE "id" = 1`
   );
   const targetRatePercent = Number(rows[0]?.targetRatePercent ?? 97.3);
-  setCache(cacheKey, targetRatePercent, 300_000);
+  setCache(cacheKey, targetRatePercent, 300_000, cacheGeneration);
   return targetRatePercent;
 }
 
 export async function getLatestCuocCompletionForCtv(ctvUser: string) {
+  const cacheGeneration = getCacheGeneration();
   const normalized = String(ctvUser || "").trim();
   if (!normalized) return 0;
 
@@ -237,6 +243,6 @@ export async function getLatestCuocCompletionForCtv(ctvUser: string) {
     normalized
   );
   const completionPercent = Number(rows[0]?.completionPercent ?? 0);
-  setCache(cacheKey, completionPercent, 30_000);
+  setCache(cacheKey, completionPercent, 30_000, cacheGeneration);
   return completionPercent;
 }

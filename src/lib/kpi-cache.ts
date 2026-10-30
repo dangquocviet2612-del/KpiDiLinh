@@ -5,6 +5,11 @@ type CacheItem<T> = {
 
 const MAX_CACHE_ENTRIES = 1000;
 const store = new Map<string, CacheItem<unknown>>();
+let cacheGeneration = Symbol("cache-generation");
+
+export function getCacheGeneration(): symbol {
+  return cacheGeneration;
+}
 
 export function getCache<T>(key: string): T | null {
   const item = store.get(key);
@@ -18,7 +23,8 @@ export function getCache<T>(key: string): T | null {
   return item.value as T;
 }
 
-export function setCache<T>(key: string, value: T, ttlMs: number) {
+export function setCache<T>(key: string, value: T, ttlMs: number, generation?: symbol) {
+  if (generation !== undefined && generation !== cacheGeneration) return;
   const now = Date.now();
   const expiresAt = now + ttlMs;
   if (!Number.isFinite(ttlMs) || ttlMs <= 0 || !Number.isFinite(expiresAt)) {
@@ -38,6 +44,7 @@ export function setCache<T>(key: string, value: T, ttlMs: number) {
 }
 
 export function clearCacheByPrefix(prefix: string) {
+  cacheGeneration = Symbol("cache-generation");
   for (const key of store.keys()) {
     if (key.startsWith(prefix)) store.delete(key);
   }

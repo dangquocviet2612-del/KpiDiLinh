@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 import styles from "../node-map/node-map.module.css";
 import MapSearchResults from "@/components/MapSearchResults";
 import { encodeMapEventValue, escapeMapHtml as escapeHtml, isValidMapCoordinate } from "@/lib/map-ui";
-import type { Node0TbApiResponse, Node0TbItem } from "@/types";
+import type { Node0TbMapResponse, Node0TbMapItem } from "@/types";
 import { MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls } from "@/components/map";
 import { MAP_STYLE_OPTIONS, getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
 
@@ -93,7 +93,7 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
   return radius * c;
 }
 
-function buildNode0TbPopupHtml(item: Node0TbItem, userLocation: [number, number] | null) {
+function buildNode0TbPopupHtml(item: Node0TbMapItem, userLocation: [number, number] | null) {
   const cfg = getCategoryConfig(item.categoryKd || "");
   const totalPortText = escapeHtml(item.totalPort !== null ? String(item.totalPort) : "-");
   const dateKdText = escapeHtml(item.dateKdFormatted || "-");
@@ -202,7 +202,7 @@ function VanillaMarkerCluster({
   userLocationRef,
   markersRefObj: markersRef,
 }: {
-  nodes: Node0TbItem[];
+  nodes: Node0TbMapItem[];
   userLocationRef: React.MutableRefObject<[number, number] | null>;
   markersRefObj: React.MutableRefObject<Record<string, { marker: L.Marker; cg: any }>>;
 }) {
@@ -321,7 +321,7 @@ export default function Node0TbMap() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [data, setData] = useState<Node0TbApiResponse | null>(null);
+  const [data, setData] = useState<Node0TbMapResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [mapStyle, setMapStyle] = useState<MapStyleMode>("light");
@@ -354,10 +354,10 @@ export default function Node0TbMap() {
     setIsLoading(true);
     setLoadError("");
     try {
-      const response = await fetch("/api/node-0tb");
+      const response = await fetch("/api/node-0tb?projection=map");
       if (!response.ok) throw new Error("Máy chủ không trả về dữ liệu Node 0TB hợp lệ.");
 
-      const json: Node0TbApiResponse = await response.json();
+      const json: Node0TbMapResponse = await response.json();
       if (!Array.isArray(json.nodes) || !json.stats) {
         throw new Error("Dữ liệu Node 0TB không đúng định dạng.");
       }
@@ -460,7 +460,7 @@ export default function Node0TbMap() {
 
   // Click on Node from search / list
   const handleNodeClick = useCallback(
-    (item: Node0TbItem) => {
+    (item: Node0TbMapItem) => {
       if (item.latitude === null || item.longitude === null) {
         toast.error(`Node ${item.nodeCode} chưa có tọa độ trên hệ thống.`);
         return;

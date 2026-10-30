@@ -3,12 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(), execute: vi.fn(), transaction: vi.fn(), ensure: vi.fn(), invalidate: vi.fn(),
+  cacheGeneration: Symbol("cache-generation"),
 }));
 vi.mock("@/lib/prisma", () => ({
   prisma: { $queryRawUnsafe: mocks.query, $executeRawUnsafe: mocks.execute, $transaction: mocks.transaction },
 }));
 vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: mocks.ensure }));
-vi.mock("@/lib/kpi-cache", () => ({ clearCacheByPrefix: mocks.invalidate }));
+vi.mock("@/lib/kpi-cache", () => ({ getCacheGeneration: () => mocks.cacheGeneration, clearCacheByPrefix: mocks.invalidate }));
 
 import {
   cancelArchiveConfirmation, checkAndPurgeExpired, purgeMonthData, upsertArchiveConfirmation,

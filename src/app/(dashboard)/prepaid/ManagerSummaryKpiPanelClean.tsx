@@ -127,7 +127,7 @@ export default function ManagerSummaryKpiPanelClean(props: ManagerSummaryKpiPane
   );
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${styles.summaryIdentityPanel}`}>
       <div className={styles.header}>
         <div className="ui-panel-heading">
           <h1 className={`${styles.title} ui-panel-title`}>

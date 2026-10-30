@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { getMappedNodeNamesByAccounts, normalizeCustomerAccountKey } from "@/lib/customer-node-mapping";
 import { ensureCustomerSchema } from "@/lib/ensure-customer-schema";
 
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -86,7 +87,7 @@ export async function GET(request: Request) {
       data,
       meta: { count: data.length, take, includeDetails },
     };
-    setCache(cacheKey, payload, 60_000);
+    setCache(cacheKey, payload, 60_000, cacheGeneration);
     return NextResponse.json(payload);
   } catch (error: any) {
     console.error("Loi khi lay du lieu map:", error);

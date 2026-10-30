@@ -130,10 +130,6 @@ function getFirstWorksheet(workbook: xlsx.WorkBook) {
   return workbook.Sheets[firstSheetName];
 }
 
-function readSheetObjectRows(sheet: xlsx.WorkSheet) {
-  return xlsx.utils.sheet_to_json(sheet, { defval: "" }) as SheetRow[];
-}
-
 function readSheetMatrixRows(sheet: xlsx.WorkSheet) {
   return xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false }) as SheetMatrixRow[];
 }

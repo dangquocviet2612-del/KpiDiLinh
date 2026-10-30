@@ -119,7 +119,7 @@ describe("KPI request lifecycle", () => {
 
   it("loads only calculator data and initializes the CTV list once", async () => {
     const pending = pendingResponse();
-    const me = { role: "ADMIN", ctvList: [{ id: "ctv-a", username: "CTV_A" }] };
+    const me = { id: runtime.session.user.id, role: "ADMIN", ctvList: [{ id: "ctv-a", username: "CTV_A" }] };
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
       if (url.startsWith("/api/kpi/report")) return pending.promise;
@@ -151,7 +151,7 @@ describe("KPI request lifecycle", () => {
         const payload = { ...reportPayload(imported ? 8 : 4), reportDate: imported ? "2026-10-26" : "2026-10-25" };
         return Promise.resolve({ ok: true, json: async () => payload });
       }
-      return Promise.resolve({ ok: true, json: async () => url === "/api/me" ? { ctvList: [{ id: "ctv-a", username: "CTV_A" }] } : {} });
+      return Promise.resolve({ ok: true, json: async () => url === "/api/me" ? { id: runtime.session.user.id, ctvList: [{ id: "ctv-a", username: "CTV_A" }] } : {} });
     });
     vi.stubGlobal("fetch", fetchMock);
     const { container } = render(<ConfirmDialogProvider><PrepaidPage /></ConfirmDialogProvider>);
@@ -171,7 +171,7 @@ describe("KPI request lifecycle", () => {
 
   it("does not reload the CTV list for selection changes or equivalent session refreshes", async () => {
     runtime.view = "";
-    const fetchMock = vi.fn((input: RequestInfo | URL) => Promise.resolve({ ok: true, json: async () => String(input) === "/api/me" ? { ctvList: [{ id: "a", username: "CTV_A" }, { id: "b", username: "CTV_B" }] } : reportPayload() }));
+    const fetchMock = vi.fn((input: RequestInfo | URL) => Promise.resolve({ ok: true, json: async () => String(input) === "/api/me" ? { id: runtime.session.user.id, ctvList: [{ id: "a", username: "CTV_A" }, { id: "b", username: "CTV_B" }] } : reportPayload() }));
     vi.stubGlobal("fetch", fetchMock);
     const { container, rerender } = render(<ConfirmDialogProvider><PrepaidPage /></ConfirmDialogProvider>);
     const select = container.querySelector("select")!;

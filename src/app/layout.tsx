@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers } from "@/components/Providers";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
@@ -17,22 +16,20 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body suppressHydrationWarning>
-        <Providers>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: 'var(--card)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                fontSize: '0.85rem'
-              },
-            }}
-          />
-          {children}
-        </Providers>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: 'var(--card)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              fontSize: '0.85rem'
+            },
+          }}
+        />
+        {children}
       </body>
     </html>
   );

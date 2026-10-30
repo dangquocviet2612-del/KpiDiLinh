@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { findNearestNodeName } from "@/lib/nodeUtils";
 import { getMappedNodeNameForAccount, getMappedNodeNamesByAccounts, normalizeCustomerAccountKey } from "@/lib/customer-node-mapping";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { clearCacheByPrefix, getCache, setCache } from "@/lib/kpi-cache";
+import { clearCacheByPrefix, getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { calculateCustomerExpirationDate, parseCustomerDateInput } from "@/lib/customer-date-input";
 import { customerInputSchema } from "@/lib/validations/customer.schema";
 import { ensureCustomerSchema } from "@/lib/ensure-customer-schema";
@@ -18,6 +18,7 @@ function parsePositiveInt(value: string | null, fallback: number, max: number) {
 }
 
 export async function GET(request: Request) {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -147,7 +148,7 @@ export async function GET(request: Request) {
             totalPages: includeTotal ? Math.ceil(total / limit) : undefined,
             hasMore: includeTotal ? undefined : dataWithResolvedNode.length === limit,
         };
-        setCache(cacheKey, payload, 15_000);
+        setCache(cacheKey, payload, 15_000, cacheGeneration);
         return NextResponse.json(payload);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

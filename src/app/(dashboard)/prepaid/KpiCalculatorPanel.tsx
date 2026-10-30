@@ -22,6 +22,7 @@ type KpiCalculatorPanelProps = {
   changeSummaryRows: KpiCalculatorChangeSummaryItem[];
   draftValues: Record<string, string>;
   dirtyCount: number;
+  hasDraftEdits?: boolean;
   totals: {
     totalBaseScore: number;
     totalCurrentScore: number;
@@ -178,7 +179,7 @@ export default function KpiCalculatorPanel(props: KpiCalculatorPanelProps) {
           <button className={props.surfaceActionBtnClass} onClick={props.onRefresh}>
             Làm mới từ KPI hiện tại
           </button>
-          <button className={props.surfaceActionBtnClass} onClick={props.onReset} disabled={props.dirtyCount === 0}>
+          <button className={props.surfaceActionBtnClass} onClick={props.onReset} disabled={!(props.hasDraftEdits ?? props.dirtyCount > 0)}>
             <RotateCcw size={16} />
             Khôi phục dữ liệu gốc
           </button>

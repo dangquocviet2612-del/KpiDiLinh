@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2 } from "lucide-react";
@@ -14,21 +15,14 @@ import {
 } from "@/lib/kpi-scoring";
 import { sortKpiRowsByCompletion } from "@/lib/kpi-row-sorting";
 import { kpiReportRequestKey, useLatestKpiRequest } from "@/hooks/useLatestKpiRequest";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { CurrentUserRequestError } from "@/lib/current-user-request";
 import {
   filterIncompleteKpiSummaryRows,
   sortKpiSummaryRowsByCompletion,
 } from "@/lib/kpi-summary";
-import CdtPanelClean from "./CdtPanelClean";
-import KpiCalculatorPanel from "./KpiCalculatorPanel";
-import CdtOutstandingPanelClean from "./CdtOutstandingPanelClean";
-import CdtSummaryPanelClean from "./CdtSummaryPanelClean";
-import CuocPanelClean from "./CuocPanelClean";
-import CuocCdPanelClean from "./CuocCdPanelClean";
-import DisconnectPanelClean from "./DisconnectPanelClean";
-import OfficialDocsPanel from "./OfficialDocsPanel";
-import ManagerSummaryKpiPanelClean from "./ManagerSummaryKpiPanelClean";
 import PersonalKpiPanelClean from "./PersonalKpiPanelClean";
-import SummaryKpiPanelClean from "./SummaryKpiPanelClean";
+import PrepaidPanelLoading from "./PrepaidPanelLoading";
 import useCdtPanel from "./useCdtPanel";
 import useCdtOutstandingPanel from "./useCdtOutstandingPanel";
 import useDisconnectPanel from "./useDisconnectPanel";
@@ -37,6 +31,17 @@ import useCuocPanel from "./useCuocPanel";
 import useCuocCdPanel from "./useCuocCdPanel";
 import useOfficialDocsPanel from "./useOfficialDocsPanel";
 import styles from "./kpi.module.css";
+
+const CdtPanelClean = dynamic(() => import("./CdtPanelClean"), { loading: PrepaidPanelLoading });
+const KpiCalculatorPanel = dynamic(() => import("./KpiCalculatorPanel"), { loading: PrepaidPanelLoading });
+const CdtOutstandingPanelClean = dynamic(() => import("./CdtOutstandingPanelClean"), { loading: PrepaidPanelLoading });
+const CdtSummaryPanelClean = dynamic(() => import("./CdtSummaryPanelClean"), { loading: PrepaidPanelLoading });
+const CuocPanelClean = dynamic(() => import("./CuocPanelClean"), { loading: PrepaidPanelLoading });
+const CuocCdPanelClean = dynamic(() => import("./CuocCdPanelClean"), { loading: PrepaidPanelLoading });
+const DisconnectPanelClean = dynamic(() => import("./DisconnectPanelClean"), { loading: PrepaidPanelLoading });
+const OfficialDocsPanel = dynamic(() => import("./OfficialDocsPanel"), { loading: PrepaidPanelLoading });
+const ManagerSummaryKpiPanelClean = dynamic(() => import("./ManagerSummaryKpiPanelClean"), { loading: PrepaidPanelLoading });
+const SummaryKpiPanelClean = dynamic(() => import("./SummaryKpiPanelClean"), { loading: PrepaidPanelLoading });
 
 type KpiRow = {
   kpiCode: string;
@@ -65,6 +70,28 @@ type SummaryRow = {
   th: number;
   percent: number;
   thieu: number;
+};
+
+type SummaryPayload<Row> = {
+  rows?: Row[];
+  allRows?: any[];
+  indicators?: string[];
+  selectedGroup?: string;
+  reportDate?: string | null;
+  isNegativeGroup?: boolean;
+  maxPercent?: number;
+};
+
+type SummaryRequestOptions = { force?: boolean; latest?: boolean; reportDate?: string };
+
+const summaryRequestKey = (resource: string, scope: string, date: string, manager: string, group: string) =>
+  JSON.stringify([resource, scope, date, manager, group]);
+
+const resolveSummaryGroup = (data: SummaryPayload<unknown>, requestedGroup: string, manager = false) => {
+  if (manager && requestedGroup === "__all__") return "__all__";
+  const groups = (data.indicators || []).filter((group) => !manager || group !== "__all__");
+  return String(data.selectedGroup || "").trim() ||
+    (requestedGroup && groups.includes(requestedGroup) ? requestedGroup : groups[0] || "");
 };
 
 const formatIsoToVnDate = (value?: string | null): string => {
@@ -151,6 +178,7 @@ export default function KpiPage() {
   const canSelectCtv = role === "ADMIN" || role === "MANAGER";
   const hasSession = Boolean(session?.user);
   const scopeKey = JSON.stringify([session?.user?.id || "", session?.user?.name || "", role]);
+  const currentUser = useCurrentUser(hasSession && canSelectCtv);
   const canViewSummary = canSelectCtv;
   const canViewManagerKpi = role === "ADMIN" || role === "MANAGER";
   const canViewCuoc = role === "ADMIN" || role === "MANAGER" || role === "CTV";
@@ -174,9 +202,15 @@ export default function KpiPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [ctvOptions, setCtvOptions] = useState<any[]>([]);
-  const [selectedCtv, setSelectedCtv] = useState("");
+  const [storedCtvOptions, setCtvOptions] = useState<any[]>([]);
+  const [storedSelectedCtv, setSelectedCtv] = useState("");
+  const [ctvScope, setCtvScope] = useState(currentUser.scope);
+  const ctvOptions = useMemo(() => ctvScope === currentUser.scope ? storedCtvOptions : [], [ctvScope, currentUser.scope, storedCtvOptions]);
+  const selectedCtv = ctvScope === currentUser.scope ? storedSelectedCtv : "";
+  const ctvReady = !canSelectCtv || Boolean(currentUser.data && ctvScope === currentUser.scope && selectedCtv &&
+    Array.isArray(currentUser.data.ctvList) && currentUser.data.ctvList.some((user) => user.username === selectedCtv));
   const [reportDate, setReportDate] = useState("");
+  const [calculatorDataRevision, setCalculatorDataRevision] = useState(0);
   const [dateInitialized, setDateInitialized] = useState(false);
   const [reportRows, setReportRows] = useState<KpiRow[]>([]);
   const [totals, setTotals] = useState({ totalBaseScore: 0, totalAchievedScore: 0 });
@@ -208,14 +242,69 @@ export default function KpiPage() {
   const [debouncedManagerIndicator, setDebouncedManagerIndicator] = useState("");
   const [managerFilter, setManagerFilter] = useState("");
   const [debouncedManagerFilter, setDebouncedManagerFilter] = useState("");
-  const summaryReqRef = useRef(0);
-  const managerSummaryReqRef = useRef(0);
-  const lastSummaryKeyRef = useRef("");
-  const lastManagerSummaryKeyRef = useRef("");
   const hasPersonalDataRef = useRef(false);
   const { run: runPersonal, cancel: cancelPersonal, reset: resetPersonal } = useLatestKpiRequest<{ rows?: KpiRow[]; reportDate?: string | null; totalBaseScore?: number; totalAchievedScore?: number }>();
+  const { run: runSummary, cancel: cancelSummary, reset: resetSummary } = useLatestKpiRequest<SummaryPayload<SummaryRow>>();
+  const { run: runManagerSummary, cancel: cancelManagerSummary, reset: resetManagerSummary } = useLatestKpiRequest<SummaryPayload<ManagerSummaryRow>>();
   const hasSummaryDataRef = useRef(false);
   const hasManagerSummaryDataRef = useRef(false);
+  const summaryReentryRef = useRef(true);
+  const managerSummaryReentryRef = useRef(true);
+  const managerSummaryLatestRef = useRef(false);
+  const [summaryScope, setSummaryScope] = useState(scopeKey);
+  const personalEnabled = hasSession && !(
+    isOfficialView || isCdtReportView || isCdtView || isCdtOutstandingView || isDisconnectView ||
+    isSummaryView || isManagerSummaryView || isCuocView || isCuocCdView || isKpiCalculatorView
+  );
+  const summaryEnabled = hasSession && isSummaryView && canViewSummary;
+  const managerSummaryEnabled = hasSession && isManagerSummaryView && canViewManagerKpi;
+  const summaryContextRef = useRef({
+    mounted: true, scopeKey, personalEnabled, summaryEnabled, managerSummaryEnabled,
+    reportDate, managerFilter, selectedIndicator, selectedManagerIndicator,
+  });
+
+  useEffect(() => {
+    summaryContextRef.current = {
+      mounted: true, scopeKey, personalEnabled, summaryEnabled, managerSummaryEnabled,
+      reportDate, managerFilter, selectedIndicator, selectedManagerIndicator,
+    };
+  }, [managerFilter, managerSummaryEnabled, personalEnabled, reportDate, scopeKey, selectedIndicator, selectedManagerIndicator, summaryEnabled]);
+
+  useEffect(() => () => { summaryContextRef.current.mounted = false; }, []);
+
+  useEffect(() => {
+    resetSummary();
+    resetManagerSummary();
+    hasSummaryDataRef.current = false;
+    hasManagerSummaryDataRef.current = false;
+    summaryReentryRef.current = true;
+    managerSummaryReentryRef.current = true;
+    managerSummaryLatestRef.current = false;
+    setSummaryScope(scopeKey);
+    setSummaryRows([]);
+    setSummaryManagerRows([]);
+    setManagerSummaryAllRows([]);
+    setIndicators([]);
+    setManagerIndicators([]);
+    setSelectedIndicator("");
+    setSelectedManagerIndicator("");
+    setDebouncedIndicator("");
+    setDebouncedManagerIndicator("");
+    setManagerFilter("");
+    setDebouncedManagerFilter("");
+    setCtvOptions([]);
+    setSelectedCtv("");
+    setDebouncedCtv("");
+    setCtvScope(currentUser.scope);
+    setSummaryMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
+    setSummaryManagerMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
+    setSummaryErrorMessage(null);
+    setManagerSummaryErrorMessage(null);
+    setSummaryLoading(false);
+    setSummaryRefreshing(false);
+    setManagerSummaryLoading(false);
+    setManagerSummaryRefreshing(false);
+  }, [currentUser.scope, resetManagerSummary, resetSummary, scopeKey]);
 
   useEffect(() => {
     resetPersonal();
@@ -254,7 +343,8 @@ export default function KpiPage() {
   }, [router, shouldRedirectManagerSummary]);
 
   const fetchPersonal = useCallback(async (options?: { force?: boolean; latest?: boolean }) => {
-    if (!hasSession) return;
+    if (!hasSession || !ctvReady) return;
+    if (canSelectCtv && (!debouncedCtv || debouncedCtv !== selectedCtv)) return;
     const ctv = canSelectCtv ? debouncedCtv : "";
     const requestedDate = options?.latest ? "" : debouncedDate;
     const hadPersonalData = hasPersonalDataRef.current;
@@ -300,134 +390,143 @@ export default function KpiPage() {
         setRefreshing(false);
       },
     });
-  }, [canSelectCtv, dateInitialized, debouncedCtv, debouncedDate, hasSession, runPersonal, scopeKey]);
+  }, [canSelectCtv, ctvReady, dateInitialized, debouncedCtv, debouncedDate, hasSession, runPersonal, scopeKey, selectedCtv]);
 
-  const fetchIndicatorList = useCallback(async (options?: { force?: boolean }) => {
-    if (!session?.user || !canViewSummary) return;
-    const requestKey = [debouncedDate || "", canAdmin ? debouncedManagerFilter : "", debouncedIndicator || "__auto__"].join("|");
-    if (!options?.force && hasSummaryDataRef.current && lastSummaryKeyRef.current === requestKey) {
-      return;
-    }
+  const fetchPersonalRef = useRef(fetchPersonal);
+  useLayoutEffect(() => {
+    fetchPersonalRef.current = fetchPersonal;
+  }, [fetchPersonal]);
+
+  const fetchIndicatorList = useCallback(async (options?: SummaryRequestOptions) => {
+    const context = summaryContextRef.current;
+    if (!context.mounted || !context.summaryEnabled || context.scopeKey !== scopeKey) return;
+    const requestedDate = options?.latest ? "" : options?.reportDate ?? (options?.force ? context.reportDate : debouncedDate);
+    const requestedManager = canAdmin ? (options?.force ? context.managerFilter : debouncedManagerFilter) : "";
+    const requestedGroup = options?.force ? context.selectedIndicator : debouncedIndicator;
+    const requestKey = (date: string, group: string) => summaryRequestKey("summary", scopeKey, date, requestedManager, group);
     const hadSummaryData = hasSummaryDataRef.current;
-    const reqId = ++summaryReqRef.current;
-    setSummaryErrorMessage(null);
-    if (!hadSummaryData) setSummaryLoading(true);
-    else setSummaryRefreshing(true);
-    try {
-      const params = new URLSearchParams();
-      if (debouncedDate) params.set("reportDate", debouncedDate);
-      if (canAdmin && debouncedManagerFilter) params.set("managerCode", debouncedManagerFilter);
-      if (debouncedIndicator) params.set("group", debouncedIndicator);
-      const res = await fetch(`/api/kpi/summary?${params.toString()}`);
-      const data = await res.json();
-      if (reqId !== summaryReqRef.current) return;
-      if (!res.ok) throw new Error(data?.error || "Không tải được tổng hợp KPI");
-      setSummaryErrorMessage(null);
-      const nextIndicators = Array.isArray(data.indicators) ? data.indicators : [];
-      const nextSelected =
-        String(data?.selectedGroup || "").trim() ||
-        (debouncedIndicator && nextIndicators.includes(debouncedIndicator) ? debouncedIndicator : nextIndicators[0] || "");
-      setIndicators(nextIndicators);
-      setSelectedIndicator((current) => (current === nextSelected ? current : nextSelected));
-      setSummaryRows(data.rows || []);
-      setSummaryMeta({
-        isNegativeGroup: Boolean(data?.isNegativeGroup),
-        maxPercent: Number(data?.maxPercent ?? DEFAULT_KPI_MAX_PERCENT),
-      });
-      hasSummaryDataRef.current = true;
-      lastSummaryKeyRef.current = [debouncedDate || "", canAdmin ? debouncedManagerFilter : "", nextSelected || "__auto__"].join("|");
-      if (data.reportDate && !dateInitialized) {
-        setReportDate(data.reportDate);
-        setDateInitialized(true);
-      }
-    } catch (error: any) {
-      if (reqId !== summaryReqRef.current) return;
-      const nextError = error.message || "Không tải được tổng hợp KPI";
-      setSummaryErrorMessage(nextError);
-      toast.error(nextError);
-      if (!hadSummaryData) {
-        setIndicators([]);
-        setSummaryRows([]);
-        setSummaryMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
-      }
-    } finally {
-      if (reqId === summaryReqRef.current) {
+    return runSummary({
+      key: requestKey(requestedDate, requestedGroup),
+      force: options?.force,
+      resolvedKeys: (data) => {
+        const resolvedDate = data.reportDate && (!dateInitialized || options?.latest) ? data.reportDate : requestedDate;
+        const resolvedGroup = resolveSummaryGroup(data, requestedGroup);
+        return [requestKey(requestedDate, resolvedGroup), requestKey(resolvedDate, requestedGroup), requestKey(resolvedDate, resolvedGroup)];
+      },
+      onStart: () => {
+        setSummaryErrorMessage(null);
+        if (!hadSummaryData) setSummaryLoading(true);
+        else setSummaryRefreshing(true);
+      },
+      load: async (signal) => {
+        const params = new URLSearchParams();
+        if (requestedDate) params.set("reportDate", requestedDate);
+        if (requestedManager) params.set("managerCode", requestedManager);
+        if (requestedGroup) params.set("group", requestedGroup);
+        const res = await fetch(`/api/kpi/summary?${params.toString()}`, { signal });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Không tải được tổng hợp KPI");
+        return data;
+      },
+      onSuccess: (data) => {
+        setSummaryErrorMessage(null);
+        setIndicators(Array.isArray(data.indicators) ? data.indicators : []);
+        setSelectedIndicator(resolveSummaryGroup(data, requestedGroup));
+        setSummaryRows(data.rows || []);
+        setSummaryMeta({
+          isNegativeGroup: Boolean(data.isNegativeGroup),
+          maxPercent: Number(data.maxPercent ?? DEFAULT_KPI_MAX_PERCENT),
+        });
+        hasSummaryDataRef.current = true;
+        if (data.reportDate && (!dateInitialized || options?.latest)) {
+          setReportDate(data.reportDate);
+          setDateInitialized(true);
+        }
+      },
+      onError: (error) => {
+        const nextError = error instanceof Error ? error.message : "Không tải được tổng hợp KPI";
+        setSummaryErrorMessage(nextError);
+        toast.error(nextError);
+        if (!hadSummaryData) {
+          setIndicators([]);
+          setSummaryRows([]);
+          setSummaryMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
+        }
+      },
+      onSettled: () => {
         setSummaryLoading(false);
         setSummaryRefreshing(false);
-      }
-    }
-  }, [canAdmin, canViewSummary, dateInitialized, debouncedDate, debouncedIndicator, debouncedManagerFilter, session?.user]);
+      },
+    });
+  }, [canAdmin, dateInitialized, debouncedDate, debouncedIndicator, debouncedManagerFilter, runSummary, scopeKey]);
 
-  const fetchManagerIndicatorList = useCallback(async (options?: { force?: boolean }) => {
-    if (!session?.user || !canViewSummary) return;
-    const requestKey = [
-      debouncedDate || "",
-      canAdmin ? debouncedManagerFilter : "",
-      debouncedManagerIndicator || "__auto__"
-    ].join("|");
-    if (!options?.force && hasManagerSummaryDataRef.current && lastManagerSummaryKeyRef.current === requestKey) {
-      return;
-    }
+  const fetchManagerIndicatorList = useCallback(async (options?: SummaryRequestOptions) => {
+    const context = summaryContextRef.current;
+    if (!context.mounted || !context.managerSummaryEnabled || context.scopeKey !== scopeKey) return;
+    const latest = options?.latest || managerSummaryLatestRef.current;
+    const requestedDate = latest ? "" : options?.reportDate ?? (options?.force ? context.reportDate : debouncedDate);
+    const requestedManager = canAdmin ? (options?.force ? context.managerFilter : debouncedManagerFilter) : "";
+    const requestedGroup = options?.force ? context.selectedManagerIndicator : debouncedManagerIndicator;
+    const requestKey = (date: string, group: string) => summaryRequestKey("manager-summary", scopeKey, date, requestedManager, group);
     const hadManagerSummaryData = hasManagerSummaryDataRef.current;
-    const reqId = ++managerSummaryReqRef.current;
-    setManagerSummaryErrorMessage(null);
-    if (!hadManagerSummaryData) setManagerSummaryLoading(true);
-    else setManagerSummaryRefreshing(true);
-    try {
-      const params = new URLSearchParams();
-      if (debouncedDate) params.set("reportDate", debouncedDate);
-      if (canAdmin && debouncedManagerFilter) params.set("managerCode", debouncedManagerFilter);
-      if (debouncedManagerIndicator) params.set("group", debouncedManagerIndicator);
-      const res = await fetch(`/api/kpi/manager-summary?${params.toString()}`);
-      const data = await res.json();
-      if (reqId !== managerSummaryReqRef.current) return;
-      if (!res.ok) throw new Error(data?.error || "Không tải được KPI quản lý");
-      setManagerSummaryErrorMessage(null);
-      
-      const rawIndicators = Array.isArray(data.indicators) ? data.indicators : [];
-      const nextIndicators = rawIndicators.filter((ind: string) => ind !== "__all__");
-      
-      let nextSelected = "";
-      if (debouncedManagerIndicator === "__all__") {
-        nextSelected = "__all__";
-      } else {
-        nextSelected =
-          String(data?.selectedGroup || "").trim() ||
-          (debouncedManagerIndicator && nextIndicators.includes(debouncedManagerIndicator) ? debouncedManagerIndicator : nextIndicators[0] || "");
-      }
-      
-      setManagerIndicators(nextIndicators);
-      setSelectedManagerIndicator((current) => (current === nextSelected ? current : nextSelected));
-      setSummaryManagerRows(data.rows || []);
-      setManagerSummaryAllRows(data.allRows || []);
-      setSummaryManagerMeta({
-        isNegativeGroup: Boolean(data?.isNegativeGroup),
-        maxPercent: Number(data?.maxPercent ?? DEFAULT_KPI_MAX_PERCENT),
-      });
-      hasManagerSummaryDataRef.current = true;
-      lastManagerSummaryKeyRef.current = requestKey;
-      if (data.reportDate && !dateInitialized) {
-        setReportDate(data.reportDate);
-        setDateInitialized(true);
-      }
-    } catch (error: any) {
-      if (reqId !== managerSummaryReqRef.current) return;
-      const nextError = error.message || "Không tải được KPI quản lý";
-      setManagerSummaryErrorMessage(nextError);
-      toast.error(nextError);
-      if (!hadManagerSummaryData) {
-        setManagerIndicators([]);
-        setSummaryManagerRows([]);
-        setManagerSummaryAllRows([]);
-        setSummaryManagerMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
-      }
-    } finally {
-      if (reqId === managerSummaryReqRef.current) {
+    return runManagerSummary({
+      key: requestKey(requestedDate, requestedGroup),
+      force: options?.force,
+      resolvedKeys: (data) => {
+        const resolvedDate = data.reportDate && (!dateInitialized || latest) ? data.reportDate : requestedDate;
+        const resolvedGroup = resolveSummaryGroup(data, requestedGroup, true);
+        return [requestKey(requestedDate, resolvedGroup), requestKey(resolvedDate, requestedGroup), requestKey(resolvedDate, resolvedGroup)];
+      },
+      onStart: () => {
+        setManagerSummaryErrorMessage(null);
+        if (!hadManagerSummaryData) setManagerSummaryLoading(true);
+        else setManagerSummaryRefreshing(true);
+      },
+      load: async (signal) => {
+        const params = new URLSearchParams();
+        if (requestedDate) params.set("reportDate", requestedDate);
+        if (requestedManager) params.set("managerCode", requestedManager);
+        if (requestedGroup) params.set("group", requestedGroup);
+        const res = await fetch(`/api/kpi/manager-summary?${params.toString()}`, { signal });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Không tải được KPI quản lý");
+        return data;
+      },
+      onSuccess: (data) => {
+        setManagerSummaryErrorMessage(null);
+        const rawIndicators = Array.isArray(data.indicators) ? data.indicators : [];
+        setManagerIndicators(rawIndicators.filter((group) => group !== "__all__"));
+        setSelectedManagerIndicator(resolveSummaryGroup(data, requestedGroup, true));
+        setSummaryManagerRows(data.rows || []);
+        setManagerSummaryAllRows(data.allRows || []);
+        setSummaryManagerMeta({
+          isNegativeGroup: Boolean(data.isNegativeGroup),
+          maxPercent: Number(data.maxPercent ?? DEFAULT_KPI_MAX_PERCENT),
+        });
+        hasManagerSummaryDataRef.current = true;
+        managerSummaryLatestRef.current = false;
+        if (data.reportDate && (!dateInitialized || latest)) {
+          setReportDate(data.reportDate);
+          setDateInitialized(true);
+        }
+      },
+      onError: (error) => {
+        const nextError = error instanceof Error ? error.message : "Không tải được KPI quản lý";
+        setManagerSummaryErrorMessage(nextError);
+        toast.error(nextError);
+        if (!hadManagerSummaryData) {
+          setManagerIndicators([]);
+          setSummaryManagerRows([]);
+          setManagerSummaryAllRows([]);
+          setSummaryManagerMeta({ isNegativeGroup: false, maxPercent: DEFAULT_KPI_MAX_PERCENT });
+        }
+      },
+      onSettled: () => {
         setManagerSummaryLoading(false);
         setManagerSummaryRefreshing(false);
-      }
-    }
-  }, [canAdmin, canViewSummary, dateInitialized, debouncedDate, debouncedManagerFilter, debouncedManagerIndicator, session?.user]);
+      },
+    });
+  }, [canAdmin, dateInitialized, debouncedDate, debouncedManagerFilter, debouncedManagerIndicator, runManagerSummary, scopeKey]);
 
 
   const officialDocsPanel = useOfficialDocsPanel({
@@ -480,48 +579,67 @@ export default function KpiPage() {
 
   const kpiCalculatorPanel = useKpiCalculator({
     enabled: isKpiCalculatorView,
-    hasSession: !!session?.user,
+    hasSession: hasSession && ctvReady,
     canSelectCtv,
     selectedCtv,
     reportDate,
     onResolvedReportDate: handleResolvedReportDate,
-    scopeKey,
+    scopeKey: JSON.stringify([scopeKey, calculatorDataRevision]),
   });
 
   useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const init = async () => {
-      if (!hasSession) return;
-      if (canSelectCtv) {
-        const res = await fetch("/api/me", { signal: controller.signal });
-        if (res.ok) {
-          const me = await res.json();
-          if (!active) return;
-          const users = Array.isArray(me?.ctvList) ? me.ctvList : [];
-          setCtvOptions(users);
-          setSelectedCtv((current) => users.some((user: { username: string }) => user.username === current) ? current : users[0]?.username || "");
-        }
-      }
-    };
-    void init().catch(() => {
-      if (active && !controller.signal.aborted) toast.error("Không tải được danh sách CTV");
-    });
-    return () => { active = false; controller.abort(); };
-  }, [canSelectCtv, hasSession, scopeKey]);
+    if (!currentUser.data) return;
+    const users = Array.isArray(currentUser.data.ctvList) ? currentUser.data.ctvList : [];
+    setCtvOptions(users);
+    setSelectedCtv((current) => users.some((user) => user.username === current) ? current : users[0]?.username || "");
+  }, [currentUser.data]);
 
   useEffect(() => {
-    if (!session?.user || !isSummaryView) return;
-    void fetchIndicatorList();
-  }, [fetchIndicatorList, isSummaryView, session?.user]);
+    if (currentUser.error instanceof CurrentUserRequestError && currentUser.error.status === null) {
+      toast.error("Không tải được danh sách CTV");
+    }
+  }, [currentUser.error]);
 
   useEffect(() => {
-    if (!session?.user || !isManagerSummaryView) return;
-    void fetchManagerIndicatorList();
-  }, [fetchManagerIndicatorList, isManagerSummaryView, session?.user]);
+    if (!summaryEnabled) {
+      cancelSummary();
+      summaryReentryRef.current = true;
+      setSummaryLoading(false);
+      setSummaryRefreshing(false);
+      return;
+    }
+    if (summaryScope !== scopeKey || debouncedDate !== reportDate || debouncedIndicator !== selectedIndicator ||
+      (canAdmin && debouncedManagerFilter !== managerFilter)) {
+      cancelSummary();
+      setSummaryLoading(!hasSummaryDataRef.current);
+      setSummaryRefreshing(hasSummaryDataRef.current);
+      return;
+    }
+    void fetchIndicatorList({ force: summaryReentryRef.current });
+    summaryReentryRef.current = false;
+  }, [canAdmin, cancelSummary, debouncedDate, debouncedIndicator, debouncedManagerFilter, fetchIndicatorList, managerFilter, reportDate, scopeKey, selectedIndicator, summaryEnabled, summaryScope]);
 
   useEffect(() => {
-    if (!hasSession) { cancelPersonal(); return; }
+    if (!managerSummaryEnabled) {
+      cancelManagerSummary();
+      managerSummaryReentryRef.current = true;
+      setManagerSummaryLoading(false);
+      setManagerSummaryRefreshing(false);
+      return;
+    }
+    if (summaryScope !== scopeKey || debouncedDate !== reportDate || debouncedManagerIndicator !== selectedManagerIndicator ||
+      (canAdmin && debouncedManagerFilter !== managerFilter)) {
+      cancelManagerSummary();
+      setManagerSummaryLoading(!hasManagerSummaryDataRef.current);
+      setManagerSummaryRefreshing(hasManagerSummaryDataRef.current);
+      return;
+    }
+    void fetchManagerIndicatorList({ force: managerSummaryReentryRef.current });
+    managerSummaryReentryRef.current = false;
+  }, [canAdmin, cancelManagerSummary, debouncedDate, debouncedManagerFilter, debouncedManagerIndicator, fetchManagerIndicatorList, managerFilter, managerSummaryEnabled, reportDate, scopeKey, selectedManagerIndicator, summaryScope]);
+
+  useEffect(() => {
+    if (!hasSession || !ctvReady) { cancelPersonal(); return; }
     if (
       isOfficialView ||
       isCdtReportView ||
@@ -537,7 +655,7 @@ export default function KpiPage() {
     if (canSelectCtv && (!debouncedCtv || debouncedCtv !== selectedCtv)) { cancelPersonal(); return; }
     if (debouncedDate !== reportDate) { cancelPersonal(); return; }
     void fetchPersonal();
-  }, [cancelPersonal, canSelectCtv, debouncedCtv, debouncedDate, fetchPersonal, hasSession, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, reportDate, selectedCtv]);
+  }, [cancelPersonal, canSelectCtv, ctvReady, debouncedCtv, debouncedDate, fetchPersonal, hasSession, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, reportDate, selectedCtv]);
 
   useEffect(() => {
     setSummaryPage(1);
@@ -557,9 +675,19 @@ export default function KpiPage() {
       const res = await fetch("/api/kpi/import", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Import KPI thất bại");
+      const context = summaryContextRef.current;
+      if (!context.mounted || context.scopeKey !== scopeKey) return;
       toast.success(`Import KPI thành công (${data.inserted} dòng)`);
       resetPersonal();
-      await Promise.all([fetchPersonal({ force: true, latest: true }), fetchIndicatorList({ force: true })]);
+      resetSummary();
+      resetManagerSummary();
+      setCalculatorDataRevision((current) => current + 1);
+      setReportDate("");
+      setDebouncedDate("");
+      setDateInitialized(false);
+      if (context.personalEnabled) await fetchPersonalRef.current({ force: true, latest: true });
+      else if (context.summaryEnabled) await fetchIndicatorList({ force: true, latest: true });
+      else if (context.managerSummaryEnabled) await fetchManagerIndicatorList({ force: true, latest: true });
     } catch (error: any) {
       toast.error(error.message || "Import KPI thất bại");
     } finally {
@@ -578,12 +706,16 @@ export default function KpiPage() {
       const res = await fetch("/api/kpi/manager-import", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Import KPI quản lý thất bại");
+      const context = summaryContextRef.current;
+      if (!context.mounted || context.scopeKey !== scopeKey) return;
       toast.success(`Import KPI quản lý thành công (${data.inserted || 0} dòng)`);
-      if (data?.reportDate) {
-        setReportDate(String(data.reportDate));
-        setDateInitialized(true);
-      }
-      await fetchManagerIndicatorList({ force: true });
+      resetManagerSummary();
+      const importedDate = data.reportDate ? String(data.reportDate) : "";
+      managerSummaryLatestRef.current = !importedDate;
+      setReportDate(importedDate);
+      setDebouncedDate(importedDate);
+      setDateInitialized(Boolean(importedDate));
+      await fetchManagerIndicatorList({ force: true, reportDate: importedDate, latest: !importedDate });
     } catch (error: any) {
       toast.error(error?.message || "Import KPI quản lý thất bại");
     } finally {
@@ -761,6 +893,11 @@ export default function KpiPage() {
     await fetchManagerIndicatorList({ force: true });
   }, [fetchManagerIndicatorList]);
 
+  const handleExplicitReportDateChange = useCallback((value: string) => {
+    managerSummaryLatestRef.current = false;
+    setReportDate(value);
+  }, []);
+
   if (shouldRedirectManagerSummary || shouldRedirectKpiCalculator) {
     return (
       <div className={styles.container}>
@@ -784,6 +921,7 @@ export default function KpiPage() {
         changeSummaryRows={kpiCalculatorPanel.changeSummary}
         draftValues={kpiCalculatorPanel.draftValues}
         dirtyCount={kpiCalculatorPanel.dirtyCount}
+        hasDraftEdits={kpiCalculatorPanel.hasDraftEdits}
         totals={kpiCalculatorPanel.totals}
         surfaceActionBtnClass={surfaceActionBtnClass}
         surfacePrimaryBtnClass={surfacePrimaryBtnClass}
@@ -795,7 +933,7 @@ export default function KpiPage() {
         getThieuClass={getThieuClass}
         onBack={() => router.push("/prepaid")}
         onSelectedCtvChange={setSelectedCtv}
-        onReportDateChange={setReportDate}
+        onReportDateChange={handleExplicitReportDateChange}
         onRefresh={() => kpiCalculatorPanel.fetchCalculator({ force: true })}
         onReset={kpiCalculatorPanel.resetSimulation}
         onDraftValueChange={kpiCalculatorPanel.setDraftValue}
@@ -880,7 +1018,6 @@ export default function KpiPage() {
         getCdtTypeToneClass={getCdtTypeToneClass}
         onBack={() => router.push("/prepaid")}
         onOpenReport={() => router.push("/prepaid?view=cdt-report")}
-        onOpenOutstanding={() => router.push("/prepaid?view=cdt-outstanding")}
         onExportMonth={cdtPanel.handleExportMonth}
         onImport={cdtPanel.handleImport}
         onFromDateChange={cdtPanel.setFromDate}
@@ -1017,7 +1154,7 @@ export default function KpiPage() {
         computeKpiDayCompletionPercent={computeKpiDayCompletionPercent}
         onBack={() => router.push("/prepaid?view=summary")}
         onImportManagerKpi={handleImportManagerKpi}
-        onReportDateChange={setReportDate}
+        onReportDateChange={handleExplicitReportDateChange}
         onManagerFilterChange={setManagerFilter}
         onRefresh={refreshManagerSummaryView}
         onIndicatorChange={setSelectedManagerIndicator}
@@ -1161,7 +1298,7 @@ export default function KpiPage() {
         computeCuocN1N3CompletionPercent={computeCuocN1N3CompletionPercent}
         computeKpiDayCompletionPercent={computeKpiDayCompletionPercent}
         onBack={() => router.push("/prepaid")}
-        onReportDateChange={setReportDate}
+        onReportDateChange={handleExplicitReportDateChange}
         onManagerFilterChange={setManagerFilter}
         onRefresh={refreshSummaryView}
         onIndicatorChange={setSelectedIndicator}
@@ -1198,7 +1335,7 @@ export default function KpiPage() {
       getPercentClass={getPercentClass}
       getStatusLabel={getStatusLabel}
       onSelectedCtvChange={setSelectedCtv}
-      onReportDateChange={setReportDate}
+      onReportDateChange={handleExplicitReportDateChange}
       onRefresh={() => fetchPersonal({ force: true })}
       onImport={handleImport}
     />

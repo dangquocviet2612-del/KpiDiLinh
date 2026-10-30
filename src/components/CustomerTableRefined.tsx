@@ -356,17 +356,19 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
   const showPackageStrip = Boolean(customer.package || priceText);
 
   return (
-    <article className={`${styles.mobileCard} ${getRowClass(customer.expirationDate, isChecked)}`}>
+    <article className={`${styles.mobileCard} ${getRowClass(customer.expirationDate, isChecked)}`} aria-label={`Khách hàng ${customer.name}`}>
       <div className={styles.mobileCardHeader}>
         <div className={styles.mobileCardHeaderMain}>
           {isAdmin && (
-            <input
-              type="checkbox"
-              aria-label={`Chọn khách hàng ${customer.name}`}
-              checked={isChecked}
-              onChange={(event) => onSelectOne(customer.id, event.target.checked)}
-              className={`${styles.checkbox} ${styles.mobileCardCheckbox}`}
-            />
+            <label className={styles.mobileSelectionControl}>
+              <input
+                type="checkbox"
+                aria-label={`Chọn khách hàng ${customer.name}`}
+                checked={isChecked}
+                onChange={(event) => onSelectOne(customer.id, event.target.checked)}
+                className={`${styles.checkbox} ${styles.mobileCardCheckbox}`}
+              />
+            </label>
           )}
 
           <div className={styles.mobileCardTitleBlock}>
@@ -386,10 +388,10 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
         )}
       </div>
 
-      <div className={styles.mobilePhoneRow}>
+      {customer.phone && <div className={styles.mobilePhoneRow}>
         <div className={styles.mobilePhoneMain}>
           {customer.phone && (
-            <a href={`tel:${customer.phone}`} title="Gọi điện" className={styles.phoneLink}>
+            <a href={`tel:${customer.phone}`} title="Gọi điện" aria-label={`Gọi điện cho ${customer.name}`} className={styles.phoneLink}>
               <PhoneCall size={16} />
             </a>
           )}
@@ -401,20 +403,23 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
               rel="noopener noreferrer"
               title="Nhắn Zalo"
               className={styles.zaloLink}
+              aria-label={`Nhắn Zalo cho ${customer.name}`}
             >
               <MessageCircle size={16} />
             </a>
           )}
         </div>
-      </div>
+      </div>}
 
-      <div className={styles.mobileAccountStrip}>
+      {customer.account && <div className={styles.mobileAccountStrip}>
         <div className={styles.mobileStripLabel}>Account</div>
         <div className={styles.mobileAccountValueRow}>
           {customer.account && (
             <button
+              type="button"
               onClick={() => onCopyAccount(customer.account!)}
-              title="Copy Account"
+              title="Sao chép account"
+              aria-label={`Sao chép account của ${customer.name}`}
               className={`${styles.copyBtn} ${styles.mobileAccountCopyBtn} ${copiedAccount === customer.account ? styles.copyActive : ""}`}
             >
               {copiedAccount === customer.account ? <Check size={15} /> : <Copy size={15} />}
@@ -424,7 +429,14 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
             {accountValue}
           </span>
         </div>
-      </div>
+      </div>}
+
+      {(!customer.phone || !customer.account) && (
+        <div className={styles.mobileMissingFields}>
+          {!customer.phone && <span>Chưa có SĐT</span>}
+          {!customer.account && <span>Chưa có account</span>}
+        </div>
+      )}
 
       <div className={styles.mobileMetaRow}>
         <span className={`${styles.subscriberBadge} ${styles.mobileMetaChip}`}>{formatSubscriberType(customer.subscriberType)}</span>
@@ -434,11 +446,13 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
 
       {showPackageStrip && (
         <div className={styles.mobilePackageStrip}>
-          <div className={styles.mobileStripLabel}>Gói cước</div>
+          <div className={styles.mobileStripLabel}>{customer.package ? "Gói cước" : "Chưa có tên gói"}</div>
           <div className={styles.mobilePackageContent}>
-            <span className={styles.mobilePackageName} title={packageValue}>
-              {packageValue}
-            </span>
+            {customer.package && (
+              <span className={styles.mobilePackageName} title={packageValue}>
+                {packageValue}
+              </span>
+            )}
             {priceText && <span className={styles.mobilePackagePrice}>{priceText}</span>}
           </div>
         </div>
@@ -447,29 +461,31 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
       <div className={styles.mobileCardFooter}>
         <div className={styles.mobileFooterMeta}>
           <div className={styles.mobileStripLabel}>CTV</div>
-          <span className={styles.mobileFooterValue} title={customer.ctvCode || "---"}>
-            {customer.ctvCode || "---"}
+          <span className={styles.mobileFooterValue} title={customer.ctvCode || "Chưa có mã CTV"} style={customer.ctvCode ? undefined : { whiteSpace: "normal", overflowWrap: "anywhere" }}>
+            {customer.ctvCode || "Chưa có"}
           </span>
         </div>
 
         <div className={styles.actions}>
           <button
+            type="button"
             className={`ui-icon-btn ${styles.iconBtn}`}
             onClick={() => onViewNode(customer)}
-            aria-label="Xem node"
+            aria-label={`Xem node của ${customer.name}`}
             title={customer.nodeName?.trim() ? "Xem node" : "Khách hàng chưa có node"}
             disabled={!customer.nodeName?.trim()}
           >
             <MapPin size={16} />
           </button>
-          <button className={`ui-icon-btn ${styles.iconBtn}`} onClick={() => onEdit(customer)} aria-label="Sửa">
+          <button type="button" className={`ui-icon-btn ${styles.iconBtn}`} onClick={() => onEdit(customer)} aria-label={`Sửa khách hàng ${customer.name}`}>
             <Edit size={16} />
           </button>
           {isAdmin && (
             <button
+              type="button"
               className={`ui-icon-btn ui-icon-btn--danger ${styles.iconBtn} ${styles.delete}`}
               onClick={() => onDelete(customer.id)}
-              aria-label="Xóa"
+              aria-label={`Xóa khách hàng ${customer.name}`}
             >
               <Trash2 size={16} />
             </button>

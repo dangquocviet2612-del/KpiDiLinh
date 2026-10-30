@@ -136,6 +136,8 @@ export async function getNode0TbList(options?: {
     }
   }
 
+  const prefixMatchCache = new Map<string, ReturnType<typeof nodeMap.get>>();
+
   // 3. Map coordinates to Node0Tb rows
   const allMappedItems: Node0TbItem[] = node0TbRows.map((row) => {
     const code = normalizeNodeCode(row.nodeCode);
@@ -147,10 +149,17 @@ export async function getNode0TbList(options?: {
     }
     if (!match) {
       // Try prefix match
-      for (const [k, v] of nodeMap.entries()) {
-        if (k.startsWith(baseCode) || baseCode.startsWith(k)) {
-          match = v;
-          break;
+      if (prefixMatchCache.has(baseCode)) {
+        match = prefixMatchCache.get(baseCode);
+      } else {
+        for (const [nodeName, nodeCoordinates] of nodeMap.entries()) {
+          if (nodeName.startsWith(baseCode) || baseCode.startsWith(nodeName)) {
+            match = nodeCoordinates;
+            break;
+          }
+        }
+        if (prefixMatchCache.size < 1000) {
+          prefixMatchCache.set(baseCode, match);
         }
       }
     }

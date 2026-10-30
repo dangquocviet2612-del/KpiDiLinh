@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Circle, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { useMapSearch } from "@/hooks/useMapSearch";
 import { toast } from "react-hot-toast";
 import { escapeMapHtml } from "@/lib/map-ui";
+import type { NodeCoordinateItem } from "@/types";
 import { getMapTileConfig } from "@/lib/map-tiles";
 import { MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls } from "@/components/map";
 
@@ -37,13 +38,17 @@ const CurrentLocationIcon = L.divIcon({
 });
 
 // Component to fly map to a position
-function FlyToPosition({ position, zoom }: { position: [number, number] | null; zoom?: number }) {
+function FlyToPosition({ position, zoom, onComplete }: { position: [number, number] | null; zoom?: number; onComplete?: (position: [number, number]) => void }) {
     const map = useMap();
     useEffect(() => {
         if (position) {
+            const handleMoveEnd = () => onComplete?.(position);
+            map.stop();
+            map.once("moveend", handleMoveEnd);
             map.flyTo(position, zoom || 15, { duration: 1.2 });
+            return () => { map.off("moveend", handleMoveEnd); };
         }
-    }, [position, zoom, map]);
+    }, [position, zoom, map, onComplete]);
     return null;
 }
 
@@ -162,6 +167,7 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
     const map = useMap();
     const clusterRef = useRef<any>(null);
     const [ready, setReady] = useState(false);
+    const customerById = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
 
     useEffect(() => {
         import("leaflet.markercluster").then(() => {
@@ -173,7 +179,7 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
     useEffect(() => {
         const handleEdit = (e: Event) => {
             const id = (e as CustomEvent).detail;
-            const customer = customers.find(c => c.id === id);
+            const customer = customerById.get(id);
             if (customer) onEditCustomer(customer);
         };
         const handleUpdateLoc = (e: Event) => {
@@ -182,7 +188,7 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
         };
         const handlePickLoc = (e: Event) => {
             const id = (e as CustomEvent).detail;
-            const customer = customers.find(c => c.id === id);
+            const customer = customerById.get(id);
             if (customer) {
                 markersRefObj.current[customer.id]?.marker?.closePopup();
                 onPickLocation(customer);
@@ -190,7 +196,7 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
         };
         const handleAssignNode = (e: Event) => {
             const id = (e as CustomEvent).detail;
-            const customer = customers.find(c => c.id === id);
+            const customer = customerById.get(id);
             if (customer) onAssignNode(customer);
         };
         const handleCopyAcc = (e: Event) => {
@@ -216,10 +222,12 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
             window.removeEventListener('assignNode', handleAssignNode);
             window.removeEventListener('copyAcc', handleCopyAcc);
         };
-    }, [customers, onEditCustomer, onUpdateLocation, onPickLocation, onAssignNode, markersRefObj]);
+    }, [customerById, onEditCustomer, onUpdateLocation, onPickLocation, onAssignNode, markersRefObj]);
 
     useEffect(() => {
         if (!ready) return;
+
+        const markerRegistry = markersRefObj.current;
 
         if (clusterRef.current) {
             map.removeLayer(clusterRef.current);
@@ -266,6 +274,7 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
             const marker = L.marker([c.latitude, c.longitude], {
                 icon: getMarkerIcon(c),
                 title: c.name,
+                customerId: c.id,
                 clusterColor: markerColor // Custom property for cluster color logic
             } as any);
 
@@ -350,18 +359,14 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
             `;
             marker.bindPopup(popupHtml, { maxWidth: 300, autoPanPaddingTopLeft: [10, 140], className: '' });
 
-            markersRefObj.current[c.id] = { marker: marker as any, cg };
+            markerRegistry[c.id] = { marker: marker as any, cg };
             return marker;
         });
 
         cg.on('popupopen', (e: any) => {
             const popup = e.popup;
             if (!popup) return;
-            const latlng = popup.getLatLng();
-            const customer = customers.find((c: any) => 
-                Math.abs(c.latitude - latlng.lat) < 0.00001 && 
-                Math.abs(c.longitude - latlng.lng) < 0.00001
-            );
+            const customer = customerById.get(e.sourceTarget?.options?.customerId);
             if (customer) {
                 window.dispatchEvent(new CustomEvent('customerSelected', { detail: customer }));
             }
@@ -374,9 +379,12 @@ function VanillaMarkerCluster({ customers, markersRefObj, onEditCustomer, onUpda
         map.addLayer(cg);
 
         return () => {
+            for (const customer of customers) {
+                if (markerRegistry[customer.id]?.cg === cg) delete markerRegistry[customer.id];
+            }
             map.removeLayer(cg);
         };
-    }, [customers, ready, map, markersRefObj]);
+    }, [customers, customerById, ready, map, markersRefObj]);
 
     return null;
 }
@@ -392,12 +400,13 @@ export default function MapComponent() {
     const [flyZoom, setFlyZoom] = useState<number>(15);
     const [locationError, setLocationError] = useState("");
     const markersRef = useRef<{ [key: string]: { marker: L.Marker; cg: any } }>({});
+    const pendingPopupRef = useRef<{ id: string; position: [number, number] } | null>(null);
 
     const [colorFilter, setColorFilter] = useState<string>("ALL");
     const [editingCustomer, setEditingCustomer] = useState<any>(null);
     const [updatingLocationId, setUpdatingLocationId] = useState<string | null>(null);
     const [pickingLocationSubj, setPickingLocationSubj] = useState<any>(null);
-    const [nodes, setNodes] = useState<any[]>([]);
+    const [nodes, setNodes] = useState<NodeCoordinateItem[]>([]);
     const [mapStyle, setMapStyle] = useState<"dark" | "light" | "satellite">("light");
     const [showStyleMenu, setShowStyleMenu] = useState(false);
     const [showCustomerList, setShowCustomerList] = useState(false);
@@ -415,6 +424,8 @@ export default function MapComponent() {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [isMobileView, setIsMobileView] = useState(false);
     const mapRef = useRef<L.Map | null>(null);
+
+    useEffect(() => () => { pendingPopupRef.current = null; }, []);
 
     useEffect(() => {
         const handleShowDirections = (e: Event) => {
@@ -485,7 +496,7 @@ export default function MapComponent() {
     };
 
     const fetchNodes = () => {
-        fetch("/api/nodes")
+        fetch("/api/nodes?projection=coordinates")
             .then(res => res.json())
             .then(data => {
                 if (data.data) setNodes(data.data);
@@ -498,6 +509,7 @@ export default function MapComponent() {
     }, []);
 
     const requestUserLocation = () => {
+        pendingPopupRef.current = null;
         if (!navigator.geolocation) {
             setLocationError("Trình duyệt không hỗ trợ định vị");
             toast.error("Trình duyệt không hỗ trợ định vị.");
@@ -656,6 +668,7 @@ export default function MapComponent() {
     };
 
     const handleGoToMyLocation = () => {
+        pendingPopupRef.current = null;
         if (userLocation) {
             setFlyTarget(null);
             setTimeout(() => {
@@ -668,27 +681,40 @@ export default function MapComponent() {
         requestUserLocation();
     };
 
+    const openPendingCustomerPopup = useCallback((position: [number, number]) => {
+        const request = pendingPopupRef.current;
+        if (!request || request.position !== position) return;
+
+        const openMarker = (attempt = 0) => {
+            if (pendingPopupRef.current !== request) return;
+            const refObj = markersRef.current[request.id];
+            if (refObj) {
+                refObj.cg.zoomToShowLayer(refObj.marker, () => {
+                    if (pendingPopupRef.current !== request || markersRef.current[request.id] !== refObj) return;
+                    pendingPopupRef.current = null;
+                    refObj.marker.openPopup();
+                });
+                return;
+            }
+            if (attempt < 8) window.setTimeout(() => openMarker(attempt + 1), 60);
+        };
+
+        openMarker();
+    }, []);
+
     const handleCustomerClick = (c: any) => {
         const needsFilterReset = colorFilter !== "ALL" && getMarkerColor(c) !== colorFilter;
         if (needsFilterReset) setColorFilter("ALL");
 
+        const position: [number, number] = [c.latitude, c.longitude];
+        const request = { id: c.id, position };
+        pendingPopupRef.current = request;
+
         setFlyTarget(null);
         setTimeout(() => {
-            setFlyTarget([c.latitude, c.longitude]);
+            if (pendingPopupRef.current !== request) return;
+            setFlyTarget(position);
             setFlyZoom(17);
-
-            const openMarker = (attempt = 0) => {
-                const refObj = markersRef.current[c.id];
-                if (refObj) {
-                    refObj.cg.zoomToShowLayer(refObj.marker, () => {
-                        refObj.marker.openPopup();
-                    });
-                    return;
-                }
-                if (attempt < 8) window.setTimeout(() => openMarker(attempt + 1), 60);
-            };
-
-            openMarker();
         }, 10);
         setSearchQuery("");
         setShowCustomerList(false);
@@ -1085,7 +1111,7 @@ export default function MapComponent() {
                     }}
                 />
 
-                {flyTarget && <FlyToPosition position={flyTarget} zoom={flyZoom} />}
+                {flyTarget && <FlyToPosition position={flyTarget} zoom={flyZoom} onComplete={openPendingCustomerPopup} />}
 
                 {/* Current location marker */}
                 {userLocation && (

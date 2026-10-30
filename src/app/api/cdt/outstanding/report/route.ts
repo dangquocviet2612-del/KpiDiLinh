@@ -12,7 +12,7 @@ import {
   normalizeOutstandingStatus,
 } from "@/lib/cdt-outstanding";
 import { buildCdtAccountSearchPattern, normalizeCdtAccountSearch } from "@/lib/cdt-account-search";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { computeWindowedPageMeta } from "@/lib/prepaid-pagination";
 import { getScopedPrepaidCtvUsers } from "@/lib/prepaid-query";
@@ -86,6 +86,7 @@ function normalizeStatusFilter(value: string) {
 }
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) {
@@ -352,7 +353,7 @@ export async function GET(request: Request) {
       pagination: { page, pageSize, totalCount, totalPages },
     };
 
-    setCache(cacheKey, payload, 30_000);
+    setCache(cacheKey, payload, 30_000, cacheGeneration);
     return NextResponse.json(payload);
   } catch (error: any) {
     console.error("CDT_OUTSTANDING_REPORT_ERROR", error);

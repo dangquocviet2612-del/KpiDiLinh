@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: { user: { role: "ADMIN" } }, status: "authenticated" }),
+  useSession: () => ({ data: { user: { id: "synthetic-admin", role: "ADMIN" } }, status: "authenticated" }),
 }));
 
 vi.mock("@/hooks/useCustomers", () => ({
@@ -61,7 +61,7 @@ describe("customer workflow", () => {
     });
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
-      json: async () => ({ role: "ADMIN", canUseGps: true, ctvList: [] }),
+      json: async () => ({ id: "synthetic-admin", role: "ADMIN", canUseGps: true, ctvList: [] }),
     })));
   });
 
@@ -171,7 +171,7 @@ describe("customer workflow", () => {
       }
       return {
         ok: true,
-        json: async () => ({ role: "ADMIN", canUseGps: true, ctvList: [] }),
+        json: async () => ({ id: "synthetic-admin", role: "ADMIN", canUseGps: true, ctvList: [] }),
       };
     }));
 

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn() }));
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), cacheGeneration: Symbol("cache-generation") }));
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/prisma", async () => {
   const { PrismaClient } = await import("@prisma/client");
@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", async () => {
   return { prisma: new PrismaClient({ adapter: new PrismaLibSql({ url: "file::memory:" }) }) };
 });
 vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: vi.fn() }));
-vi.mock("@/lib/kpi-cache", () => ({ clearCacheByPrefix: vi.fn() }));
+vi.mock("@/lib/kpi-cache", () => ({ getCacheGeneration: () => mocks.cacheGeneration, clearCacheByPrefix: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { getArchiveExportReadiness, getArchiveExportStatus, getArchiveStatus } from "@/lib/archive";

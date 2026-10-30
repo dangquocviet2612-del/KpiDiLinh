@@ -1446,6 +1446,19 @@
   color: color-mix(in srgb, var(--foreground) 88%, #93c5fd 12%);
 }
 
+.summaryIdentityPanel .table .nameCell,
+.summaryIdentityPanel .mobileTitle,
+.summaryIdentityPanel .summaryManagerMeta {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.summaryIdentityPanel .table th:not(:first-child),
+.summaryIdentityPanel .table td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .personalKpiTitleCell {
   white-space: normal !important;
   word-break: break-word;

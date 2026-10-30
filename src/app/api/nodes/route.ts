@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import * as xlsx from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
+import { projectNodeCoordinates } from "@/lib/node-coordinates";
 import { ensureNodeEfficiencyColumns } from "@/lib/node-efficiency-db";
 import { ensureCustomerNodeMappingTable } from "@/lib/customer-node-mapping-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
@@ -24,6 +25,7 @@ function parsePage(value: string | null) {
 }
 
 export async function GET(request: Request) {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -234,9 +236,10 @@ export async function GET(request: Request) {
             });
         }
 
+        const coordinatesOnly = searchParams.get("projection") === "coordinates";
         const cacheKey = "nodes:list";
         const cached = getCache<any>(cacheKey);
-        if (cached) return NextResponse.json(cached);
+        if (cached) return NextResponse.json(coordinatesOnly ? projectNodeCoordinates(cached) : cached);
 
         await ensureNodeEfficiencyColumns();
         const nodes = await prisma.$queryRawUnsafe<Array<any>>(`
@@ -248,8 +251,8 @@ export async function GET(request: Request) {
         `);
 
         const payload = { data: nodes };
-        setCache(cacheKey, payload, 60_000);
-        return NextResponse.json(payload);
+        setCache(cacheKey, payload, 60_000, cacheGeneration);
+        return NextResponse.json(coordinatesOnly ? projectNodeCoordinates(payload) : payload);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

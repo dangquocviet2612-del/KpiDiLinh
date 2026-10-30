@@ -1,25 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { KeyRound, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
 import styles from "../customers/customers.module.css";
 
+const PASSWORD_CHANGE_UNCERTAIN = "Không thể xác nhận kết quả đổi mật khẩu. Hãy kiểm tra kết nối và thử đăng nhập lại trước khi gửi lại.";
+const MASKED_PASSWORD_FIELDS = { currentPassword: false, newPassword: false, confirmPassword: false };
+
 export default function ChangePasswordPage() {
+    const submittingRef = useRef(false);
     const [formData, setFormData] = useState({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
     });
     const [loading, setLoading] = useState(false);
+    const [visibleFields, setVisibleFields] = useState(MASKED_PASSWORD_FIELDS);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    const togglePasswordVisibility = (field: keyof typeof MASKED_PASSWORD_FIELDS) => {
+        if (submittingRef.current) return;
+        setVisibleFields((current) => ({ ...current, [field]: !current[field] }));
+    };
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (submittingRef.current) return;
+        const { name, value } = event.target;
+        setFormData((current) => ({ ...current, [name]: value }));
         setMessage(null);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (submittingRef.current) return;
+        setVisibleFields(MASKED_PASSWORD_FIELDS);
         setMessage(null);
 
         // Client-side validation
@@ -33,6 +48,7 @@ export default function ChangePasswordPage() {
             return;
         }
 
+        submittingRef.current = true;
         setLoading(true);
         try {
             const res = await fetch("/api/change-password", {
@@ -44,17 +60,25 @@ export default function ChangePasswordPage() {
                 }),
             });
 
-            const data = await res.json();
+            const data: unknown = await res.json();
+            const payload = typeof data === "object" && data !== null && !Array.isArray(data) ? data : null;
 
             if (!res.ok) {
-                throw new Error(data.error || "Có lỗi xảy ra");
+                const apiError = payload && "error" in payload && typeof payload.error === "string" ? payload.error : "";
+                setMessage({ type: "error", text: res.status >= 400 && res.status < 500 && apiError.trim() ? apiError : PASSWORD_CHANGE_UNCERTAIN });
+                return;
+            }
+            if (res.status !== 200 || !payload || "error" in payload || !("message" in payload) || typeof payload.message !== "string" || !payload.message.trim()) {
+                setMessage({ type: "error", text: PASSWORD_CHANGE_UNCERTAIN });
+                return;
             }
 
             setMessage({ type: "success", text: "Đổi mật khẩu thành công!" });
             setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-        } catch (err: any) {
-            setMessage({ type: "error", text: err.message });
+        } catch {
+            setMessage({ type: "error", text: PASSWORD_CHANGE_UNCERTAIN });
         } finally {
+            submittingRef.current = false;
             setLoading(false);
         }
     };
@@ -69,9 +93,11 @@ export default function ChangePasswordPage() {
             </div>
 
             <div className={`glass-panel ${styles.content}`}>
-                <form onSubmit={handleSubmit} style={{ maxWidth: "450px" }}>
+                <form method="post" onSubmit={handleSubmit} style={{ maxWidth: "450px" }} aria-busy={loading} aria-describedby={message ? "change-password-message" : undefined}>
                     {message && (
                         <div
+                            id="change-password-message"
+                            role={message.type === "success" ? "status" : "alert"}
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -99,10 +125,15 @@ export default function ChangePasswordPage() {
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                         <div>
-                            <label className="label-base">Mật khẩu hiện tại *</label>
-                            <input
+                            <label className="label-base" htmlFor="current-password">Mật khẩu hiện tại *</label>
+                            <PasswordInput
+                                id="current-password"
                                 name="currentPassword"
-                                type="password"
+                                visible={visibleFields.currentPassword}
+                                visibilityLabel="mật khẩu hiện tại"
+                                onToggle={() => togglePasswordVisibility("currentPassword")}
+                                autoComplete="current-password"
+                                disabled={loading}
                                 required
                                 className="input-base"
                                 value={formData.currentPassword}
@@ -112,10 +143,15 @@ export default function ChangePasswordPage() {
                         </div>
 
                         <div>
-                            <label className="label-base">Mật khẩu mới *</label>
-                            <input
+                            <label className="label-base" htmlFor="new-password">Mật khẩu mới *</label>
+                            <PasswordInput
+                                id="new-password"
                                 name="newPassword"
-                                type="password"
+                                visible={visibleFields.newPassword}
+                                visibilityLabel="mật khẩu mới"
+                                onToggle={() => togglePasswordVisibility("newPassword")}
+                                autoComplete="new-password"
+                                disabled={loading}
                                 required
                                 minLength={6}
                                 className="input-base"
@@ -126,10 +162,15 @@ export default function ChangePasswordPage() {
                         </div>
 
                         <div>
-                            <label className="label-base">Xác nhận mật khẩu mới *</label>
-                            <input
+                            <label className="label-base" htmlFor="confirm-password">Xác nhận mật khẩu mới *</label>
+                            <PasswordInput
+                                id="confirm-password"
                                 name="confirmPassword"
-                                type="password"
+                                visible={visibleFields.confirmPassword}
+                                visibilityLabel="xác nhận mật khẩu mới"
+                                onToggle={() => togglePasswordVisibility("confirmPassword")}
+                                autoComplete="new-password"
+                                disabled={loading}
                                 required
                                 minLength={6}
                                 className="input-base"
@@ -142,6 +183,7 @@ export default function ChangePasswordPage() {
                         <div style={{ paddingTop: "0.5rem" }}>
                             <button
                                 type="submit"
+                                aria-label={loading ? "Đang đổi mật khẩu" : "Đổi mật khẩu"}
                                 disabled={loading}
                                 className="btn btn-primary"
                                 style={{ width: "100%", justifyContent: "center" }}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 30;
@@ -28,6 +28,7 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
 }
 
 export async function GET(request: Request) {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
                 .slice(0, limit);
 
             const payload = { items };
-            setCache(cacheKey, payload, 30_000);
+            setCache(cacheKey, payload, 30_000, cacheGeneration);
             return NextResponse.json(payload);
         }
 
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
             .slice(0, limit);
 
         const payload = { items: scored };
-        setCache(cacheKey, payload, 30_000);
+        setCache(cacheKey, payload, 30_000, cacheGeneration);
         return NextResponse.json(payload);
     } catch (error: any) {
         console.error("node-search-map error", error);

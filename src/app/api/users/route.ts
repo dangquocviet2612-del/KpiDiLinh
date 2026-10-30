@@ -8,7 +8,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { userInputSchema } from "@/lib/validations/user.schema";
 import { recordAuditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureRuntimeSchema } from "@/lib/runtime-schema";
 
@@ -18,6 +18,7 @@ async function ensureManagerCodeColumn() {
 
 // GET users for dropdown/management
 export async function GET(request: Request) {
+    const cacheGeneration = getCacheGeneration();
     try {
         const session = await auth();
         if (!session) {
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
             );
         }
 
-        setCache(cacheKey, users, 30_000);
+        setCache(cacheKey, users, 30_000, cacheGeneration);
         return NextResponse.json(users);
     } catch (error) {
         console.error("USERS_GET_ERROR", error);

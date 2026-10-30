@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 
 type SessionLike = {
     user?: {
@@ -13,6 +13,7 @@ type ScopeCacheValue =
     | { kind: "list"; value: string[] };
 
 export async function getAccessibleCtvCodes(session: SessionLike): Promise<string[] | null> {
+    const cacheGeneration = getCacheGeneration();
     if (!session?.user?.role) return [];
 
     const role = session.user.role;
@@ -24,12 +25,12 @@ export async function getAccessibleCtvCodes(session: SessionLike): Promise<strin
     }
 
     if (role === "ADMIN") {
-        setCache<ScopeCacheValue>(cacheKey, { kind: "all" }, 30_000);
+        setCache<ScopeCacheValue>(cacheKey, { kind: "all" }, 30_000, cacheGeneration);
         return null;
     }
     if (role === "CTV") {
         const scoped = username ? [username] : [];
-        setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000);
+        setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000, cacheGeneration);
         return scoped;
     }
 
@@ -43,7 +44,7 @@ export async function getAccessibleCtvCodes(session: SessionLike): Promise<strin
                 select: { username: true },
             });
             const scoped = managed.map((u) => u.username);
-            setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000);
+            setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000, cacheGeneration);
             return scoped;
         } catch {
             // Fallback for old Prisma Client/schema without managerCode support.
@@ -52,7 +53,7 @@ export async function getAccessibleCtvCodes(session: SessionLike): Promise<strin
                 `SELECT username FROM "User" WHERE role = 'CTV' AND managerCode = '${escaped}'`
             );
             const scoped = rows.map((r) => r.username);
-            setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000);
+            setCache<ScopeCacheValue>(cacheKey, { kind: "list", value: scoped }, 30_000, cacheGeneration);
             return scoped;
         }
     }

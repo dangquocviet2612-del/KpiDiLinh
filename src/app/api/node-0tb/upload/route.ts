@@ -84,8 +84,6 @@ export async function POST(request: Request) {
       categoryKd: string | null;
     }> = [];
 
-    const skippedRows: string[] = [];
-
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i] || [];
       const nodeCode = toTrimmedString(row[colMap.nodeCode]);

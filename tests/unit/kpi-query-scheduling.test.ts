@@ -8,12 +8,13 @@ const state = vi.hoisted(() => ({
   target: vi.fn(),
   completion: vi.fn(),
   latest: vi.fn(),
+  cacheGeneration: Symbol("cache-generation"),
 }));
 vi.mock("@/auth", () => ({ auth: state.auth }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $queryRawUnsafe: state.query } }));
 vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: state.ensure }));
 vi.mock("@/lib/scope", () => ({ getAccessibleCtvCodes: state.scope }));
-vi.mock("@/lib/kpi-cache", () => ({ getCache: () => null, setCache: vi.fn() }));
+vi.mock("@/lib/kpi-cache", () => ({ getCache: () => null, getCacheGeneration: () => state.cacheGeneration, setCache: vi.fn() }));
 vi.mock("@/lib/prepaid-query", () => ({
   getCuocTargetRatePercent: state.target,
   getLatestCuocCompletionForCtv: state.completion,

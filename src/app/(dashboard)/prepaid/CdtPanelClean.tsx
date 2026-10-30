@@ -63,7 +63,6 @@ type CdtPanelCleanProps = {
   getCdtTypeToneClass: (subscriberType?: string | null) => string;
   onBack: () => void;
   onOpenReport: () => void;
-  onOpenOutstanding: () => void;
   onExportMonth: () => void;
   onImport: (event: ChangeEvent<HTMLInputElement>) => void;
   onFromDateChange: (value: string) => void;
@@ -98,12 +97,6 @@ export default function CdtPanelClean(props: CdtPanelCleanProps) {
               Báo cáo CDT
             </button>
           )}
-          <button
-            className={`${props.surfaceActionBtnClass} ${styles.cdtMobileHeaderAction}`}
-            onClick={props.onOpenOutstanding}
-          >
-            Tồn CDT
-          </button>
           {props.canAdmin && (
             <button
             className={`${props.surfaceActionBtnClass} ${styles.cdtMobileHeaderAction}`}
@@ -171,9 +164,6 @@ export default function CdtPanelClean(props: CdtPanelCleanProps) {
             Mở báo cáo CDT
           </button>
         )}
-        <button className={props.surfaceActionBtnClass} onClick={props.onOpenOutstanding}>
-          Tồn CDT
-        </button>
         {props.canAdmin && (
           <button className={props.surfaceActionBtnClass} onClick={props.onExportMonth} disabled={props.exportingMonth}>
             {props.exportingMonth ? <Loader2 size={16} className="animate-spin" /> : null}

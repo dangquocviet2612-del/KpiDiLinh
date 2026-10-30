@@ -21,7 +21,7 @@ export default function PaginationControls({
     onLimitChange,
 }: PaginationControlsProps) {
     return (
-        <div className={styles.pagination}>
+        <nav className={styles.pagination} aria-label="Phân trang khách hàng">
             <div className={styles.pageInfo}>
                 Hiển thị trang {page} / {totalPages} (Tổng {total} khách hàng)
             </div>
@@ -31,19 +31,20 @@ export default function PaginationControls({
                     value={limit}
                     onChange={(e) => onLimitChange(Number(e.target.value))}
                     title="Số lượng hiển thị"
+                    aria-label="Số khách hàng mỗi trang"
                 >
                     <option value={10}>10 / trang</option>
                     <option value={20}>20 / trang</option>
                     <option value={50}>50 / trang</option>
                     <option value={100}>100 / trang</option>
                 </select>
-                <button className="btn btn-secondary" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
+                <button type="button" aria-label="Trang trước" className="btn btn-secondary" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
                     Trước
                 </button>
-                <button className="btn btn-secondary" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>
+                <button type="button" aria-label="Trang sau" className="btn btn-secondary" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>
                     Sau
                 </button>
             </div>
-        </div>
+        </nav>
     );
 }

@@ -135,3 +135,25 @@ export interface Node0TbApiResponse {
     stats: Node0TbStats;
     categories: string[];
 }
+
+export type Node0TbMapItem = Pick<
+    Node0TbItem,
+    "id" | "nodeCode" | "dateKdFormatted" | "totalPort" | "categoryKd" | "latitude" | "longitude" | "hasCoordinates"
+>;
+
+export interface Node0TbMapResponse {
+    nodes: Node0TbMapItem[];
+    stats: Node0TbStats;
+    categories: string[];
+}
+
+export interface NodeCoordinateItem {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+}
+
+export interface NodeCoordinatesResponse {
+    data: NodeCoordinateItem[];
+}

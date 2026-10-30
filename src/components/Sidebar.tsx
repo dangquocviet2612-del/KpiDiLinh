@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Users, User, Map as MapIcon, LogOut, Moon, Sun, Menu, X, KeyRound, FolderClock, Network, Trophy, Archive, Wrench, ChevronRight, BarChart3, Receipt, FileText, Megaphone, ShieldAlert, FileSpreadsheet, Camera, QrCode, Calculator, Zap, CreditCard } from "lucide-react";
+import { Users, User, Map as MapIcon, LogOut, Moon, Sun, Menu, X, KeyRound, FolderClock, Network, Trophy, Archive, Wrench, ChevronRight, BarChart3, Receipt, FileText, Megaphone, Camera, QrCode, Calculator, Zap, CreditCard } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 import styles from "./Sidebar.module.css";
@@ -198,7 +198,6 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
         { href: "/map", label: "Bản đồ", icon: <MapIcon size={20} /> },
         { href: "/node-map", label: "Bản đồ Node", icon: <Network size={20} /> },
         { href: "/node-0tb", label: "Node 0TB", icon: <Zap size={20} /> },
-        { href: "/churn-risk", label: "Nguy cơ rời mạng", icon: <ShieldAlert size={20} /> },
     ];
 
     if (userRole === "ADMIN") {
@@ -382,30 +381,6 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
                             >
                                 <span className={styles.submenuIcon}><FileText size={14} /></span>
                                 CDT
-                            </Link>
-                            <Link
-                                href="/prepaid?view=cdt-outstanding"
-                                onClick={() => closeSubmenuAfterNavigation("kpi")}
-                                aria-current={isKpiRoute && prepaidView === "cdt-outstanding" ? "page" : undefined}
-                                className={cn(
-                                    styles.submenuLink,
-                                    isKpiRoute && prepaidView === "cdt-outstanding" && styles.submenuLinkActive
-                                )}
-                            >
-                                <span className={styles.submenuIcon}><FileSpreadsheet size={14} /></span>
-                                Tồn CDT
-                            </Link>
-                            <Link
-                                href="/prepaid?view=disconnect"
-                                onClick={() => closeSubmenuAfterNavigation("kpi")}
-                                aria-current={isKpiRoute && prepaidView === "disconnect" ? "page" : undefined}
-                                className={cn(
-                                    styles.submenuLink,
-                                    isKpiRoute && prepaidView === "disconnect" && styles.submenuLinkActive
-                                )}
-                            >
-                                <span className={styles.submenuIcon}><LogOut size={14} /></span>
-                                Rời mạng
                             </Link>
                             <Link
                                 href="/prepaid?view=official-docs"

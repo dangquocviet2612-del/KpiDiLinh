@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   ensureKpiTables: vi.fn(),
   getAccessibleCtvCodes: vi.fn(),
   getCache: vi.fn(),
+  cacheGeneration: Symbol("cache-generation"),
   setCache: vi.fn(),
   getCuocTargetRatePercent: vi.fn(),
   getLatestCuocCompletionForCtv: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $queryRawUnsafe: mocks.query } }));
 vi.mock("@/lib/kpi-db", () => ({ ensureKpiTables: mocks.ensureKpiTables }));
 vi.mock("@/lib/scope", () => ({ getAccessibleCtvCodes: mocks.getAccessibleCtvCodes }));
-vi.mock("@/lib/kpi-cache", () => ({ getCache: mocks.getCache, setCache: mocks.setCache }));
+vi.mock("@/lib/kpi-cache", () => ({ getCache: mocks.getCache, getCacheGeneration: () => mocks.cacheGeneration, setCache: mocks.setCache }));
 vi.mock("@/lib/prepaid-query", () => mocks);
 
 import { GET as reportGet } from "@/app/api/kpi/report/route";
@@ -266,7 +267,7 @@ describe("report GET response and cache semantics", () => {
     expect(payload.rows[0]).toMatchObject({ ctvUser, kpiCode: "FIXTURE", achievedScore: 8 });
     expect(mocks.query.mock.calls[0].slice(1)).toEqual([ctvUser, reportDate, ctvUser]);
     expect(mocks.getCache).toHaveBeenCalledWith(`kpi:report|CTV|${ctvUser}|${ctvUser}|`);
-    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:report|CTV|${ctvUser}|${ctvUser}|`, payload, 60_000);
+    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:report|CTV|${ctvUser}|${ctvUser}|`, payload, 60_000, mocks.cacheGeneration);
     expect(expectTiming(response, ["date", "query", "compute", "cache"])).toContain('desc="miss"');
   });
 });
@@ -304,7 +305,7 @@ describe("summary GET response and cache semantics", () => {
     const payload = await response.json();
     expect(payload).toEqual({ reportDate, indicators: [], rows: [], isNegativeGroup: false, maxPercent: 120, ...(branch === "indicators" ? { selectedGroup: "" } : {}) });
     expect(expectTiming(response, ["cache"])).toContain('desc="miss"');
-    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:summary|ADMIN|fixture-admin|${reportDate}|||admin`, payload, 60_000);
+    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:summary|ADMIN|fixture-admin|${reportDate}|||admin`, payload, 60_000, mocks.cacheGeneration);
   });
 
   it("preserves negative-group math, query arguments and manager cache scope", async () => {
@@ -319,7 +320,7 @@ describe("summary GET response and cache semantics", () => {
     expect(mocks.query.mock.calls[1].slice(1)).toEqual([reportDate, group, ctvUser]);
     const cacheKey = `kpi:summary|MANAGER|fixture-manager|${reportDate}|${group}|ignored-manager|${ctvUser}`;
     expect(mocks.getCache).toHaveBeenCalledWith(cacheKey);
-    expect(mocks.setCache).toHaveBeenCalledWith(cacheKey, payload, 60_000);
+    expect(mocks.setCache).toHaveBeenCalledWith(cacheKey, payload, 60_000, mocks.cacheGeneration);
     expectTiming(response, ["date", "query", "compute", "cache"]);
   });
 
@@ -333,7 +334,7 @@ describe("summary GET response and cache semantics", () => {
     expect(payload).toEqual({ reportDate: "2026-10-24", indicators: [cuocGroup], rows: [{ ctvUser, kh: 97, th: 98, percent: 108.2, thieu: 0 }], isNegativeGroup: false, maxPercent: 120, selectedGroup: cuocGroup });
     expect(mocks.query.mock.calls[1].slice(1)).toEqual([reportDate, ctvUser]);
     expect(mocks.query.mock.calls[2].slice(1)).toEqual(["2026-10-24", ctvUser]);
-    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:summary|ADMIN|fixture-admin|${reportDate}|${cuocGroup}||admin`, payload, 60_000);
+    expect(mocks.setCache).toHaveBeenCalledWith(`kpi:summary|ADMIN|fixture-admin|${reportDate}|${cuocGroup}||admin`, payload, 60_000, mocks.cacheGeneration);
     expectTiming(response, ["date", "query", "compute", "cache"]);
   });
 });

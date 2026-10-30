@@ -554,6 +554,31 @@
     justify-content: flex-end;
 }
 
+.queryStatus {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 0.75rem;
+    color: var(--secondary-foreground);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.queryStatus > svg {
+    flex-shrink: 0;
+    margin-top: 0.15em;
+}
+
+.queryError button {
+    min-width: 44px;
+    min-height: 44px;
+}
+
 .listShell {
     display: flex;
     flex-direction: column;
@@ -854,6 +879,13 @@
 
     .pageControls {
         justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .pageControls .limitSelect {
+        width: auto;
+        min-width: 0;
+        flex: 1 1 8rem;
     }
 
     .confirmModal {
@@ -1790,6 +1822,7 @@
 
 .mobileCardHeader {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.6rem;
@@ -1801,10 +1834,42 @@
     gap: 0.58rem;
     min-width: 0;
     flex: 1;
+    flex-basis: 12rem;
 }
 
 .mobileCardCheckbox {
     margin-top: 0.15rem;
+    flex-shrink: 0;
+}
+
+.mobileSelectionControl {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.mobileSelectionControl:focus-within {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.mobileCard :is(.phoneLink, .zaloLink, .copyBtn, .iconBtn) {
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
+.mobileCard :is(.phoneLink, .zaloLink, .copyBtn, .iconBtn):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.mobileCard .actions {
     flex-shrink: 0;
 }
 
@@ -1821,6 +1886,7 @@
     font-weight: 760;
     color: var(--foreground);
     letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
 }
 
 .mobileCardSecondary {
@@ -1839,6 +1905,10 @@
     padding-inline: 0.68rem;
     font-size: 0.72rem;
     border: 1px solid transparent;
+    max-width: 100%;
+    margin-left: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .mobilePhoneRow,
@@ -1897,6 +1967,17 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.38rem;
+}
+
+.mobileMissingFields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    min-width: 0;
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--secondary-foreground);
+    overflow-wrap: anywhere;
 }
 
 .mobileMetaChip {

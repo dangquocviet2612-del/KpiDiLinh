@@ -569,3 +569,729 @@ Hướng dẫn: `docs/cache-correctness.md`; plan: `docs/superpowers/plans/2026-
 - Deploy đúng project `kpidi-linh`/scope `vietdq9`, giữ cấu hình môi trường có sẵn. Build là `next build`, không migration/seed/adoption/restore hay chỉnh dữ liệu online. Kiểm tra readiness chỉ đọc metadata và sự hiện diện của default trước khi chuyển alias; thiếu readiness thì dừng và báo, không tự sửa database.
 - Các gap JWT/session revocation, cache nhiều instance và in-flight refill tại mục 21 vẫn còn; deploy không giải quyết những gap này. Không dùng smoke test Production để thử import/restore hoặc tạo dữ liệu giả vào database thật.
 - SHA GitHub, deployment READY/alias và kết quả smoke chỉ được công bố sau xác minh. Báo cáo riêng tư ở `.local/performance/github-deploy-batch5-20261027/`; không commit log chứa credentials, cookies hoặc business rows. Những dòng “chưa commit/push/deploy batch 5” ở mục 21 là checkpoint trước yêu cầu công bố này.
+- Kết quả công bố đã xác minh: `main` và source Production cùng commit `9d0365e51057a2f274d0f37e163042ccc4547e3b`; deployment `dpl_AKhNhpyTKFLeKZ9Dym9TCir5Qmwf` READY, domain `kpidi-linh.vercel.app` trỏ đúng bản này. Fresh Admin login, session Admin từ release cũ, 10 trang và 13 API đạt ở lượt cuối; preflight 7 domain chỉ đọc, không migration hoặc ghi database. Project chưa có Git integration, lần này deploy bằng CLI/gán alias domain đã xác minh.
+- Giữ nguyên sự cố trước lượt thành công: một lượt `/api/me` trả 500 khiến rollback; shadow/final smoke sau đó đạt nhưng chưa xác định nguyên nhân. Không gọi đây là lỗi đã được sửa. Báo cáo `release-result.json` và các attempt lỗi vẫn được giữ riêng tư.
+
+## 23. Tổng hợp KPI/KPI quản lý — lifecycle, batch local 6, 27/10/2026
+
+### Đã sửa và kiểm tra ở checkout local
+
+- [x] Tiếp tục phần còn dở của Task 5/đợt 2 sau source `9d0365e`, không đổi UI nhận diện/công thức/API/SQL/auth/schema/dependency. Snapshot 380 file, 312 source/config khớp giữa primary và checkout cũ; không reset checkout hoặc đụng env/database thật.
+- [x] Hai resource owner summary/manager-summary dùng `useLatestKpiRequest` hiện có, key theo resource + id/name/role + ngày/manager/group. Cùng key pending được gộp; không reload do object session tương đương. Auto-date/group có alias qua các nhịp debounce nên không lặp request.
+- [x] Hủy request ngay khi đổi intent filter (kể cả khoảng debounce), ẩn view, unmount hoặc đổi scope; stale success/error/settled không ghi đè view mới. Đổi scope reset rows/options/meta/error/key, giữ previous data khi refresh cùng scope với trạng thái cập nhật.
+- [x] Refresh/retry/mở lại view đọc lại đúng dữ liệu. Import vô hiệu alias cần thiết, chỉ đọc panel đang mở; manager import dùng ngày server trả về, không fetch ngày debounce cũ. Nếu import ẩn thiếu reportDate, giữ latest intent đến khi mở lại; user chọn ngày tường minh ở cả bốn view dùng chung ngày có thể thay intent này. Calculator có local data-revision sau import để bỏ alias cũ và hủy pending reentry, active tải latest còn hidden giữ idle. Giữ `__all__`/allRows và regression personal/calculator; không thay hook dùng chung hoặc auth scope.
+
+### Bằng chứng
+
+- Baseline test cũ 12/12 đạt. Regression mới có clean RED **32 fail/3 pass (35)**; boundary review **1 fail/41 pass (42)** rồi sửa. Spec review bắt thêm explicit-date personal/calculator chưa xóa hidden manager import-latest intent: RED **2 fail/44 pass (46)**, sửa năm dòng callback chung và giữ automatic-resolution control. Quality review bắt calculator có thể reuse empty-date alias trước import: RED **1 fail/47 pass (48)**, sửa ba dòng local revision và giữ hidden-panel control. Final **48 case mới** đạt; targeted cuối **62/62** qua năm file, TypeScript và lint hai file sạch. Không gặp native crash, không thêm retry/ignore để che lỗi.
+- Full checkout sau hai P2 **57 file / 620 test + 22 policy test** đạt; TypeScript/build đạt, lint app 0 error/3 warning cũ. Build dùng SQLite giả riêng, hash không đổi.
+- Đã tích hợp **6 file** sau hash-check, backup và secret scan; thư mục chính cũng đạt **57 file / 620 test + 22 policy test**, TypeScript/lint đạt (3 warning cũ). Hai vòng review đã đóng cả hai P2 có regression riêng. Source app/tests/scripts/config được đối chiếu byte với checkout đã build; preview riêng cổng 3006 đã dừng và SQLite giả giữ nguyên hash. Không build primary bằng env thật, không commit/push/deploy batch mới.
+- Chrome thật qua 8 case ADMIN/MANAGER × desktop/mobile × summary/manager-summary: initial report **4→1 request**, refresh **1→1**, hash JSON trước/sau khớp; manager `__all__` có dữ liệu giả thật. Hai case lỗi 503 giả → retry và đổi ngày nhanh chỉ gửi ngày cuối, hai case history/back có 1 request khi trở lại; không JavaScript error, schema/data fixture không đổi qua GET/browser.
+- Fixture batch 3 thiếu ManagerKpiDailyResult, nên lượt harness ban đầu không chứng minh `__all__`; đã tạo fixture giả mới hoàn toàn thay vì sửa API/nới assertion. Không dùng dữ liệu khách thật hoặc upload/import vào Production.
+
+### Còn lại
+
+- Shared `/api/me` query/server session hydration, cache permission-version/JWT revocation/đa instance/single-flight, RUM/region và các đợt bundle/map/UI vẫn pending. Batch này không sửa lỗi `/api/me` 500 từng thấy trên web; nguyên nhân lần đó chưa được xác minh.
+- **Batch 6 chưa commit/push/deploy.** Bản GitHub/Production đã công bố gần nhất vẫn là `9d0365e`; chỉ tích hợp local sau review/hash/secret scan và chạy xác minh primary.
+
+Hướng dẫn: `docs/kpi-summary-lifecycle.md`; plan: `docs/superpowers/plans/2026-10-27-kpi-summary-lifecycle-local.md`. Evidence riêng tư: `.local/performance/batch6/`; không đưa env/SQLite/credentials/cookies/business rows vào Git.
+
+## 24. Session dashboard từ server — batch local 7, 27/10/2026
+
+### Phạm vi và thay đổi
+
+- Tiếp tục slice server session hydration của Task 5/đợt 2, giữ nguyên sáu thay đổi local batch 6. Snapshot 383 file; 313 source/config/test file giữa primary và checkout khớp. Không reset checkout cũ, không sửa auth callbacks, API/SQL/schema/dependency/công thức hoặc dữ liệu thật.
+- `src/app/(dashboard)/layout.tsx` giữ `auth()`/redirect `/login` và truyền session allowlist expires + user id/name/role/email/image vào Providers. Root layout không còn client Providers global; metadata/lang/Toaster giữ nguyên, `/login` vẫn static. Key id/name/role reset subtree khi server identity đổi, không remount theo expires hoặc object mới tương đương.
+- SessionProvider giữ default focus/cross-tab/revalidation/signout, ConfirmDialogProvider vẫn bao dashboard/sidebar. Không truyền server-only token/password hoặc Prisma/auth module vào client. Hydration không phải JWT revocation hoặc cache quyền mới.
+
+### Kiểm chứng checkout
+
+- TDD source gốc **18 fail/2 pass → 20/20 đạt** ở `tests/ui/session-hydration.test.tsx`, dùng SessionProvider thật. Targeted regression **129/129 qua 22 file**, spec/quality review độc lập không còn actionable finding trên bốn hash frozen.
+- Full checkout **58 file / 640 test + 22 policy test** đạt; TypeScript/build đạt, lint 0 error/3 warning cũ. Fixture SQLite giả giữ nguyên hash, không build bằng env thật.
+- Chrome sáu case ADMIN/MANAGER/CTV × desktop/mobile: initial GET session **2→0**, report **1→1**, hash JSON report khớp. Focus vẫn revalidate đúng role; lượt cuối đo 2 request do SDK broadcast/storage follow-up. Baseline cũ đo 1 trong cửa sổ ngắn hơn; không coi đây là cải thiện/regression focus hoặc cloud latency. Giữ log harness sai kỳ vọng/selector/URL; không thay app hay tắt revalidation để test qua.
+- DOM login/logout ADMIN/MANAGER/CTV, anonymous redirect trước/sau logout, sai mật khẩu ADMIN và modal khách hàng desktop/mobile đều đạt; không JavaScript error, schema/data fixture không đổi. Preview riêng được dừng sau kiểm tra. Không ghi nghiệp vụ vào fixture hoặc web thật.
+- Đã tích hợp **8 file** sau snapshot/hash/backup, hai vòng review và quét secret mặc định không có finding. Primary cũng đạt **58 file / 640 test + 22 policy test**, TypeScript/lint đạt (3 warning cũ); source app/tests/scripts/config đối chiếu byte với checkout đã build. Giữ nguyên các file batch 6 ngoài roadmap/tiến độ được nối tiếp; không build bằng env thật, không commit/push/deploy.
+
+### Còn lại và trạng thái công bố
+
+- Shared `/api/me` còn pending vì caller GPS/CTV list khác semantics. Task 5/đợt 2 chưa hoàn tất; permission-version/JWT revocation, invalidation đa instance/single-flight, region/RUM, bundle/map/UI vẫn còn trong roadmap.
+- Không xử lý nguyên nhân `/api/me` 500 từng thấy ở rollout batch 5. **Batch 6 và 7 chưa commit/push/deploy**; release GitHub/Production đã xác minh gần nhất vẫn là `9d0365e`.
+
+Hướng dẫn: `docs/session-hydration.md`; plan: `docs/superpowers/plans/2026-10-27-server-session-local.md`. Evidence riêng tư: `.local/performance/batch7/`; không commit env/SQLite/credentials/cookies/business rows.
+
+## 25. Dùng chung request tài khoản — batch local 8, 27/10/2026
+
+### Phạm vi
+
+- Tiếp tục shared `/api/me` trong Task 5; snapshot 386 file, 314 source/config/test file khớp checkout, giữ 12 thay đổi local batch 6–7. Không reset checkout detached cũ hoặc sửa API/auth/SQL/schema/dependency/công thức/UI nhận diện.
+- Chỉ chia sẻ **request đang chạy** trong dashboard/identity id/name/role. Không thêm client TTL/cache quyền: mở lại modal sau khi request đã xong vẫn hỏi server. Một consumer hủy không ảnh hưởng consumer khác; hết consumer hoặc đổi scope thì hủy và bỏ request cũ, completion/cleanup lỗi thời không đụng replacement.
+- Giữ GPS theo response thành công (`ADMIN || canUseGps === true || !!customer`), modal Admin/Manager vẫn đọc `/api/users`; customer/KPI dùng `me.ctvList`. Không lấy danh sách khác contract để thay nhau. Payload sai subject phải bị từ chối; không fetch/render dữ liệu subject cũ sau logout/scope mới.
+- Review plan đã bổ sung real SessionProvider.update loading với session data còn giữ, fencing selected/debounced CTV khi me scope mới chưa xong, và subject-mismatch/ABA/entry-identity regression. Không làm mất draft chỉ do renew session hoặc làm panel khác chờ CTV list không cần thiết.
+
+### Bằng chứng
+
+- Chrome baseline ba role × desktop/mobile: customers/modal đồng thời có **2 GET me**, focus có **2**; mở lại tuần tự thêm **1**, KPI mỗi ca có **1 report**, me KPI Admin/Manager **1** và CTV **0**. Hash GPS/options/users/me/report chỉ lưu riêng tư; schema/data fake không đổi. KPI cold đo ở context sạch, không cộng request focus từ trang trước vào startup; giữ log harness lỗi ban đầu.
+- TDD assertion-only **38 fail/6 pass (44)** trên caller gốc/fallback test-only, final không giữ fallback. Mở rộng lên 52 test bắt non-array CTV list refresh (**51 pass/1 fail**) rồi sửa guard. Spec review bắt thêm hai P2: refresh cá nhân gửi CTV debounce cũ sau list đổi, và window focus vẫn visible không revalidate; regression **2 fail/51 pass → 53/53**. All UI **169/169 qua 18 suite**, TypeScript/owned lint đạt; spec đã re-approve, không nới assertion test cũ.
+- Full checkout sau hai P2 **59 file / 693 test + 22 policy**, types/build đạt, login vẫn static, lint 0 error/2 warning ở upload routes không sửa. Candidate trước P2 được lưu riêng, không coi QA trước sửa là bằng chứng sau sửa.
+- Quality review bắt continuation import chậm dùng callback cá nhân của CTV cũ dù list đã đổi. Regression **2 fail/54 pass → 56/56**, all UI **172/172 qua 18 suite**, types/owned lint đạt. Import dùng callback committed mới nhất và guard scope; kiểm tra đường calculator, không sửa hook ngoài scope. Lượt QA/Chrome trước fix được lưu riêng, không coi là bằng chứng candidate cuối.
+- Checkout candidate cuối **59 file / 696 test + 22 policy**, TypeScript/build đạt, login static; lint 0 error/2 warning cũ. Browser report cuối gắn build ID + mười source/test hash, không dùng nhầm kết quả trước sửa. Final test runner tắt Vite env-file discovery; build/preview dùng guard chặn env-file root và env fake. CLI RED/GREEN đầu không tắt discovery rõ ràng, không yêu cầu/in nội dung env; không suy ra các lượt đầu không đọc file ngầm. Giữ cảnh báo React act của test nhãn field đồng bộ, không suppress.
+- Spec và quality re-review trên mười hash candidate cuối đều APPROVE, không còn actionable P1/P2. Chrome sáu ca: concurrent me **2→1**, reopen tuần tự vẫn **+1**; focus riêng sau reopen xong có **1 GET**, GPS/options/users/me/KPI hash khớp, mỗi ca vẫn 1 report. DOM login/logout ba role đạt, không JavaScript error/ghi nghiệp vụ; schema/data fake giữ nguyên hash, preview riêng đã dừng. Log focus delta 0 ban đầu là đang coalesce đúng vào reopen còn pending, không sửa app/nới assertion để chiều harness.
+- Đã tích hợp đúng **14 file** sau hash/backup/review/Chrome/secret scan, giữ các thay đổi batch 6–7 ngoài phần tiếp tục có chủ đích. **Gate full primary chưa đạt:** 58/59 file, 694/696 test hoàn tất trước worker crash Windows `3221225477`/`0xC0000005` ở `tests/integration/kpi-report-equivalence.test.ts` không sửa. Không có bằng chứng nguyên nhân đã được sửa; giữ nguyên log/status fail, không retry/skip/suppress để tuyên bố xanh.
+- Primary follow-up đạt **18 file / 172 UI test + 22 policy**, TypeScript/lint đạt (0 error/2 warning cũ); **317 source/config/test file** khớp byte checkout đã build. Giữ đúng 21 thay đổi local kết hợp, bảo toàn 12 thay đổi trước ngoài phần tiếp tục có chủ đích. Kết quả riêng không thay full-suite pass: `integration-scope-verification.json` ghi `complete: false` và `fullPrimarySuitePassed: false`; chỉ đóng gate sau khi chẩn đoán native crash và xác minh lại. Không commit/push/deploy.
+
+### Giới hạn / công bố
+
+- Không giảm request giữa những lần mở modal tuần tự sau settlement, không hứa cloud latency/p95. `/api/me` server cache 30s vẫn còn; đây không phải JWT revocation/permission-version/invalidation đa instance hay sửa sự cố `/api/me` 500 trước đây.
+- **Batch 6–8 chưa commit/push/deploy**. Release đã công bố gần nhất được xác minh là `9d0365e`; đợt 2 và toàn roadmap còn các mục chưa làm.
+
+Hướng dẫn: `docs/current-user-query.md`; plan: `docs/superpowers/plans/2026-10-27-shared-current-user-local.md`. Evidence riêng tư: `.local/performance/batch8/`; không commit env/SQLite/credentials/cookies/business bodies.
+
+## 26. Khoanh vùng crash native Windows — 28/10/2026
+
+- Snapshot 391 file, 317 source/config/test khớp checkout, bảo toàn 21 thay đổi local batch6–8 và các log fail cũ. Không đổi mã app, test source/assertion, manifests/lockfile, DB/env thật, không commit/push/deploy.
+- Đã tái hiện lỗi **ngoài app/Prisma/Vitest**: matrix cố định 18 child process, concurrency 2, mỗi mode 6 process × 300 DB trống in-memory. Mode libsql không close để GC/finalizer xử lý có **4/6 crash 3221225477/0xC0000005**; libsql close tường minh và control node:sqlite đều **6/6 exit 0**. Thêm riêng sáu child node:sqlite không-close với cùng GC workload cũng **6/6 exit 0**, tổng 24 child, không chạy lại matrix cũ. Một child ghi JS complete/exit handler code 0 trước native crash. GC là kích hoạt chẩn đoán, không phải workaround vận hành; mẫu nhỏ không chứng minh close() sửa được lỗi.
+- Direct probe 60 vòng dual-client/480 Prisma SELECT song song đạt; file KPI giữ nguyên có trace **60/60 đạt**. Một full run có trace, env discovery tắt và cwd đúng đạt **59 file / 696 test**, không đổi pool/skip/auto-retry/suppress. **Không coi pass này là native đã sửa**; giữ nguyên failed primary run ngày 27/10 và gate tin cậy Windows còn mở.
+- Installed binding 0.5.22 cùng SHA giữa primary/checkout, binary có core string libsql-0.9.23. Đối chiếu maintainer PR235/libsql-js và core PR2261 cho thấy lỗi native tương tự đã được mô tả upstream; chưa có stack của crash gốc để kết luận frame/cơ chế chính xác. Chỉ đọc metadata stable latest 0.5.29, không tự nâng hoặc khẳng định phiên bản đó chứa patch.
+- Helper lần đầu sai cwd gây lỗi migration/setup đã được lưu riêng; không dùng lỗi harness làm bằng chứng app/native. Không đọc dump, không sửa những cleanup gap chưa chứng minh liên quan. Chưa có distro WSL/Docker local được xác minh để nghiệm thu Linux; không tự cài toàn máy hoặc push CI.
+
+Chi tiết và nguồn: `docs/native-crash-investigation.md`; plan `docs/superpowers/plans/2026-10-28-native-crash-investigation.md`. Evidence private `.local/performance/native-crash-20261028/`. **Chưa đóng native Windows acceptance, chưa push/deploy.**
+
+## 27. Chặn cache cũ nạp lại sau invalidation — local 28/10/2026
+
+### Phạm vi và triển khai
+
+- Tiếp tục slice correctness Task 7; snapshot **393 file /317 source/config/test** khớp checkout, giữ 23 thay đổi local trước đó. Không reset checkout detached cũ, không đổi auth/JWT/SQL/TTL/key/API body/schema/dependency/công thức hoặc dữ liệu thật.
+- Core dùng một Symbol generation cho module/store, đổi ở mọi prefix clear kể cả store rỗng. **34 setter /23 owning functions /18 caller files** lấy token tại entry trước await auth/scope/date/schema và truyền vào setter. Token cũ bị bỏ trước invalid-TTL delete/prune/replace/LRU eviction, không ghi đè giá trị mới.
+- Invalidation vẫn chỉ xóa settled entries khớp prefix; ongoing fills bị fence bảo thủ sau bất kỳ invalidation nào kể cả prefix khác. Có thể làm giảm cache hit trong lúc ghi dữ liệu; chưa có benchmark hit-rate/latency Production, không tuyên bố web nhanh hơn theo tỷ lệ.
+
+### Kiểm chứng candidate
+
+- Runtime RED trên code cũ **14 assertion fail /4 pass**, final bỏ fallback generation test-only. Regression mới **37/37 qua hai file**: 18 deferred race/core behavior và 19 AST inventory/entry/fourth-arg checks. Core cũ **12/12**, dependency matrix **4/4** giữ nguyên.
+- Bảy mock test files thêm export generation và exact token; năm exact setter assertions giữ nguyên ba đối số cũ. Scoped run **174 test**, archive timezone bổ sung **12 test** đạt. Kiểm tra cơ học đảo các import/token/đối số mới tái tạo source cũ sau CRLF normalization; không thay SQL/guard/timing hoặc nới assertions.
+- Candidate checkout **61 file /733 test +22 policy**, TypeScript/build đạt; login vẫn static, lint **0 error/2 warning cũ** tại hai upload routes không sửa. Core/hai test mới và 25 worker-owned files đều scoped lint 0 error/warning. Fixture fake build giữ nguyên hash, frozen source không đổi.
+- Full checkout dùng outer Vitest `envDir:false`, explicit database/Turso env giả; wrapper timezone cũ spawn CLI nên lần này **chưa attest child không đọc env ngầm**. Build có root env-file guard. Giữ manifest gốc và ghi correction metadata riêng, không đổi kết quả test; primary QA sẽ dùng inherited guard cho cả hai repo roots và child. Không dùng việc sửa harness làm native workaround/retry để ép xanh.
+- Spec rồi quality review độc lập đều **APPROVE** trên 28 frozen source/test hashes, không còn actionable P1/P2. Đã tích hợp đúng **34 file** có preimage/hash/backup và secret scan mặc định không finding, bảo toàn 23 thay đổi trước ngoài hai tài liệu tiến độ được nối tiếp.
+- Primary đạt **61 file /733 test +22 policy**, TypeScript/lint đạt (0 error/2 warning cũ). Runner primary kế thừa guard chặn env-file ở cả hai repo roots, kể cả timezone child; fixture fake và frozen source giữ nguyên. **319 source/config/test file** được đối chiếu byte với checkout đã build. Đây là gate của slice generation, không đóng Windows native reliability hoặc toàn Task 7.
+- Helper primary lần đầu dừng trước khi Vitest khởi chạy vì backslash trong `NODE_OPTIONS --require` bị Node giải mã sai. Giữ log/manifest gốc, chuẩn hóa đường dẫn helper sang slash và probe guard thành công trước lượt test thực sự đầu tiên. Không thay app/assertion hoặc chạy lại một native failure để ép xanh.
+
+### Giới hạn / công bố
+
+- Đây chỉ là **stale cache publication fence cùng module/store**, không hủy response cũ, không single-flight, không shared version nhiều process, không đổi JWT/permission version hoặc SLA thu hồi quyền. Những gap auth/PWA vẫn còn; Task 7 và toàn roadmap chưa hoàn tất.
+- Full run đạt không có nghĩa native Windows/libsql đã sửa: không nâng binding, đổi pool/skip/auto-retry hoặc đóng reliability gate. Sự cố `/api/me` 500 của rollout batch5 vẫn chưa xác minh nguyên nhân.
+- Chưa commit/push/deploy; không công bố lại các batch local trước. Release GitHub/Production đã xác minh gần nhất vẫn `9d0365e`.
+
+Chi tiết: `docs/cache-generation.md`; plan `docs/superpowers/plans/2026-10-28-cache-generation-local.md`. Evidence private `.local/performance/cache-generation-20261028/`, không commit SQLite/env/token/credentials/business rows hoặc logs.
+
+## 28. Chia bundle giao diện báo cáo — local 28/10/2026
+
+### Phạm vi
+
+- Bắt đầu slice Task8, snapshot397 file/319 source khớp checkout, giữ55 thay đổi local trước. Tái sử dụng checkout detached cũ, không reset/branch/commit/push/deploy hoặc dùng dữ liệu thật.
+- KPI cá nhân vẫn static,10 panel khác dùng top-level literal `next/dynamic` với SSR mặc định. Hooks/state/guards/scope/API/callback/công thức/CSS không đổi; business body của shell byte-identical. Chưa tách view containers/hook ownership hoặc CSS.
+- Loading dùng skeleton/container có sẵn với status/busy accessible. Error boundary riêng prepaid dùng AsyncState, nút **Tải lại trang** và cảnh báo mất draft; không chỉ reset promise import đã reject, không tự reload khi người dùng chưa bấm.
+
+### Kiểm chứng và số liệu
+
+- TDD code cũ có **18 semantic module-evaluation failures**; final **20 test mới**, toàn UI **192/192 qua19 file**.18 UI file cũ/461 assertions không đổi, không dùng preloadAll hoặc ssr:false để chiều test. Owned lint0 warning/error, TypeScript đạt.
+- Full candidate checkout **62 file/753 test+22 policy**, TypeScript/build đạt, login static; lint0 error/2 warning cũ ở hai upload routes không sửa. Vite envDir:false và inherited env-file guard cho cả hai repo roots/child, fake DB/source hash không đổi.
+- Chrome **34 ca**: ADMIN11 view×2 viewport, MANAGER4×2, CTV2×2. Mỗi cold context trước sửa tải783.436 byte JS decoded/12 scripts. KPI cá nhân sau sửa **638.158 byte**, giảm **145.278 byte/18,54%**, nhưng script responses tăng **12→14**; selected views đo đến659.169 byte. Không quy giảm byte thành giảm18,54% thời gian hoặc claim p95/Production.
+- API báo cáo và me/users được theo dõi giữ status/count/body hash; settled headings/buttons/text hash/overflow khớp toàn34ca. Không JS error/business write, fixture fake không đổi. Đây không phải kiểm thử mọi role ở mọi domain/điện thoại thật/PWA lifecycle.
+- Compiled App Router thật: personal không request chunk calculator; khi giữ chunk pending, report API đã hoàn tất và loading accessible hiện trước khi nhả chunk. Chặn chunk2 lần hiện error UI/cảnh báo draft; bấm reload tải lại script thành công, giữ view và report hash, không ghi nghiệp vụ.
+- Native browser click sidebar/Back giữ ngày/CTV. **Draft calculator bị normalize sau forced reentry refresh đã có ở baseline và vẫn như vậy sau sửa**; test mới chỉ chứng minh giữ trong lúc pending. Không sửa hook trong slice bundle, ghi riêng follow-up để giữ/cảnh báo draft đúng policy.
+- Baseline harness đầu nhầm21/26 RSC prefetch bị Next hủy với lỗi network; diagnostic và log giữ nguyên, classifier chỉ tách nonnavigation fetch/_rsc/ERR_ABORTED và vẫn fail script/API/navigation bất thường. Navigation baseline kỳ vọng draft quá mạnh đã fail sau ghi observations; giữ `preservedDraft:false`, after đối chiếu cùng behavior, không ghi thành đã fix.
+
+### Gate / công bố
+
+- Spec rồi quality review độc lập đều **APPROVE trên4 frozen source/test hashes**, không còn actionable P1/P2. Quality agent đầu lỗi service capacity, không được coi là đã review/approve; reviewer mới đọc độc lập và xác minh business body/hash/artifacts trước-sau.
+- Đã tích hợp đúng **8 file** sau hash/preimage/backup và quét secret mặc định không finding; giữ55 thay đổi trước ngoài ba file được tiếp tục có chủ đích (shell/roadmap/tiến độ), không sửa461 assertions cũ.
+- Primary cũng đạt **62 file/753 test+22 policy**, TypeScript/lint đạt (0 error/2 warning cũ), inherited env-file guard cho root/child và fixture fake không đổi. **322 source/config/test file** đối chiếu byte với checkout đã build; không thay application source sau QA. Đóng slice lazy panel, không đóng toàn Task8 hoặc native Windows reliability.
+- Task8 còn view/hook owner/CSS split và broader budget/CLS. Task7 auth/version/nhiều instance/single-flight, native Windows reliability và nguyên nhân `/api/me`500 cũ vẫn chưa xử lý; full run xanh không đóng các gate đó.
+- Chưa commit/push/deploy các bản local. Release đã xác minh gần nhất vẫn `9d0365e`; không tự migration/deploy bằng dữ liệu thật.
+
+Chi tiết `docs/prepaid-panel-loading.md`; plan `docs/superpowers/plans/2026-10-28-prepaid-panel-loading-local.md`. Evidence private `.local/performance/bundle-views-20261028/`; không commit log/SQLite/env/cookie/credential/body nghiệp vụ.
+
+## 29. Giữ draft Tính KPI sau reentry/Refresh — local 28/10/2026
+
+### Lỗi và thay đổi
+
+- Tiếp tục lỗi đã chỉ ra ở mục28, snapshot402 file/322 source khớp checkout và60 thay đổi local trước. Không reset/branch, không dùng database/env thật hoặc tự công bố.
+- Old onSuccess normalize lại toàn draft sau GET. Policy mới giữ **explicit overrides cùng scope/import revision, CTV và ngày**, source/defaults chưa sửa vẫn làm mới. Một active context, không persistent draft/history. Đổi date/CTV/scope/revision/logout hoặc chỉ tiêu bị bỏ không mang draft cũ theo, A→B→A không phục hồi; initial blank→resolved date alias giữ1request.
+- Typing/step/target khi GET chờ thắng khi response về; Reset trong lúc chờ không resurrect override. Error cùng context giữ dữ liệu/draft hiện có, không fallback scope khác. Snapshot owner fence/masking bảo vệ data/command cũ khi đổi context.
+- Nút **Khôi phục dữ liệu gốc** dùng optional hasDraftEdits qua một prop shell để khả dụng với edit có zero score delta/cap/rỗng/raw format; fallback standalone giữ cũ. Không đổi dirtyCount, caption, formula/parser/rounding, UI layout, API/auth/cache/schema/dependency hoặc shared request hook.
+
+### Regression / review / candidate
+
+- Initial real-hook RED **46 fail/10 control pass →56/56**, old19UI file/assertions byte-identical; allUI248 đạt. Spec review bắt P2 inherited overrides lookup cho mã constructor/toString/hasOwnProperty; thêm6 before-edit/after-Reset cases **6fail/56pass→62/62**, sửa own-property lookup.
+- R1 full809 test+22policy/types/lint/build đã đạt nhưng không dùng làm proof sau P2. Giữ R1 artifacts riêng; R2 **63 file/815 test+22 policy**, TypeScript/build đạt, login static; lint0 error/2 warning cũ ở upload routes không sửa. Fake DB/frozen source giữ hash, env-file discovery tắt/guard kế thừa root và child.
+- Spec re-review và quality review độc lập R2 đều **APPROVE** trên4 frozen source/test hashes, đóng P2, không còn actionable P1/P2. Old19UI files/assertions vẫn byte-identical; không lấy approval R1 thay candidate cuối.
+- Đã tích hợp đúng **9 file** sau preimage/hash/backup và secret scan mặc định không finding, giữ60 thay đổi trước ngoài các file được tiếp tục có chủ đích. Primary đạt **63 file/815 test+22 policy**, TypeScript/lint đạt (0error/2warning cũ), env-file guard kế thừa và fixture fake không đổi.
+- **323 source/config/test file** đối chiếu byte với checkout R2 đã build; application source không thay sau QA. Đóng slice draft fix, không đóng toàn Task8 hoặc native Windows gate; tài liệu bundle cũ được đánh dấu checkpoint lịch sử và dẫn sang policy mới, không sửa lại số liệu cũ.
+
+### Browser thật trên fixture giả
+
+- Baseline34 ca API/UI/JS giữ build trước sửa, cộng6 case draft ba role×desktop/mobile. Cả6 mất override sau Back, Refresh và edit lúc pending; Reset không khả dụng dù edit khác default, không JS/API error/ghi nghiệp vụ.
+- R2 sau sửa **6/6 đạt**: giữ override sau Back/Refresh/late response, Reset khi pending và reachability đúng; đổi CTV/date/roundtrip không carry draft. API response thật, không fake response để test qua. Fixture SQLite giữ hash, preview riêng đã dừng.
+- **34 ca** report/API me/users giữ status/count/body hash và settled UI khớp baseline, không JS error/business write. Personal JS decoded **639.813 byte** so638.158 trước fix (+1.655), vẫn dưới eager baseline783.436;14script responses giữ nguyên. Đây là bugfix, không claim tốc độ/p95 hoặc thêm giảm byte.
+- Harness v1 đợi response rồi cố click disabled Reset gây waiter timeout; v2 kỳ vọng sai zero rows trên ngày không có kết quả, trong khi LEFT JOIN metric config vẫn tạo defaults. Giữ source/log/observations cả hai; sửa helper/waiter và record baseline defect, không sửa API hoặc hạ gate after. Sáu case after bắt buộc toàn bộ preservation/reset/context flags đúng.
+
+### Giới hạn / công bố
+
+- Không giữ draft qua full reload/unmount/đóng tab/logout; warning của prepaid error recovery vẫn đúng. Khi tách hook/view owner trong Task8 phải giữ state contract này, không unmount owner cơ học làm mất draft.
+- Task8 view/hook/CSS extraction, auth/version/revocation/nhiều instance/single-flight, native Windows/libsql reliability và nguyên nhân me500 cũ vẫn chưa xử lý. Full pass không chứng minh native đã hết lỗi, không đổi binding/pool/skip/retry để ép xanh.
+- Chưa commit/push/deploy. Release đã xác minh gần nhất vẫn `9d0365e`; không tự chạy migration hoặc đọc credentials thật.
+
+Chi tiết `docs/kpi-calculator-drafts.md`; plan `docs/superpowers/plans/2026-10-28-calculator-drafts-local.md`. Evidence private `.local/performance/calculator-drafts-20261028/`; không commit env/SQLite/log/cookie/credentials hoặc body nghiệp vụ.
+
+## 30. Thử tách CSS công văn — không đạt, giữ app cũ — local 28/10/2026
+
+### Thử nghiệm và kết quả
+
+- Tiếp tục selective CSS của Task8, snapshot405file/323source khớp checkout và65 thay đổi local trước. Giữ hooks/state tại shell để không mất filter/draft hoặc tạo API waterfall; không đổi giao diện/nghiệp vụ/auth/schema/dependencies.
+- Candidate chuyển71class/99rule (83base+16mobile900px),102references; bốn panelState rules dùng chung không chuyển. AST/declarations/media/order và component-prefix reversal khớp preimage;16consumers audit,20UI test files cũ byte-identical. TDD7semantic fail/1pass→8/8.
+- Full candidate **64file/823test+22policy**, TypeScript/build đạt, login static, lint0error/2warning cũ. Đây là kết quả thử nghiệm bị loại, không phải kết quả app sau phục hồi.
+- Chrome34case chạy đủ ba role×desktop/mobile rồi **exit1** ở assertion CSS phải giảm: personal **164.879→165.001 byte (+122),3stylesheets**. Comparator API/settled UI chạy trước gate đó; không có browser-after PASS/final manifest, không đánh dấu toànbrowser gate xanh.
+- Diagnostic độc lập xác nhận personal tải asset68.267byte chứa cả docsToolbar/docUrlModal và shared panelState. Source extraction không tạo deferred CSS trong build này. JS candidate637.206 so639.813(-2.607byte) không đủ để nhận khi mục tiêu CSS thất bại; không claim web nhanh hơn.
+-48visual cases sáng/tối ở390/768/900/1024/1440px khớp computed styles/PNGhash;6draft cases giữ policy mục29. Visual dùng fixture tổng hợp riêng, không giả response để thay API-equivalence. Không chứng nhận hover/focus/screenreader/điện thoại thật.
+
+### Quyết định và giữ lại
+
+- Spec review PASS lossless extraction, quality review **REJECT integration** theo runtime gate; không đổi bundler/SSR hoặc nới assertion để ép đạt.
+- Lưu bốn file candidate, diff/hashes/CSS build/logs, sau đó phục hồi **đúng bốn file do thử nghiệm thay đổi**, đối chiếu405snapshotfiles khớp cả hai checkout. Không reset Git/branch hoặc bỏ65 thay đổi trước, không nhận CSS/unit test candidate vào app.
+- Preview candidate riêng đã dừng. Build trong WT thử nghiệm không còn khớp source đã phục hồi; phải build lại trước khi dùng next start, không dùng nó làm preview app hiện tại.
+- Tài liệu mới `docs/official-docs-css.md` ghi số liệu/giới hạn và follow-up; Task8 vẫn partial. Không dùng raw sourcebyte giảm do CRLF normalization làm network savings.
+- Full primary sau phục hồi **không đạt**:62/63file,801/815test hoàn tất; worker crash3221225477/0xC0000005 tại `tests/integration/cache-invalidation.test.ts`, không phải assertion14test fail. Giữ log/exit1, không rerun suite/skip/đổi pool. Chưa có native stack chứng minh chính xác nguyên nhân lần này, không gán chắc chắn cho một frame/binding.
+- Runner dừng ở suite fail; chạy riêng22policy/TypeScript/lint sau đó đạt (0error/2warning cũ) nhưng không thay kết quả full-suite thất bại.323source/config/test khớp byte snapshot và hai checkout, application code giữ nguyên.
+- Chỉ tích hợp bốn tài liệu sau preimage/hash/backup, whitespace và default secret scan không finding; không nhận bất kỳ application/test candidate nào. Giữ65 thay đổi trước ngoài hai tài liệu roadmap/tiến độ được nối tiếp có chủ đích. Gate nghiệm thu primary/native vẫn mở.
+
+### Việc còn lại / công bố
+
+- Selective CSS thực sự deferred và view/hook ownership chưa hoàn tất. Muốn thử ranh giới khác phải giữ draft/filter/scope/direct-link/SSR và chứng minh không tạo code→API waterfall; không lặp cách source-only rồi tuyên bố tăng tốc.
+- Task9 payload marker là hướng tiếp theo có thể đo trước khi sửa, chưa triển khai ở slice này. A11y label bọc nút Chèn ảnh URL có sẵn cần follow-up Task11, không sửa markup trong thử nghiệm CSS.
+- Native Windows/libsql reliability, auth/version/revocation/nhiều instance/single-flight và nguyên nhân me500 cũ vẫn mở. Không native retry/skip/pool/dependency workaround.
+- Chưa commit/push/deploy; release đã xác minh gần nhất vẫn `9d0365e`.
+
+Chi tiết `docs/official-docs-css.md`; plan `docs/superpowers/plans/2026-10-28-official-docs-css-local.md`. Evidence private `.local/performance/official-docs-css-20261028/`; không commit env/SQLite/log/cookie/credentials hoặc business body. Các lỗi helper ban đầu và bằng chứng thất bại được giữ, không sửa lịch sử thành PASS.
+
+## 31. Xác minh bản stable cho native crash — local 28/10/2026
+
+- Tiếp tục điều tra worker crash mục30 trước khi nâng dependency. Snapshot407file/323source khớp hai checkout, giữ67 thay đổi local trước; không reset/branch/commit/push/deploy hoặc đọc database/env thật.
+- Metadata npm public xác nhận stable `libsql0.5.29`, gitHead `55bee86d1c284f1ddf2b9e280e870d2b6cef884a`, optional Windows0.5.29. Cargo.toml/lock source release khai báo core0.9.30.
+- Source core tag0.9.30 vẫn gọi close mà không null raw handle như PR2261; binding src/lib.rs0.5.29 thiếu pin_module_in_memory/GetModuleHandleExW của PR235. **Chưa thiết lập được verified fixed stable candidate**, không nâng chỉ vì version cao hơn installed0.5.22.
+- Đây là đối chiếu source/metadata, **không** kiểm tra/chạy binary npm0.5.29, không chứng minh build provenance hoặc xác định native frame của lần cache-invalidation.test.ts crash. Cùng mã0xC0000005 không tự chứng minh cùng một nguyên nhân.
+- Không cài package/prerelease/custom binary, sửa app/test, đổi pool/skip/retry hoặc chạy lại full suite/stress matrix. Giữ kết quả primary **801/815 hoàn tất rồi worker exit3221225477**, chưa có full-suite PASS mới; không dùng số test cũ làm nghiệm thu lần này.
+- Helper đầu giả định sai module pin; upstream patch thực tế thêm hàm pin_module_in_memory trong lib.rs. Giữ source/error v1 và sửa riêng helper trên responses đã lưu; không sửa application/assertions native hoặc fetch/test lại để ép xanh.
+- Native Windows gate vẫn mở. Đề xuất tiếp Task9 giảm payload bản đồ trong khi giữ cảnh báo; nếu ưu tiên Linux thì cần thống nhất môi trường/cách chạy trước. Chưa cài WSL/Docker, chạy CI cloud hoặc bắt đầu sửa DTO trong audit này.
+
+Chi tiết `docs/native-crash-investigation.md`; follow-up plan `docs/superpowers/plans/2026-10-28-native-crash-investigation.md`. Evidence private `.local/performance/native-stable-audit-20261028/` chứa metadata/source URL+hash, snapshot và manifest tài liệu; không commit env/SQLite/log/credentials/business rows. Không đánh dấu Task8/9 hoặc Windows native acceptance hoàn tất.
+
+## 32. Node0TB map — opt-in payload rút gọn — local 28/10/2026
+
+### Phạm vi và thay đổi
+
+- Owner đã chọn tiếp Task9 độc lập, giữ cảnh báo native Windows chưa xử lý xong. Snapshot407file/323source khớp checkout,67 thay đổi local trước. Không reset/branch, dùng env guard và bản sao SQLite giả riêng16node/12tọa độ/4thiếu; original fake DB không đổi.
+- Bản đồ gọi `/api/node-0tb?projection=map`, giữ8field đang dùng: id/nodeCode/dateKdFormatted/totalPort/categoryKd/latitude/longitude/hasCoordinates. API không có/unknown/empty/case khác projection vẫn trả legacy đủ field. Dữ liệu không bị xóa khỏi DB.
+- Pure allowlist mapper sau getNode0TbList. Không đổi byte SQL/matching/readiness service; description search vẫn chạy trước projection, stats/categories tính trên toàn dataset trước filter như cũ. Không thêm per-marker request/cache/query, không claim giảm backend SQL/thời gian.
+- Component chỉ thay type names và URL, đảo hai thay đổi tái tạo đúng preimage; original type models giữ nguyên prefix. Không đổi JSX/CSS/popup/hooks/state/handler/role guard/DELETE/upload/template. Quyền đọc ba role và admin-only UI giữ semantics hiện có.
+
+### Regression và QA
+
+- Plan review phát hiện tên test định tạo đã tồn tại, đổi sang `tests/unit/node-0tb-projection.test.ts`, giữ regression tile-provider cũ. Initial RED có2selector lỗi tên accessible ghép sẵn, sửa riêng selector mới trước production edits: clean semanticRED **12fail/41pass→53/53** (26unit+11UI mới,15readonly+1tile cũ).
+- Unit chạy route/getNode0TbList/mapper thật với mock auth/Prisma/readiness boundaries, không native addon. Cover0/null/escaped/future fields/purity/order, exact/base/prefix/missing tọa độ, global stats/filter/description search, legacy fallback, ba role/auth-before-data/errors/empty và query/write counts.
+- UI component thật với Leaflet/session/fetch/browser mocks cover counts/list/search/filter/fit/zoom/popup/clipboard/GPS/admin menu/template/upload callback/retry, kể cả projection URL sau upload.20UI files và tất cả assertions cũ không đổi.
+- WT đạt **26file/387scoped test+22policy**, TypeScript/build đạt, login static; lint0error/2warning cũ. Fake DB/frozen6source hash không đổi; inherited env guard root/child. Không chạy lại full native suite đã biết lỗi, không skip/retry/pool/upgrade workaround; không có full-suite PASS mới.
+- Source spec và quality review độc lập đều APPROVE sáu frozen hashes **cho source/API**, không thay thế runtime gate hoặc nghiệm thu native.
+
+### Đo lượng tải / browser
+
+- 12case trước/sau: ba role×390/1440px×app light/dark. API thật trên cùng SQLite giả: initial payload **6.166→3.203byte**, giảm2.963byte/**48,05%**; legacy responsehash giữ nguyên. No per-marker request; initial1request, lỗi500 được inject riêng rồi retry đúng endpoint trả lại cùng data.
+- Lượt đầu72tóm tắtUI (text/button/disabled/overflow, **không phải toàn DOM**) khớp,41/48PNG khớp;7ảnh khác17–26pixel với maxchannel1–2 tại glyph toolbar/filter. **Gate ảnh đã fail**, không kết luận các delta này vô hại hoặc bỏ assertion. Giữ source/log/ảnh lần đầu và diagnostic.
+- Same-build paint control5lượt sau350ms có geometry/raw/encoded hashes ổn định,0active animations. Chuẩn hóa settle350ms+hai animation frames và thêm geometry/style hash cho **cả baseline/candidate**, vẫn bắt PNGhash khớp tuyệt đối. Tạm phục hồi đúng6preimages để rebuild baseline, sau đó phục hồi exact6candidatehashes, scoped QA/build lại; không authored UI edit hoặc reset/bỏ các thay đổi trước.
+- Controlled lượt2 vẫn **strict gate FAILED**:72tóm tắtUI khớp,45/48PNG khớp;3PNG khác ở CTV390light missing-list/popup và CTV1440light popup;2geometry/style hash khác ở ADMIN390light/CTV390dark error states. Chưa xác minh nguyên nhân, không gọi là raster flake/vô hại; giữ nguyên runner exit1, assertions và evidence capture-v1/v2.
+- Báo cáo `browser-functional-after.json` tách riêng: API/retained values/order/stats/legacyhash và72tóm tắtUI đạt, nhưng strictRasterAndGeometryGatePassed=false/fullDomEquivalenceEstablished=false. Không tạo `browser-after.json` PASS để che failure.
+- Review độc lập Avicenna **APPROVE LOCAL FUNCTIONAL ONLY**, không miễn image gate hoặc đóng QA. Cho phép checkpoint local có thể hoàn nguyên dựa trên source/API contracts, giữ visual/native/release acceptance mở.
+- Đã tích hợp đúng **11file** (6source/test,5docs) sau preimage/hash/backup, whitespace và default secret scan không finding. Giữ67 thay đổi local trước ngoài các tài liệu được nối tiếp có chủ đích; primary có75path dirty, không commit/branch/publish.
+- Primary đạt **26file/387scoped test+22policy**, TypeScript/lint đạt (0error/2warning cũ), env guard/fake DB/frozen source giữ nguyên. **326source/config/test** đối chiếu byte với WT candidate đã build; không authored application edits sau QA. Không chạy full native suite hoặc tuyên bố full-suite/visual acceptance đã đạt.
+- Manifest kết quả ghi **functionalProjectionImplemented=true, completeForNode0TbProjectionSlice=false, strictVisualGatePassed=false**, Task9/native/release vẫn mở. Đây là checkpoint functional có thể hoàn nguyên, không phải ảnh đã khớp hoặc toàn slice hoàn tất.
+- Size-only benchmark cùng frozen mapper:1k/10k/50k metadata tối thiểu giảm44,57/44,45/44,32%; metadata thông thường note/description ngắn giảm51,44/51,32/51,21%. Giữ retained values/order/stats/categories; không mutate inputs. Không query DB, chạy lookup hoặc render50k marker; không claim compressed transfer/latency/p95.
+
+### Giới hạn / công bố
+
+- Chỉ Node0TB marker projection. Bản đồ khách hàng/node thường, reuse/lookup tối ưu, bbox/clustering và toàn Task9 còn pending; mục tiêu50% không đạt ở mọi dataset, browser fixture giảm48,05%.
+- Browser tile images tổng hợp, service worker tắt, GPS denial inject; không chứng nhận provider/điện thoại/PWA thật hoặc clipboard/upload nghiệp vụ Production. Popup/UI state được đối chiếu riêng, không dùng fake success API để thay payload-equivalence.
+- Helper prepare ban đầu giả định fixture cũ rỗng nhưng có2row; dừng trước seed/build, giữ evidence và chỉ clear/seed bản sao fake sau hash check. Browser helperv1 đợi server-error text trong khi UI có thông báo HTTP chung; giữ log/ảnh và sửa locator, không thay app/gate.
+- Native Windows/libsql/full primary801/815fail từ mục30 và các auth/PWA gate vẫn mở. Không báo đã sửa native hoặc đủ điều kiện release.
+- Chưa commit/push/deploy, release đã xác minh gần nhất vẫn `9d0365e`.
+
+Chi tiết `docs/node0tb-map-projection.md`; plan `docs/superpowers/plans/2026-10-28-node0tb-projection-local.md`. Evidence private `.local/performance/node0tb-projection-20261028/`; không commit SQLite/env/log/cookie/credentials hoặc business rows.
+
+## 33. Bản đồ khách hàng — node coordinates DTO — local 29/10/2026
+
+### Phạm vi và hợp đồng
+
+- Tiếp tục Task9 theo hướng đã duyệt, không đổi giao diện/nghiệp vụ. Snapshot412file/326source, giữ75 thay đổi local trước; dùng lại WT hiện có, không reset/branch/commit/push/deploy, đọc env/database thật hoặc đổi dependency.
+- Bản đồ khách hàng đổi duy nhất node bootstrap sang `/api/nodes?projection=coordinates`, chỉ nhận id/name/latitude/longitude. Original types giữ nguyên byte-prefix, component chỉ đổi type import/state và URL; mechanical reversal tái tạo đúng baseline. Customer API/search/nearest tie-break/polyline/confirmation/PUT/modal/GPS/JSX/CSS giữ nguyên.
+- Route chỉ opt-in exact flag trên default list. **Cache `nodes:list` vẫn chứa full legacy payload**, cùng key/TTL60giây/generation capture trước await và setter fence; project tại hai response hit/miss, không cache DTO rút gọn. Coordinate-first→legacy-hit và legacy-first→coordinate-hit đều có test cache/core thật.
+- Default `/api/nodes`, fallback unknown/empty/case khác, downloadTemplate và các `view` giữ semantics/quyền/scope/paging/headers cũ. Bản đồ node thường vẫn lấy đầy đủ metadata cho popup/filter/CSV. Không đổi SQL/readiness hoặc thêm cache/per-marker request.
+
+### TDD và QA candidate
+
+- 33unit+12UI mới. Semantic RED11fail/34pass→GREEN45/45; failures là response shape/URL cũ, không phải thiếu helper. Real route/cache/mapper, XLSX serialization và Leaflet distance; auth/Prisma/readiness/render/browser boundaries được mock.
+- Cover cache hai chiều/full identity/purity/future fields/zero/null/order/TTL, generation invalidation khi auth/query pending, role/auth-before-cache/DB/errors, template và scoped views; UI cover nearest thật/tie hai thứ tự, cancel/Escape/PUT đúng payload, GPS, list/search/create/edit/retry. Assignment dùng event `assignNode` sẵn có, không thêm nút hoặc sửa guard zero-customer tọa độ.
+- 21file UI cũ và tất cả assertions/test cũ giữ nguyên, Node0TB không đổi ngoài original types prefix được giữ nguyên. Worker helper validation lần đầu thiếu `tests/setup/ui.ts` tạo13matcher type diagnostics; giữ log, sửa riêng compiler harness, không thay app/assertions.
+- Parent candidate đạt **32file/470scoped test+22policy**, full TypeScript/build, login static; lint0error/2warning cũ ở upload Node0TB/node. Frozen6source/fake DB giữ hash. Không cộng counts chồng nhau hoặc coi scoped selection là full-suite.
+- Spec review Parfit và quality review Hegel độc lập đều APPROVE đúng sáu frozen hashes, không sửa source. Chỉ source/API/local-functional, không coi reviewer approval là native/visual/release acceptance.
+
+### Đo lượng tải / browser
+
+- Browser trước/sau **12case** ba role×390/1440px×app light/dark, cùng14node giả và customer scope ADMIN10/MANAGER10/CTV5. Actual node API JSON **3.312→1.268byte**, giảm2.044byte/**61,71%**; legacy-full node/customer/scoped-view hashes khớp, DTO exact retained values/order. Một initial node/một customer request, không thêm waterfall/per-marker call.
+- Nearest confirmation giữ tên/khoảng cách0m fixture, polyline và **48UI summaries** text/button/disabled/link/overflow khớp. GPS-denied/customer500/retry đúng,0business write/JS error/unexpected network failure, fake DB/hash không đổi. Không phải full DOM/pixel identity hoặc browser production-write acceptance.
+- Size-only benchmark chính frozen mapper trên cùng input1k/10k/50k: metadata tối thiểu giảm58,58/58,29/58,03%; metadata thông thường giảm66,45/66,18/65,94%. Retained values/order/zero và input không mutate; không DB query/browser render/latency hoặc compressed-transfer claim.
+- Provider tiles tổng hợp, SW tắt, GPS denial và customer500 inject riêng. UI summaries không phải full DOM, ảnh chỉ chẩn đoán; không tạo gate pixel PASS hoặc miễn strict visual Node0TB trước.
+- Baseline harnessv1 bắt nhầm tile image ERR_ABORTED khi zoom/reload; giữ log/partial/source v1. Classifier chỉ miễn exact URL của ảnh provider đã được runner intercept, resource image/nonnavigation/ERR_ABORTED, cộng rule RSC cũ. API/script/navigation/lỗi bất ngờ vẫn fail; không thay app/tests cũ.
+
+### Tích hợp và phần còn lại
+
+- Đã tích hợp đúng **10file** (6source/test+4docs) sau preimage/hash/backup, whitespace và default secret scan không finding, giữ75 thay đổi trước ngoài các file được nối tiếp có chủ đích. Không reset/commit/branch/publish hoặc thay application source sau QA.
+- Primary đạt **32file/470scoped test+22policy**, full TypeScript/lint(0error/2warning cũ); frozen6source và fake DB/hash giữ nguyên. **329source/config/test** đối chiếu byte với WT candidate đã build; không dùng WT PASS thay primary QA.
+- Chỉ checkpoint functional local: customerMapNodeProjectionFunctionalSliceVerified=true, fullDomOrPixelEquivalenceClaimed=false, previousStrictVisualGateStillOpen=true, allTask9Complete=false. Không đóng native/full-suite/release gate, không claim SQL/latency cải thiện.
+- Chỉ node bootstrap của customer map: customer payload/full node-map/detail-loading, SQL/lookup, bbox/clustering và toàn Task9 còn pending. Không tuyên bố thời gian toàn web nhanh hơn theo tỷ lệ payload.
+- Native Windows/libsql gate vẫn mở từ primary801/815 rồi worker exit3221225477; không chạy lại full native/skip/retry/pool/upgrade để ép xanh. Strictvisual Node0TB3PNG/2errorgeometry chưa rõ nguyên nhân vẫn mở nguyên trạng.
+- JWT/revocation/version/đa instance/single-flight, nguyên nhân `/api/me`500 cũ và QA Production/điện thoại/provider/PWA thật chưa xác minh. Chưa đủ điều kiện release hoặc đánh dấu toàn Task9 hoàn tất.
+- Chưa commit/push/deploy; release đã xác minh gần nhất vẫn `9d0365e`.
+
+Chi tiết `docs/customer-map-node-projection.md`; plan `docs/superpowers/plans/2026-10-29-customer-map-node-projection-local.md`. Evidence private `.local/performance/customer-map-node-projection-20261028/` và worker-r2 stage lưu source/log RED-GREEN và failure helper ban đầu; không commit SQLite/env/log/cookie/credentials hoặc business rows.
+
+## 34. Customer → node bulk read batching — local 29/10/2026
+
+**Tóm tắt:** Mỗi lượt đọc mapping lấy tối đa900account thay300. Trong phép đo helper với10.000account giả, cần12lượt SELECT thay34, giữ cùng kết quả. Không đổi code giao diện hay nghiệp vụ gán node; chưa đo mức cải thiện tốc độ web online.
+
+### Phạm vi
+
+- Tiếp tục Task9 local, snapshot417file/329source khớp candidate đã build, giữ81thay đổi trước. Không reset/branch/commit/push/deploy, đọc database/env thật, migration hoặc đổi dependencies.
+- Chọn giảm round-trips của bulk lookup trước khi thêm index tiền tố Node0TB. Chỉ literal300→900 trong `getMappedNodeNamesByAccounts`; SQL parameterized/normalize/dedupe/readiness/sequential/result handling giữ nguyên. Các read/write batch khác và toàn bộ frontend/API/auth/cache giữ bytes. Node0TB matching không thay đổi.
+- Ba consumer thực tế: map-data, customer list và import đều dùng keyed .get; search-map không gọi helper. SQL không có ORDER BY nên Map iteration order không được hứa; phải giữ key/value và customer DTO/order/meta. List cap100 vẫn một mapping SELECT, không claim mọi trang tăng tốc.
+- SQLite historical default999/newer32766 theo tài liệu chính thức, nhưng custom/runtime limits có thể thấp hơn. Local900parameter probe đạt trên bản sao SQLite giả, Prisma900binding/online runtime acceptance phải phân biệt.
+
+### TDD / QA
+
+- Plan review Kant APPROVE local-only, không sửa source và không miễn runtime gate. Worker mới chỉ có quyền sửa đúng2source/test; test cũ, Node0TB/coordinate projections giữ nguyên.
+- 48test mới (20helper+28route/cache), semantic RED12fail/36pass→GREEN48/48; worker33file/518scoped (470cũ+48mới), owned lint/types đạt. Parent QA/build/spec/quality riêng, không coi worker report là nghiệm thu.
+- Parent WT đạt **33file/518scoped+22policy**, full TypeScript/build, login static/lint0error/2warning cũ ở uploadNode0TB/node; fakeDB/frozenhashes không đổi. Owned lint0warning không thay thế full-source lint. Spec Archimedes rồi quality Hume độc lập đều APPROVE đúng2hashes, source/API local-functional only, không sửa source hoặc miễn native/visual/release gate.
+- Freeze2hashes: service chỉ thay đúng1byte, reversal khôi phục toàn preimage;69test cũ/22UI files và mọi source khác giữ nguyên. Initial runner EPERM do sandbox được lưu riêng, không tính RED hoặc sửa application/config để ép xanh.
+
+### Baseline / đo trước-sau
+
+- Benchmark helper/normalization thật, mocked DB boundary,13boundarysizes:1k/10k/50k unique keys **4→2 /34→12 /167→56 mapping SELECT**. Key/value hashes bằng nhau, tối đa900params, mỗi normalized key đọc đúng một lần/input không mutate.10k giảm64,71%SELECT trong riêng helper, không phải tổng SQL/API hoặc cloud latency.
+- Private SQLite copy có1812customers/1544mappings; thêm1802khách giả thiếu tọa độ, vẫn10coordinate customers để không tăng marker UI. Account trim/case/quotes và mapped/fallback được seed riêng. Original fake DB/hash giữ nguyên, không dùng dữ liệu thật.
+- **21scopedAPIcase** qua3role có first/warm replay, status/body/bytes/count hashes trước-sau khớp. Details on/off, coordinate filter, take900/901/1800/20000/customer list và anonymous401 giữ đúng. Large map details-on hasCoordinates=false ADMIN1812/MANAGER1812/CTV906rows (>900distinct accounts); helper900 đã build thực thi thành công trên actual local Prisma/SQLite, không chỉ standalone/mock proof. Không chứng nhận remote/custom lower limits hoặc native reliability.
+- **12browsercase** ba role×390/1440×light/dark,48UI summaries/nearest confirmation/polyline và node/customer/scoped-view hashes khớp. GPS/error/retry đúng,0business writes/JS/unexpectednetworkerrors, fakeDB/hash unchanged. Không phải full DOM/pixel identity hoặc production-write acceptance.
+- Provider images giả/SW off/GPS/error inject; UI summaries không phải full DOM/pixel equivalence. Strictvisual Node0TB3PNG/2geometry giữ mở.
+
+### Tích hợp / phần còn lại
+
+- Đã tích hợp đúng **6file** (2source/test+4docs) sau preimage/hash/backup, whitespace/default secret scan không finding, giữ81thay đổi trước ngoài các file được nối tiếp có chủ đích. Không reset/commit/branch/publish hoặc authored application edits sau QA.
+- Primary đạt **33file/518scoped test+22policy**, full TypeScript/lint0error/2warning cũ. Frozen2source và fakeDB/hash giữ nguyên; **330source/config/test** đối chiếu byte với WT candidate đã build. Không suy ra primary PASS từ worker/WT hoặc gọi scoped selection là full suite.
+- customerMappingBatchesFunctionalSliceVerified=true, mappingValuesAndScopedBodiesPreserved=true, realLocalApiWithOver900AccountsPassed=true; benchmark DB boundary mocked/totalApiQueryCountMeasured=false/databaseOrCloudLatencyMeasured=false. fullDomOrPixelEquivalenceClaimed=false, allTask9Complete=false; không đóng native/visual/release gate.
+- Native Windows full-suite801/815 rồi worker3221225477 vẫn chưa sửa; không chạy lại full native/skip/retry/pool/upgrade để ép xanh,2warning lint cũ giữ nguyên.
+- Không xử lý concurrent-read snapshot, import customer.findMany riêng, JWT/revocation/version/đa instance/single-flight, `/api/me`500 cũ hoặc remote DB limits. Không giảm DTO/payload, thêm viewport/clustering hay sửa prefix matching trong slice này.
+- Task9/native/visual/release còn mở. Chưa commit/push/deploy; release đã xác minh gần nhất vẫn9d0365e.
+
+Chi tiết `docs/customer-node-mapping-batches.md`; plan `docs/superpowers/plans/2026-10-29-customer-node-mapping-batches-local.md`. Evidence private `.local/performance/customer-mapping-batches-20261029/` và staging worker chứa snapshot/preimage/RED-GREEN/logs/API/browser/benchmark/manifest; không commit SQLite/env/log/cookie/credentials/business bodies.
+
+## 35. Node0TB — tránh quét prefix lặp trong một request — local 29/10/2026
+
+**Tóm tắt:** Mỗi lần tải Node0TB tái sử dụng kết quả cho mã gốc lặp, tối đa 1.000 kết quả trong request đó. Trên bộ thử 50.000 dòng có 100 mã gốc, số lần quét danh sách node giảm từ 50.000 xuống 100; tọa độ, thống kê và bộ lọc giữ nguyên. Chỉ là checkpoint functional local, chưa nghiệm thu tốc độ cho mọi workload hoặc web online.
+
+### Phạm vi và baseline
+
+- Tiếp tục lookup Task9, không thay UI/quy tắc chọn tọa độ. Snapshot420file/330source khớp buildLv9R4uBtzz459gsJFzkZT, giữ85thay đổi trước; dùng lại WT, không reset/branch/commit/push/deploy, DB/env thật, migration hoặc dependency changes.
+- Đã đo service/import-utils thật, Prisma/readiness boundaries giả. Grouped138/1k/10k/50krows quét prefix138/1000/10000/50000lần;50k duyệt49.387.500cặp,3-sample uninstrumented median647,665ms. Exact-only0scans; distinct-miss một scan/dòng. Đây là synthetic workload, không phải phân bố dữ liệu thật hoặc độ trễ web/database/cloud.
+- Chọn memo local trong mỗi getNode0TbList: keybaseCode cũ, .has để cache cảundefined, tối đa1.000entry hits/misses, không eviction. Exact full-code rồi exact-base vẫn kiểm trước memo ở mọi dòng. Cap đầy thì key mới tiếp tục scan như cũ; không trie hoặc cache giữa request/role.
+- Same SQL/readiness/two reads/normalization/first-prefix insertion order/DTO/row order/date fallback/stats toàn tập trước filter/search description/category. Không sửa matching ambiguity hoặc tọa độ validation. Memo entry cap không phải byte budget; worst-case unique-prefix scan vẫn còn.
+- Plan review Mill APPROVE narrow local design; chỉnh rõ exact-base hit không thể có warmed fallback cùng base trên nodeMap bất biến. Test exact-code-after-cache và exact-base precedence riêng, không fake dữ liệu mutable để tạo tình huống bất khả thi.
+
+### TDD / QA
+
+- Chỉ2paths: node-0tb-db service và unit prefix-memo mới;39test semantic RED33fail/6pass→GREEN39/39, giữ70test cũ/22UI và source ngoài phạm vi. Runner preflight EPERM giữ riêng, không tính là semanticRED. Tiếp tục từ checkpoint sau gián đoạn bằng source/hash/log thực, không suy ra completion từ worker final chưa có.
+- Parent freeze2hashes: đảo declaration/prefix branch tái tạo toàn service byte, exact/base/SQL/readiness/DTO/stats/filter/normalization và source ngoài phạm vi giữ nguyên. Fresh WT34file/557scoped+22policy/types/lint0error/2warning cũ/build, login static, fakeDB/hash unchanged. Spec Epicurus APPROVE source/API only, không phải performance/native/visual/release approval.
+- Quality Lorentz **APPROVE_LOCAL_FUNCTIONAL_ONLY**, giữ uniqueTimingUncertainty OPEN/performance acceptance pending; không sửa source hoặc miễn native/strictvisual/release. Capture reviewer Bernoulli APPROVE symmetricsettledprotocol/evidence preservation, không thay kết quả runtime.
+- Không chạy lại full native suite đã biết801/815 rồi worker3221225477; không skip/retry/pool/package workaround.2lint warnings cũ và strictvisual Node0TB3PNG/2geometry giữ mở.
+
+### API/browser và phép đo sau
+
+- Bản sao SQLite giả mới20Node0Tb/14tọa độ/6thiếu; thêm4SPsiblings (2positive/2negative) để có memo hit/miss thực, không đọc/seed dữ liệu thật, giữhashfakeDB cũ.
+- Đối chiếu 24 trường hợp API qua ba vai trò: legacy, projection bản đồ, tìm kiếm, phân loại, giá trị projection không hỗ trợ và đọc lặp đều giữ nguyên status/body/bytes/count hashes. 12 lượt trình duyệt, mỗi lượt sáu trạng thái, tạo 72 bản tóm tắt UI khớp đầy đủ sau khi animation ổn định. Không ghi dữ liệu nghiệp vụ; hash database giả giữ nguyên.
+- Provider images giả/SW off/GPS/error inject, screenshots chẩn đoán thôi; summaries không phải fullDOM/pixel equivalence. Không chuyển các fail strictvisual trước thành PASS hoặc miễn image gate.
+- **UIcapturev1 FAILED**,24APIbodies/payload hashes khớp,67/72summaries khớp,5desktopGPSstates thiếu4tooltiptext. Giữexit1/runner/assertions/error/partial/ảnh/buildmetadata ởcapture-v1, không tạo PASS từpartial. Same-build control2fast+2settled: fast350ms nhãn còn hiện nhưng800/1600ms mất, settled1600ms sau popup/zoom/fit thì ổn định; CSSzoomflagfalse, không suy đoán lệnh bịignore. Snapshot350 chưa quiescent, nguồn hiện cóflyTo1,2s/0,9s+timer50ms.
+- Harnessv2 giữmọiassertion/cases/summaryfield, thêmwait1600ms+transform/tooltip stable200ms+CSSquiet/timeout5s và tách các thao táczoom/fit. Rebuild baseline từpreimage service thật/capture đầyđủ; sau đórestoreexactcandidate2hashes, QA557+22policy/types/lint/build lại, không authoredappcode saureview. **Controlled v2 PASS:**24APIcase/12browsercase/72fullsummaries khớp,0business writes/JS/unexpectednetworkerrors, cùng1initialrequest và500→retry200. Frontendkhôngsửa, nofullDOM/pixelclaim, oldstrictvisualTask32khôngđượcđóng.
+- Benchmark actual-service/import-utils trước/sau12datasets full-response hashes khớp, input giữ nguyên/cùng2reads+1readiness. Grouped138/1k/10k/50k scans **138→20 /1.000→100 /10.000→100 /50.000→100**,50k visits49.387.500→98.775. Exact0scan/unique-miss1scan mỗirow giữ nguyên; SQL/payload không giảm.
+- **Timing uncertainty giữ mở:** matrix đầu grouped50k647,665→17,925ms nhưng unique50k614,184→1.526,097ms (3mẫu/process riêng). Không bỏ số liệu, không sửa app hoặc retry matrix để ép xanh. One controlled diagnostic: cùng process hai frozen source, alternating order,2warmups+5mẫu/version, khôngprototype instrumentation/GC flags/forcedGC; unique417,133→423,051ms, grouped426,992→13,035ms, output/hash/read-counts khớp. Không tái hiện mức chậm2,5× trong control, **chưa xác minh nguyên nhân matrix đầu/không chứng minh unique không regression**; không quy kết flake/GC/JIT hoặc nghiệm thu performance/cloud/page latency/p95/RUM. Quality disposition cho LOCAL functional checkpoint còn chờ.
+
+### Tích hợp / phần còn lại
+
+- Đã tích hợp đúng **6 file** (2 source/test, 4 tài liệu) sau preimage/hash/backup, whitespace và secret scan mặc định không finding. Giữ 85 thay đổi local trước ngoài các file được nối tiếp có chủ đích; không reset/branch/commit/push/deploy. First scan bắt nhầm prose test-summary dính chữ, không phải credential; giữ report/log redacted riêng và viết lại câu rõ nghĩa, không thêm allowlist/sửa rule. Scan mặc định lại đạt trước integration.
+- Primary đạt **34 file/557 test scoped + 22 policy checks**, TypeScript/lint 0 error và 2 warning cũ. Fake database và hai source hashes giữ nguyên; **331 file source/config/test** đối chiếu byte với WT candidate đã build. Không dùng WT/worker PASS thay primary QA, không gọi scoped selection là full suite.
+- node0TbPrefixMemoFunctionalSliceVerified=true, controlledMotionFunctionalGatePassed=true; originalV1UiSummaryGateFailed=true và failure evidence vẫn giữ nguyên. uniqueTimingUncertaintyRemainsOpen=true, performanceAcceptancePassed=false, fullDomOrPixelEquivalenceClaimed=false, allTask9Complete=false. Không đóng native/old strictvisual/release gate hoặc gọi timing anomaly là vô hại.
+- Không giảm SQL/payload hoặc đóng snapshot/read-consistency/JWT/revocation/đa instance/single-flight/`/api/me`500 cũ. Customer/detail DTO, node-map thường, unique-prefix index và viewport/clustering còn pending.
+- Task9/native/strictvisual/release vẫn mở; không claim mọi request nhanh hơn. Chưa commit/push/deploy, release đã xác minh gần nhất9d0365e.
+
+Chi tiết `docs/node0tb-prefix-memo.md`; plan `docs/superpowers/plans/2026-10-29-node0tb-prefix-memo-local.md`. Evidence private `.local/performance/node0tb-prefix-memo-20261029/` và staging worker lưu snapshot/preimage/RED-GREEN/reviews/benchmark/API/browser/QA/build/manifest; không commit SQLite/env/log/cookie/credentials/business bodies.
+
+## 36. Điều tra timing Node0TB, không sửa app (29/10/2026, local)
+
+### Đã làm
+
+- Tiếp unique50k uncertainty mục35. Chốt trước endpoint, factorial contrasts và thứ tự tám process: hai source trước/sau memo × hai history U/G × hai repetitions. U không gán prototype; G dùng counting generator ở call thứ năm rồi restore. Không có observer trực tiếp trong timer nhưng workload sau có execution history khác.
+- Dùng service/import-utils thật và Prisma/readiness boundary giả, cùng12datasets/process; một warmup + ba timed + một untimed/call validation cho mỗi dataset. Tám process chạy tuần tự exit0 đúng một lần:480 service calls,96 process/dataset observations, không retry/cherry-pick/optional ablation/trace/forced GC. Toàn bộ input/full-response hashes/query/read/counter invariants khớp; lưu mọi samples.
+- Review trước chạy đã sửa rõ endpoint/đơn vị fresh process, bỏ optional branch, giữ raw evidence khi caught error. Snapshot423 paths,331 source/config/test,89 dirty paths và161 artifacts cũ trước thử; không đọc `.env`, credential hoặc database thật.
+
+### Kết quả và điều chưa được chứng minh
+
+- Unique50k repetition1: B_U407,499 → A_U382,930ms; B_G630,280 → A_G643,071ms. Repetition2: B_U366,641 → A_U375,106ms; B_G629,041 → A_G622,430ms. Median ba mẫu riêng mỗi process, không pool thành sáu independent samples.
+- History G/U cao hơn ở cả hai source/repetition: trước1,547/1,716; sau1,679/1,659. Có evidence timing nhạy với observer-history package trong protocol mới, **không xác định riêng JIT/GC/property invalidation**.
+- Source ratios U0,940/1,023 và G1,020/0,989; interaction1,086/0,967 đổi hướng. Không tái hiện/giải thích gap2,5× ban đầu, không quy kết flake/vô hại hoặc zero regression. Giữ matrix cũ614,184→1.526,097ms và paired417,133→423,051ms nguyên vẹn.
+- Báo đủ12workloads, kể cả secondary unique138 sau cao hơn cả bốn so sánh và exact50k U sau cao hơn cả hai repetitions. Grouped giảm quét nhưng không suy mọi request nhanh hơn. Unique50k vẫn50triệu pairs, hai reads/call giữ nguyên, không SQL/payload/cloud/page-load/p95/RUM measurement.
+
+### Tích hợp và giới hạn
+
+- Chỉ5 tài liệu: guide mới `docs/node0tb-timing-investigation.md`, plan diagnostic mới, annotation guide memo, roadmap và mục36 này. Có backup/preimage/hash/whitespace/default secret scan và review riêng trước tích hợp; không đổi app/test/config/dependency.89 dirty paths có sẵn/331source files và161artifacts cũ được giữ; không reset/branch/commit/push/deploy.
+- Không rerun app tests/native/build/browser cho docs-only checkpoint.557scoped/22policy/build/browser ở mục35 là kết quả cũ, không gọi là fresh PASS. Candidate build `uHuPDrGeI3CACKtH0ZyOi` giữ nguyên; full-native801/815 rồi exit3221225477 và strictvisual3PNG/2geometry vẫn OPEN.
+- uniqueTimingUncertaintyRemainsOpen=true, performanceAcceptancePassed=false, allTask9Complete=false. Functional memo chỉ LOCAL theo mục35. Chưa hoàn tất exact/unique overhead, marker/detail DTO, node-map thường, viewport/clustering; không đóng auth/revocation/snapshot/`/api/me`500 cũ hoặc release.
+- Thí nghiệm dừng đúng tám cell đã chốt. Không sửa production bằng phỏng đoán; thiết kế riêng cho workload đại diện/overhead và tách observer khỏi lifetime timed process trước performance acceptance. Release xác minh gần nhất9d0365e, chưa publish các thay đổi local này.
+
+Chi tiết `docs/node0tb-timing-investigation.md`; plan `docs/superpowers/plans/2026-10-29-node0tb-timing-investigation-local.md`. Evidence private `.local/performance/node0tb-timing-rca-20261029/` lưu snapshot, preregistered hashes, raw cells/logs, matrix/analysis, reviews và integration manifest. Mọi artifacts cũ giữ nguyên; không commit logs/env/SQLite/cookie/token/business bodies.
+
+## 37. Bản đồ khách hàng: ID marker, popup sau flight và group lifetime (29/10/2026, local)
+
+### Phạm vi / đã sửa
+
+- Owner dừng push/deploy để tiếp tục plan local. Chưa tạo nhánh release/commit/push, deploy Preview/Production hoặc database Turso test. Bước chuẩn bị trước chỉ đọc metadata Vercel, không in/lưu giá trị token hay đổi settings/database.
+- Audit consumer:14customer fields và10node-map fields hiện trả về đều có nơi sử dụng. Chưa cắt DTO cơ học làm mất search/popup/form; lazy-detail/viewport cần thiết kế riêng.
+- Cluster popup dùng raw customer ID/public `sourceTarget` qua index current-filtered-array thay vì tìm khách đầu tiên bằng coordinate epsilon. Ba ID actions tái sử dụng index; không thêm API/detail request hoặc listener theo từng marker.
+- Chrome phát hiện identity-only popup đúng ID nhưng mất khi flyTo tiếp tục. Reveal/open nay chỉ sau public moveend của đúng position object; stop motion cũ trước khi đăng ký once, giữ zoom17/duration1,2giây và delay/retry bounds cũ. Request cũ bị vô hiệu khi chọn khác/GPS/unmount; stale cluster callback không được mở popup.
+- Quality review P2: đổi filter giữa flight có thể để ref thuộc group đã tháo. Cleanup chỉ xóa refs còn thuộc đúng group; callback phải khớp entry hiện tại. Không gọi/mở marker cũ, không xóa refs của group mới. API/SQL/auth/fields/CSS/HTML/confirmation/write payload không đổi.
+
+### Kiểm chứng và failures giữ riêng
+
+- Identity RED6fail/13pass →GREEN19; motion RED6fail/19pass →GREEN25; lifetime RED2fail/25pass →GREEN27. Original12case bodies/assertions giữ nguyên, thêm15case, gồm real nested Leaflet FeatureGroup protocol. Missing import, hai lỗi type mock và distinct-group setup timeout được giữ là failed attempts, không giả thành semantic RED.
+- Final WT **10file/256test map-domain +22policy, full types/lint0error/2warning cũ/build đạt**, fake DB/current hashes giữ nguyên. Build `GSevXO8cImpsugMzfsFK1`; final pair `066ab426ec007acb55879f5d498e926d47c94c122ece93afa1fa184e674aa1b3` / `b06d0589c6842c7c7ba254040043250d925dbcc17a1806ff6abdd2ba457b298a`. Spec và quality APPROVE đúng pair/local-functional-only; không dùng reviews b1/c2 hoặc52ec/d8 thay final.
+- Broad selection không được ghi là đạt ổn định: v1 564/564 rồi type fixture fail; v2 561/564, isolated74/76, baseline original331source76/76, broad motion569/570 với prepaid5s timeout. Giữ mọi logs/exit/status, chưa xác định nguyên nhân reliability; không tăng timeout, đổi pool/skip hoặc sửa KPI để ép xanh. Selection256theo domain không thay thế broad/full suite.
+- Browser V1 fail popup persistence, V2 fail optional spider-leg CSS-class count. Cùng-build probe giữ class assertion fail nhưng ghi ba SVG legs +A/B tách60px và popup đúng. Installed plugin kiểm `L.Path.SVG` không có trong installed Leaflet nên class không đại diện cho mọi legs; không sửa app/CSS cho selector.
+- V3 protocol kiểm đúng3native-leg DOM paths dương stroke/opacity/width và visible/distinct A/B boxes, giữ nguyên mọi assertion/flow còn lại của sáu case. **6/6 Chrome:3role×390/1440**, đúng ID trùng/gần điểm và popup còn mở,1customer+1node read/case,0write/JSerror/overflow, fake DB unchanged. Login thật trên DB giả; marker API/provider images giả, SW tắt. Không API-scope equivalence, full DOM/pixel/dark/leg-endpoint/occlusion/provider/điện thoại thật claim. V1/V2/probe failures không bị đổi thành PASS.
+
+### Tích hợp và phần còn mở
+
+- Tích hợp đúng **6file**: MapComponent +test hiện có, guide/plan mới, roadmap và mục37. Source-pair phase có backup/hash/whitespace/default secret scan riêng; primary chạy lại **256map-domain+22policy/types/lint** độc lập trước docs guard. Final integration manifest kiểm331source/config/test so built WT, giữ91dirty paths trước và209artifacts cũ; không reset/branch/commit/push/deploy.
+- customerMarkerIdentityFunctionalSliceVerified=true, popupFlightAndGroupLifetimeVerified=true, browserPhysicalV3SixCasesPassed=true; originalBrowserV1Failed=true và originalV2ClassGateFailed=true được giữ. broaderTestReliabilityRemainsOpen=true, fullDomOrPixelEquivalenceClaimed=false, performanceAcceptancePassed=false, allTask9Complete=false.
+- Chưa đo giảm payload/SQL, actual page-load/p95 hoặc mọi rapid/manual navigation. Native Windows full-suite crash801/815 rồi3221225477, strictvisual cũ3PNG/2geometry, Node0TB timing anomaly, auth/revocation/distributed-state và release vẫn OPEN. Không kết luận mọi request nhanh hơn hoặc mọi phần plan hoàn tất.
+- Việc tiếp theo: chẩn đoán riêng độ ổn định test preload/import của KPI trước release; customer lazy detail/DTO, node lookup/viewport và các domain khác tiếp tục theo roadmap, không tự đổi giao diện/nghiệp vụ.
+
+Chi tiết `docs/customer-marker-identity.md`; plan `docs/superpowers/plans/2026-10-29-customer-marker-identity-local.md`. Evidence private `.local/performance/customer-marker-identity-20261029/` lưu snapshot/preimage, versioned source hashes, failed/RED/GREEN/QA/build/browser/probe/reviews, backups/scans và manifests source/final integration. Không commit env/database/log/cookie/token/business bodies; release xác minh gần nhất vẫn9d0365e.
+
+## 38. KPI test: cách ly observation, chưa kết luận nguyên nhân timeout (29/10/2026, local)
+
+### Phạm vi và bằng chứng
+
+- Tiếp tục theo yêu cầu owner, vẫn dừng publish. Snapshot 427 union paths, 331 source/config/test paths, 93 dirty paths và 348 artifact cũ. Không đọc env/database thật, không full-native suite, branch/commit/push/deploy hoặc dependency/config/pool/deadline change.
+- Original hai file KPI 76/76 đạt. Trace hai file 76/76 nhưng reporter không xuất phase của test đạt; giữ lần chạy này và không suy luận từ trace không có. Một broader trace đăng ký trước: 571/572 đạt, GET-users schema-auth timeout 5 giây, hai file KPI đạt. Thu 207 events, không quan sát cross-epoch loader/factory; shell import đầu khoảng 1.204 ms. File trace được restore chính xác trước khi sửa fixture.
+- Do đó **chưa xác minh nguyên nhân timeout KPI cũ**; không gọi lỗi fixture sau đây là nguyên nhân đã chứng minh. Independent audit current-user không tìm được lỗi xác định để sửa, giữ file đó nguyên trạng.
+- Chứng minh riêng hợp đồng observation ownership: registered panel factory có thể đọc `evaluated/moduleGates/mounted` đã trỏ sang lần test kế tiếp; effect cleanup cũng có thể xóa entry của lần mới. Hai controlled regression gọi đúng factory được đăng ký với `vi.doMock`, chủ động đổi owner thay vì chờ timeout ngẫu nhiên.
+
+### Thay đổi và kiểm tra
+
+- Chỉ sửa `tests/ui/prepaid-view-loading.test.tsx`: capture array/map/set tại registration, truyền đúng set vào component mount/cleanup. Giữ nguyên 20 testcase cũ, real Next dynamic, thời gian chờ/assertions và default 5 giây. Không drain/cancel mọi async task hoặc thay pending-report/fetch semantics; không sửa production code.
+- Ownership RED đúng 2 semantic failure/20 testcase cũ đạt; GREEN hai file 78/78. Freeze test SHA-256 `88d2855b09f60a0dcedf9e7b94f16139494cf089f24959495d68b36bce30fab3`; so sánh xác nhận phần thân 20 testcase cũ không đổi sau chuẩn hóa CRLF/LF.
+- Worktree chạy đúng một post-fix broader cell đã chốt: **34 file/574 test +22 policy đạt**, full TypeScript nonincremental đạt, lint 0 error/**3 warning**. Hai unused upload warnings và một MapComponent ref-cleanup warning đều nằm trong source snapshot có sẵn; không sửa app ngoài phạm vi hoặc tiếp tục ghi chỉ 2 warning.
+- Primary chạy riêng đúng cell thứ hai đã chốt: **34 file/574 test +22 policy đạt**, TypeScript nonincremental đạt, lint 0 error/3 warning như worktree. Không cộng hai lượt thành số testcase khác nhau hoặc gọi đây là full suite/stability acceptance; không thêm retries.
+- Spec rồi quality review APPROVE đúng frozen test hash. Guarded test integration có backup/whitespace/default secret scan đạt trước primary QA. Tổng phạm vi 5 file: 1 test và 4 tài liệu; manifest docs kiểm tra lại 427 snapshot paths, inventories từng root, 93 thay đổi cũ và 348 artifact cũ. Không đổi source app/current-user test, HEAD/branch/index hoặc build cũ. Báo cáo cuối `integrated-files.json` và `test-integrated.json` giữ hashes, scan và preservation evidence; không commit/push/deploy.
+
+### Giới hạn giữ mở
+
+- Đây là hardening một lỗi fixture có thể tái hiện, **không phải chứng nhận hết timeout, hết lỗi app hoặc tăng tốc web**. Broader trace failure trước sửa được giữ nguyên; không retry đến khi xanh, tăng timeout, đổi pool/isolation hoặc bỏ assertion để đóng gate.
+- Không rebuild/browser benchmark cho test-only. Build `GSevXO8cImpsugMzfsFK1` thuộc mục 37, không phải fresh build ở đây. Không claim page-load/p95/RUM hoặc Production acceptance.
+- Full-native Windows crash, strictvisual bản đồ cũ, Node0TB timing uncertainty, auth/revocation/distributed state, các phần còn lại Task 8/9/13 và release vẫn mở. Mục 38 là checkpoint, không phải thêm một plan hoàn tất hay thay đổi số nhóm backlog.
+
+Chi tiết `docs/kpi-test-isolation.md`; plan `docs/superpowers/plans/2026-10-29-kpi-test-isolation-local.md`. Evidence private `.local/performance/kpi-test-isolation-20261029/` lưu snapshot, preimage, original/trace/restoration, RED/GREEN, frozen hash, reviews/QA/scans/backups và manifests. Không đưa env/DB/log/cookie/credentials vào Git; chưa commit/push/deploy.
+
+## 39. Node gần nhất: gộp read đồng thời và chặn cache cũ (29/10/2026, local)
+
+### Phạm vi và thay đổi
+
+- Tiếp lát cắt Task 7/9 sau mục 38. Helper `findNearestNodeName` là fallback khi thêm/cập nhật khách hàng hoặc resolve node từ tọa độ; không phải mọi lượt mở bản đồ đều đi qua helper này. Không sửa giao diện, routes/auth, upload/backup, shared KPI cache, dependency hoặc config.
+- Snapshot 429 union paths/331 source-config-test paths, 95 thay đổi local và hash 397 artifact cũ trước khi sửa. Không env/database thật, full-native suite, tạo nhánh/commit/push/deploy; giữ source ở primary và worktree theo preimage.
+- Tái hiện hai lỗi: cold/expired callers tự đọc lặp tọa độ; read cũ đang chờ có thể republish sau invalidation hoặc ghi đè snapshot mới. Thêm pending promise dùng chung read trong cùng generation/process, capture generation trước await và chỉ publish khi còn đúng token. Invalidation đổi token/detach pending; finally chỉ xóa promise đúng identity.
+- Giữ ba field Prisma select, Haversine/tie/row-order, null filter/tọa độ 0, cache mảng rỗng và TTL 5 phút từ successful completion. Mỗi caller vẫn tính nearest riêng; không cache một tên node dùng chung. Old caller có thể nhận snapshot cũ, nhưng không làm bẩn cache mới; không cancel, linearizability hoặc distributed guarantee.
+
+### Kiểm chứng
+
+- Test mới chạy helper thật với Prisma boundary giả, deferred promises và Date điều khiển; không sleep hay tăng deadline. **RED 10 semantic fail/8 pass → GREEN 18/18**, bao gồm concurrent miss/expiry, empty/null/zero/tie, TTL boundary/completion, shared errors/retry/sync throw và invalidation/old success-failure finalizers qua nhiều generation.
+- Burst giả 1/10/100 callers: **1/10/100 → 1/1/1 lượt `findMany`**, cùng kết quả nearest cho từng tọa độ. Đây là số lần gọi boundary, không phải SQL toàn API, throughput hoặc latency web/database thật.
+- Freeze source `99d1f356f138103e4175082edcf7c676fb6fd8f31c1cf8cd77bc8ad6cbb42c3a`, test `2b2abd2aba8088e60b40cbe49db0237feb1482596dc438b7cca883c5cc6d3d92`. Worktree đạt **35 file/592 test +22 policy**, TypeScript nonincremental đạt, ESLint 0 error/3 warning có sẵn.
+- Primary chạy độc lập đúng một lượt đã chốt: **35 file/592 test +22 policy đạt**, TypeScript nonincremental đạt, ESLint 0 error/3 warning có sẵn. Không dùng worktree PASS thay primary, không cộng hai lượt thành testcase khác nhau hoặc gọi scoped selection là full suite. Không chạy thêm retry để ép xanh.
+- Review APPROVE đúng frozen source/test pair; parent đối chiếu hash và QA thật trước tích hợp. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng phạm vi 6 file: 1 helper, 1 test mới và 4 tài liệu; docs manifest kiểm lại 429 snapshot paths, inventories, 95 thay đổi local trước và 397 artifact cũ. Không sửa file app/test có sẵn khác, HEAD/branch/index hoặc publish. Evidence có `source-integrated.json`, `integrated-files.json`, `final-check.json`.
+
+### Giới hạn giữ mở
+
+- Chỉ dedupe trong một module/process; chưa giảm Haversine mỗi caller, mọi query của create/update/import hoặc dùng shared cache nhiều Vercel instance. Không sửa các mutation chưa gọi invalidator hoặc write đang chạy từ snapshot cũ.
+- Pending read chưa settle có thể giữ waiter cùng thế hệ; không thêm timeout/fallback, dùng behavior database hiện có. Failure không được cache; invalidation cho thế hệ mới đọc riêng.
+- Không rebuild/browser benchmark trong helper-only local checkpoint này. Build trước đó không phải fresh build của source mới. Chưa chứng minh page-load/p95/RUM, zero regression, Production/release acceptance hoặc mọi phần Task 7/9 hoàn tất.
+- Timeout KPI cũ, full-native Windows crash, strictvisual cũ, Node0TB timing uncertainty và các phần roadmap khác vẫn mở. Không đổi ba lint warning trong đợt này; không push/deploy.
+
+Chi tiết `docs/nearest-node-cache.md`; plan `docs/superpowers/plans/2026-10-29-nearest-node-cache-local.md`. Evidence private `.local/performance/nearest-node-cache-20261029/` lưu snapshot/preimage, RED/GREEN, frozen hashes, review/QA và manifests/scans/backups; không commit env/DB/log/token hoặc business data.
+
+## 40. Bỏ menu Tồn CDT và Rời mạng theo yêu cầu (29/10/2026, local)
+
+- Owner xác nhận hai mục không dùng: gỡ hai link khỏi Sidebar dùng chung desktop/mobile; gỡ cả hai nút Tồn CDT ở header/toolbar trang CDT. Xóa icon import và prop/callback `onOpenOutstanding` không còn dùng, không thay bố cục/CSS ngoài việc bỏ các entry này.
+- Giữ CDT thường, Công văn, Cước, KPI, Nguy cơ rời mạng, trạng thái khách hàng và các chỉ tiêu KPI liên quan rời mạng. Module/hooks/dynamic loader, URL cũ, API/schema và dữ liệu vẫn còn; đây là bỏ menu, **không phải xóa tính năng/dữ liệu hoặc thu hồi quyền**. URL cũ vẫn có thể mở trực tiếp theo cơ chế quyền hiện có.
+- Dừng tối ưu COUNT CDT tồn đang dở trước yêu cầu mới. Candidate và RED/GREEN22 giữ trong evidence private, không tích hợp vào primary; restore đúng route worktree từ preimage và xóa riêng test tạm sau hash guard. Không tiếp tục đầu tư hai màn hình này nếu owner chưa yêu cầu bật lại.
+- Snapshot sau restore: 432 union paths/332 source-config-test paths, 99 thay đổi local trước và 442 artifact cũ. Giữ nguyên API/dữ liệu và các thay đổi của những đợt trước; không branch/commit/push/deploy.
+- Thêm 9 UI case: 3 role × Sidebar mở sẵn/mobile drawer/CDT actions. Lần RED đầu có 3 queryByRole ambiguity vì tồn tại hai nút; giữ log, đổi sang queryAll đếm0 để kiểm cả hai entry. **RED-count 9 failure vì entry còn tồn tại → GREEN9/9**; các link/callback CDT còn dùng vẫn hoạt động.
+- Worktree lượt đầu đạt **36 file/601 scoped test +22 policy**, lint 0 error/3 warning có sẵn nhưng TypeScript phát hiện option `exact` không hợp lệ trong test queryByRole. Giữ log/type failure và hash manifest V1, đổi riêng 7 query sang name regex có neo đầu/cuối để giữ exact-name assertion; không suppress type error hoặc nới assertion. Các test direct URL preload của hai module cũ vẫn giữ nguyên và nằm trong selection.
+- **Worktree V2 và primary chạy riêng đều đạt 36 file/601 scoped test +22 policy**, full TypeScript nonincremental đạt, lint 0 error/3 warning có sẵn. Không cộng hai lượt thành số testcase khác nhau, không dùng WT PASS thay primary hoặc gọi đây là full suite.
+- Review APPROVE đúng final4hashes, xác nhận app3file không đổi giữa V1/V2, test chỉ sửa 7 query name matchers. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng phạm vi 7 file: Sidebar, CdtPanelClean, PrepaidPageImpl, test UI mới, plan, roadmap và tiến độ. Docs manifest kiểm lại 432 snapshot paths, inventories, 99 thay đổi cũ và 442 artifact cũ; các API và test có sẵn khác giữ nguyên. Evidence có `source-integrated.json`, `integrated-files.json`, `final-check.json`; không commit/push/deploy.
+- Không chạy full-native/build/browser/pixel QA, không claim cải thiện tốc độ hay release acceptance. Timeout KPI cũ, native Windows, strictvisual và Node0TB timing uncertainty vẫn mở; chưa push/deploy.
+
+Plan `docs/superpowers/plans/2026-10-29-hide-unused-report-menus.md`; evidence private `.local/performance/hide-unused-report-menus-20261029/` và interruption archive `.local/performance/cdt-outstanding-count-20261029/`. Không đưa env/DB/log/token vào Git.
+
+## 41. Cước CĐ: bỏ read ngày mới nhất lặp khi cache nóng (29/10/2026, local)
+
+- Tiếp Task10 cho màn hình còn dùng; không bật lại/đầu tư Tồn CDT hoặc Rời mạng. Snapshot 434 union paths/333 source-config-test paths, 103 thay đổi local và hash 488 artifact cũ; giữ HEAD/index và worktree hiện có.
+- `GET /api/cuoc-cd/report` trước đây luôn query ngày mới nhất trước response cache khi không truyền ngày. Thêm metadata chuỗi (kể cả rỗng) TTL30giây từ completion, trong namespace `cuoc-cd:report:latest-date`; lookup sau auth/role/readiness/scope, explicit date bypass. Import/config đã clear prefix bao phủ key này, không sửa writers.
+- Giữ response key/TTL60giây, global-date semantics, role/registry/secondary/manager filters, row order và rounding/summary/fallback. Metadata/response cùng generation capture trước auth, không publish read cũ sau invalidation. AST xác nhận cả5SQL expressions/params giữ nguyên byte.
+- TDD route/cache/SQL thật trên SQLite `:memory:`, chỉ Prisma/auth/scope/readiness boundary giả: **RED18 semantic fail/3 pass → GREEN21/21**. Payload đối chiếu reference JS độc lập cho3role; positive/negative TTL, explicit date, errors/retry, legacy schema, scope-key và invalidation trong auth/read đều có coverage. Database explicit close; không libsql/DB file thật.
+- Schema thông thường: cold latest vẫn4 report SELECT; cùng response/meta warm **1→0**, khác role/meta warm/report miss **4→3**, explicit date vẫn3; empty request lặp **1→0**. Đây là SQL trong database bộ nhớ của report route, không bao gồm auth/scope/readiness hoặc chứng minh web/p95/Turso nhanh hơn.
+- **Freshness contract mới:** write trực tiếp sau fill không invalidation có thể chờ TTL còn lại trong30giây từ completion; nếu xen giữa read đang chờ, thời gian read và TTL có thể cộng lại, không có hard freshness bound. Import/config prefix invalidate trong process đó. Không single-flight/distributed invalidation, snapshot linearizability hoặc sửa role-matching hạn chế cũ. Không claim mọi payload identical khi có uninvalidated/concurrent writes.
+- WT V1 đạt38file/628test+22policy/types nhưng lint bắt helper test tên `useRole` bị nhận nhầm là React Hook khi gọi trong loop. Giữ log/hash V1, chỉ đổi tên helper và call sites thành `setSessionRole`, không sửa app/logic/assertion hoặc suppress rule; V2 QA ghi riêng.
+- **WT V2 và primary chạy riêng đều đạt38file/628scoped test +22policy**, TypeScript nonincremental đạt, lint0error/3warning cũ. Không dùng focused/worker PASS thay primary, không cộng hai lượt thành testcase khác nhau hoặc gọi scoped selection là full suite. SQL scope pushdown/identity mapping, giảm row transfer và phần khác Task10 chưa làm.
+- Review APPROVE final source/test pair, source hash không đổi sau V1; test chỉ rename helper. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng6file:1API route,1test mới, guide/plan/roadmap/tiến độ; docs manifest kiểm lại434 snapshot paths, inventories,103thay đổi trước và488artifact cũ. API/UI/menu đã ẩn và tests có sẵn khác giữ nguyên, không branch/commit/push/deploy. Prefix invalidation có hiệu lực trong cùng cache-store/module instance; không bảo đảm đồng bộ mọi Vercel worker. Evidence có source/docs manifests và `final-check.json`.
+- Chỉ local, không env/database thật, không native full suite/build/browser/Production benchmark, dependency upgrade hoặc branch/commit/push/deploy. Native/KPI-timeout/oldvisual/Node0TB timing và release gates vẫn mở; ba lint warning cũ giữ nguyên.
+
+Chi tiết `docs/cuoc-cd-latest-date.md`; plan `docs/superpowers/plans/2026-10-29-cuoc-cd-latest-date-local.md`. Evidence private `.local/performance/cuoc-cd-latest-date-20261029/` giữ mọi failed/pass artifacts, SQL invariants, frozen hashes, reviews/QA/scans/backups và manifests. Không commit env/DB/log/token/business data.
+
+## 42. Bỏ thêm menu Nguy cơ rời mạng (29/10/2026, local)
+
+- Theo yêu cầu mới của owner, gỡ `/churn-risk` khỏi Sidebar dùng chung desktop/mobile và import `ShieldAlert` không còn dùng. Không sửa CSS, các menu khác, route/page/API, dữ liệu hoặc chỉ tiêu KPI; URL cũ vẫn mở trực tiếp theo quyền hiện có. Hai mục Tồn CDT/Rời mạng vẫn giữ trạng thái đã bỏ khỏi menu.
+- Bổ sung một assertion trong test điều hướng hiện có, giữ đủ9case/3role và kiểm cả drawer mobile: **RED6fail/3pass do link còn tồn tại → GREEN9/9**. Exact-edit reconstruction xác nhận app chỉ mất một nav entry/icon import, test chỉ thêm assertion và sửa tiêu đề; không claim independent peer review.
+- Snapshot437 paths/334 source-config-test paths,106 thay đổi local trước và529 artifact cũ. Worktree và primary chạy riêng đều đạt **2file/10test điều hướng/app-shell +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ. Đây là selection tập trung, không phải chạy lại628test hoặc native full suite.
+- Tích hợp đúng4file: Sidebar, test điều hướng hiện có, roadmap và tiến độ. Có preimage/backup, exact-edit guard, whitespace/default secret scan và final hash/inventory preservation; giữ106thay đổi cũ theo scope đã nối tiếp và529artifact cũ. Các file API/page/feature data và tests ngoài phạm vi giữ nguyên; manifests xác định rõ ownedFiles, không claim mọi test file không đổi khi test điều hướng có thêm assertion.
+- Thay đổi local, không build/browser/pixel hoặc Production acceptance; không commit/push/deploy. Dữ liệu/API và các gate cũ không được coi là đã xử lý chỉ vì bỏ menu.
+
+Evidence private `.local/performance/hide-churn-risk-menu-20261029/` lưu preimage, RED/GREEN, exact-edit scope, QA/scans/backups và manifests; không commit env/DB/log/token.
+
+## 43. Login: phục hồi sau lỗi và chặn submit trùng (29/10/2026, local)
+
+- Tiếp lát cắt Task11, không thay UI lớn hoặc bật lại ba menu đã bỏ. Snapshot437 paths/334source-config-test paths,106 thay đổi local và hash565artifact cũ; giữ HEAD/index và worktree hiện có.
+- Tái hiện handler cũ không catch rejected signIn nên loading/disabled bị giữ và có unhandled rejection; undefined/ok:false không có error vẫn own push dashboard; hai submit liên tiếp có thể gọi auth hai lần.
+- Client form dùng ref guard +try/catch/finally: lỗi đã settle mở lại form/guard, giữ nguyên giá trị credentials; error copy credential cũ, exception/unknown response dùng message cố định. Chỉ ok=true và không error mới push("/")/refresh; sau success giữ busy như trước tới navigation. Không trim password/username, không log exception/credentials hoặc đổi redirect:false/backend auth/session/role.
+- Thêm alert region/id, aria-describedby/busy và autocomplete username/current-password, username autocapitalize none. Giữ CSS/bố cục, không thêm input name hay nút hiện mật khẩu. Test kiểm attrs, không claim screen-reader/password-manager/browser mobile thực.
+- **RED13 assertion fail/1pass+3unhandled rejections cũ → GREEN14/14**, giữ mọi artifact không suppress. Ba exception là hai signIn rejects và một sync navigation throw. Có pending/duplicate/retry/error clearing/fields/verbatim/unknown responses/error precedence/success-lock coverage bằng React DOM thật, auth/router giả, không tài khoản/network thật.
+- **Worktree và primary chạy riêng đều đạt39file/642scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ. Không cộng hai lượt thành testcase khác nhau, không dùng focused/worker PASS thay primary hoặc gọi đây là full suite. Không retry unchanged code/tăng timeout để ép xanh.
+- Review static độc lập APPROVE final source/test pair; không thêm authored code sau freeze. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng6file: LoginPage, test UI mới, guide/plan/roadmap/tiến độ; docs manifest kiểm lại437 snapshot paths, inventories,106thay đổi cũ và565artifact cũ. CSS, server auth/API và các menu đã bỏ giữ nguyên; tests có sẵn khác không đổi. Evidence có source/docs manifests và `final-check.json`, không commit/push/deploy.
+- SignIn chưa settle vẫn pending, không thêm deadline/cancel; SDK có path tự redirect trước undefined, chỉ guard own dashboard push. Không chờ route commit/unmount/cross-tab guarantee, không sửa mọi provider-error classification.
+- Chưa hoàn tất Task11/iframe/hiện mật khẩu/mobile/pixel hoặc release; không native full suite/build/browser/Production benchmark, env/DB thật, dependency upgrade hoặc branch/commit/push/deploy. Native/KPI-timeout/oldvisual/Node0TB timing và các gate cũ vẫn mở.
+
+Chi tiết `docs/login-feedback.md`; plan `docs/superpowers/plans/2026-10-29-login-feedback-local.md`. Evidence private `.local/performance/login-feedback-20261029/` giữ preimage, RED/GREEN gồm unhandled failures cũ, hashes/reviews/QA/scans/backups và manifests. Không commit env/DB/log/token hoặc credentials thật.
+
+## 44. Đổi mật khẩu: khóa form khi gửi và không báo thành công sai (29/10/2026, local)
+
+- Tiếp Task11 cho form còn dùng, không đổi CSS/bố cục hoặc bật lại ba menu đã bỏ. Snapshot440 paths/335source-config-test paths,110 thay đổi local và hash599artifact cũ; giữ HEAD/index/worktree hiện có.
+- Ref guard chặn submit trùng, disable3field và bỏ qua change trong lúc PUT đang chờ; finally release sau response settle. Giữ local min6/confirm, PUT `/api/change-password`/JSON hai field verbatim, không trim hoặc gửi confirmation. Không sửa backend/auth/bcrypt/session/JWT/revocation/password policy.
+- Bám contract API hiện tại: HTTP200 + object có message string không rỗng/không error mới success và clear fields. Well-formed4xx error giữ copy API, còn network/JSON/5xx/malformed/201/202 dùng message cố định về kết quả chưa xác nhận; giữ field values và nhắc kiểm tra đăng nhập trước khi gửi lại. Không auto-retry hoặc claim server chưa mutation.
+- Labels nối id, autocompletecurrent/new/new, alert/status/description/busy và tên nút pending; field names/masking/CSS giữ nguyên. Form methodPOST chỉ tránh default native GET lộ dữ liệu vào query nếu JS không chạy; không cung cấp native POST change-password flow, API vẫn PUT.
+- TDD dùng React DOM thật/fetch mock/Response giả, không API hay mật khẩu thật. Giữ RED đầu có it.each array-spread fixture mismatch, sửa object-wrapped rows trước app: **corrected RED19fail/4pass→coreGREEN23**. Hai case HTTP201/202 sau đó **RED2fail/23pass→finalGREEN25/25**; không suppress/skip/deadline changes.
+- Bao phủ validation/retry, pending editing/duplicate, known4xx, Error/string rejection, non-JSON200/502, 5xx detail, non-string error,6malformed JSON shapes, strict status contract, success clear fields và verbatim body. Mỗi duplicate mock có Response riêng, deferreds settle trong finally.
+- **Worktree và primary chạy riêng đều đạt40file/667scoped test +22policy**, TypeScript nonincremental đạt, lint0error/3warning cũ; không cộng hai lượt thành testcase khác nhau, không dùng focused/worker PASS thay primary hoặc gọi scoped selection là full suite. Không retry unchanged code/skip/deadline changes.
+- Static review độc lập APPROVE exact source/test pair, source/API contract đối chiếu nhưng không chạy password write thật. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng6file: client page/test mới, guide/plan/roadmap/tiến độ; docs manifest kiểm440 snapshot paths, inventories,110thay đổi cũ và599artifact cũ. CSS, backend/auth/server policy, các menu đã ẩn và tests có sẵn khác giữ nguyên; không authored code sau freeze, không branch/commit/push/deploy. Evidence có source/docs manifests và `final-check.json`.
+- Promise chưa settle vẫn pending, không cancel/deadline/backend idempotency/cross-tab guarantee; client không xác minh DB sau mất phản hồi. Không real auth/write/session-revocation/browser/mobile/autofill acceptance.
+- Chưa xong iframe hoặc toàn Task11/Task10, không native full suite/build/browser/Production benchmark, env/DB thật hoặc dependency upgrade/branch/commit/push/deploy. Các gate cũ và3warning cũ vẫn mở.
+
+Chi tiết `docs/change-password-feedback.md`; plan `docs/superpowers/plans/2026-10-29-change-password-feedback-local.md`. Evidence private `.local/performance/change-password-feedback-20261029/` giữ snapshot/preimage, mọi RED/GREEN và fixture attempts, hashes/reviews/QA/scans/backups/manifests. Không commit env/DB/log/token hoặc credentials thật.
+
+## 45. Công cụ nhúng: phản hồi tải và tải lại thủ công (29/10/2026, local)
+
+- Tiếp Task11 cho Phiếu thu/Excel/Sửa ảnh; giữ server access guard, src/query, iframe CSS100dvh, assets/routes/quyền và ba menu đã bỏ. Snapshot443 union paths/336source-config-test paths,114 thay đổi local và639artifact cũ; tái dùng worktree/HEAD/index, không cài thêm dependency.
+- Tách client attempt sau `await ensureToolsAccess()`: title Việt có dấu, status/busy/description khi tải; sau15giây chỉ cảnh báo chờ lâu, không hủy request/tự reload hoặc probe thêm. Khi nhận load dọn notice/timer; error capture nhận non-bubbling event nếu browser phát, không coi đó là HTTP status monitor.
+- Slow/error có nút Tải lại công cụ cùng cảnh báo mất tệp/chỉnh sửa chưa lưu. Chỉ click mới thay iframe cùng URL/query, reset state/timer và focus khung mới; keyed attempt cô lập timer/event cũ, rerender cùng props không phá iframe đang dùng. CSS riêng theme tokens/wrap/44px/focus-visible; không đổi nội dung công cụ hoặc palette/bố cục app.
+- TDD auth/router giả/fake timers/React DOM thật, không fetch tool assets: **RED11fail/14pass**. Initial implementation còn2fail do React iframe không gắn target error listener; đối chiếu source React cài sẵn rồi dùng capture. Một fail timer-count sau đó trace được jsdom SelectionImpl focus tạo timer0ms; flush đúng0ms trong test, không tăng ngưỡng15giây/skip/assertion/config suppression. Diagnostic/failed logs giữ nguyên, final **25/25 pass**.
+- Coverage3tool title/src/attrs,2allowed roles/4forbidden roles/2missing session/pending auth; load/slow/error/late load; deliberate reload/focus, DOM cũ, src change/same render và unmount4state. Đây là event/DOM tests, không chứng minh asset HTTP/auth hoặc app-ready thực.
+- **Worktree và primary chạy riêng đều đạt41file/692scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ. Không cộng hai lượt thành testcase khác nhau, gọi selection là full suite hoặc dùng focused/reviewer PASS thay QA primary. Không sửa app/test sau freeze.
+- Review static độc lập kiểm spec trước quality, APPROVE exact4hashes; source integration có backup/preimage, whitespace/default secret scan không finding. Tổng8file: wrapper/client/CSS/test mới và guide/plan/roadmap/tiến độ; manifests/final-check kiểm443snapshot paths, inventories,114thay đổi cũ và639artifact cũ. Mọi API/guard/asset/menu và tests có sẵn khác giữ nguyên, không branch/commit/push/deploy.
+- Iframe load có thể là401/403/404 hoặc HTML xong nhưng scripts lỗi; onError không bảo đảm, timeout không chứng minh mất mạng. Không no-JS/hydration/iframe nội bộ/camera/CDN/file-processing/real-browser/mobile/screen-reader/CLS acceptance, full native/build/Production benchmark. Native/KPI timeout/oldvisual/Node0TB timing và các gate cũ vẫn mở; không branch/commit/push/deploy, chưa xong toàn Task11/Task10.
+
+Chi tiết `docs/tool-frame-feedback.md`; plan `docs/superpowers/plans/2026-10-29-tool-frame-feedback-local.md`. Evidence private `.local/performance/tool-frame-feedback-20261029/` giữ mọi snapshot/preimage, RED/GREEN/diagnostic, hashes/review/QA/scans/backups/manifests. Không commit env/DB/log/token hoặc dữ liệu kinh doanh.
+
+## 46. Hiện/ẩn mật khẩu trên Login và Đổi mật khẩu (29/10/2026, local)
+
+- Tiếp phần Task11 đã duyệt, snapshot448union paths/339source-config-test paths,120thay đổi local và681artifact cũ; giữ worktree/HEAD/index hiện có, không dependency mới. Không đổi CTV modal/công cụ/quyền hoặc bật lại3menu đã bỏ.
+- Shared PasswordInput controlled chỉ forward native attributes và render icon/nút typebutton; từng ô có Hiện/Ẩn tiếng Việt, aria-controls/pressed và disabled đồng bộ. CSS module riêng dùng theme tokens/focus-visible, nút44px và chừa padding; field min-height44px có thể tăng chiều cao để đủ vùng bấm, không thay global palette/bố cục lớn.
+- Login và3ô Đổi mật khẩu masked default, visibility local mỗi mount/field. JS submit handler che lại trước request/validation, pending ref guard chặn queued reveal. Error giữ values nhưng che, confirmed success change-password vẫn clear, login vẫn busy tới navigation. Không trim/mutate credentials, thêm name Login, đổi request/auth/validation/strict response/uncertainty policy hoặc session/backend.
+- **RED22/22fail do thiếu controls→GREEN22/22pass**, React DOM/user-event/auth-router-fetch giả, không tài khoản/API/DB thật. Test8Login/14Change bao phủ native keyboard không submit, attrs, independent reveal/hide/values, same-batch submit/toggle guard, pending/failure/validation/success/verbatim/onChange và remount; không skip/suppress/deadline/config changes.
+- WT V1 đạt42file/714test+22policy/lint nhưng types fail vì test mới truyền `exact:true` vào ByRoleOptions không hỗ trợ. Đối chiếu thư viện cài sẵn, V2 chỉ bỏ24option đó: string name đã exact trong role.js/matches(), không đổi app/assertion/matcher hoặc suppress types. Giữ source/hash/log V1 riêng trước sửa, focusedV2 vẫn22/22pass; QA V2 có artifacts riêng, không ghi đè lỗi cũ.
+- **Worktree V2 và primary chạy riêng đều đạt42file/714scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ. Không cộng hai lượt thành testcase khác nhau, gọi selection là full suite hoặc dùng focused/reviewer PASS thay primary/types. Không sửa app/test sau freeze V2, không retry unchanged code để ép xanh.
+- Static review độc lập APPROVE spec trước quality exact5hash V2, đối chiếu preimage và narrow24query correction. Source integration có backup/preimage, whitespace/default secret scan không finding. Tổng9ownedfile:2page/component/CSS/test mới và4docs; manifests/final-check kiểm448snapshot paths, inventories,120thay đổi cũ và681artifact cũ. Mọi API/guard/asset/menu/CTV và tests có sẵn khác giữ nguyên, V1 sources/type-failure/logs/hash bảo toàn; V2-correction chứng minh app/assertion/matcher không thay. Không branch/commit/push/deploy.
+- Không claim bảo vệ plaintext khỏi người nhìn/extension/script/DevTools. Không auto-hide theo blur/timer; native-invalid/no-JS submit có thể không chạy handler. Chưa browser/OS/autofill/password-manager/IME/caret/mobile/screen-reader/layout/CLS/performance acceptance, full native/build hoặc Production benchmark. Native/KPI timeout/oldvisual/Node0TB timing và release gates cũ vẫn mở, không branch/commit/push/deploy; chưa xong toànTask11/Task10.
+
+Chi tiết `docs/password-visibility.md`; plan `docs/superpowers/plans/2026-10-29-password-visibility-local.md`. Evidence private `.local/performance/password-visibility-20261029/` giữ snapshot/preimage/RED/GREEN/hashes/review/QA/scans/backups/manifests; không commit env/DB/log/token hoặc credentials thật.
+
+## 47. Tổng hợp KPI: mã dài không lấn cột và số dễ đọc (29/10/2026, local)
+
+- Tiếp Task11, snapshot453union paths/342source-config-test paths,125thay đổi local và731artifact cũ. Rà customer/KPI rồi giới hạn fix theo repro trên2màn tổng hợp còn dùng; không sửa CustomerTable/CTV hoặc bật lại3menu đã bỏ, giữ worktree/HEAD/index/dependencies hiện có.
+- Root cause table fixed-layout +tdnowrap, nameCell chỉfont/color; mã dài có thể vẽ xuyên KH/TH/% dù page không overflow. Mobile title/manager metadata thiếu overflow-wrap nên tràn/cắt trong card. Thêm đúng2root scope classes và CSS wrapnameCell/mobileTitle/summaryManagerMeta, số table right/tabular. Không đổi strings/values/formulas/handlers/filters/pagination/widths/sticky/scroll/breakpoints/backend/quyền/palette; extreme string tăng row/card height để giữ đủ chữ.
+- Typed fixture giả dài/Unicode/name/title, **RTL RED2fail/4pass→GREEN6/6**: scope riêng, full text/6cột/row/totals/formatting/negative gap preserved. Không dùng jsdom làm bằng chứng pixel.
+- Chrome harness SSR actual components +compiledCSS/globalCSS, không Next server/build/hydration/auth/API/DB hoặc dùngbuild cũ. Initial/V2/V3 loader setup errors0case giữ riêng; trace installedVitefetchModule xác định file://inlineCommonJS, chuyển bare imports/rootdedupe trong private harness. V4 layoutRED valid; V5 bổ sung manager metadata trước app fix. Không sửa project configs/deps/timeout/skip/suppress để ép xanh.
+- Matrix20case2panel×5width360/390/768/1024/1440×2theme +4root-font200% (không browserzoom). **V5before24/24identityfail→WTafter24/24pass**, metadatafits, numericcomputedright/tabular, pageoverflow0 trong fixture; request/pageerror0. Numericstyle đọc desktoptable kể cảhiddenmobile, không claim chipmobile alignment. Parent xem ảnhbefore/after desktopNV/mobileQL, không full-web/real-device acceptance.
+- **Worktree và primary chạy riêng đều đạt43file/720scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ; mỗi root Chrome SSR V5after24/24case đạt. Không cộng hai lượt, gọi selection/matrix là full/native/app-E2E acceptance hoặc dùng reviewer/focused PASS thay primary. Không sửa app/fixture/test sau freeze.
+- Static review độc lập APPROVE exact5hash, xác nhận2root +13lineCSSblock là toàn bộ appdelta; exact-scope manifest kiểm cùngfixture/frozenbrowser. Source integration có backup/preimage, whitespace/default secret scan không finding; tổng9ownedfile3app/2fixture-test/4docs. Manifests/final-check kiểm453snapshot paths, inventories,125thay đổi cũ và731artifact cũ, API/guard/asset/menu/customer/CTV/tests có sẵn giữ nguyên. Docs làm rõ bảng `__all__` dùngclassriêng không nhận numeric alignment rule, metadata cùngclass vẫnwrap; không rộng claim nghiệm thu view đó. Không branch/commit/push/deploy.
+- Chưa browser hydration/dashboard-shell/3role/API/DB/mobiledevice/screen-reader/CLS/RUM/performance hoặc mọi bảng/panel; không Next build/native fullsuite/Production acceptance. Native/KPI timeout/oldvisual/Node0TB timing và release gates vẫn mở, không branch/commit/push/deploy, chưa đóng toànTask11/Task10.
+
+Chi tiết `docs/summary-identity-layout.md`; plan `docs/superpowers/plans/2026-10-29-summary-identity-layout-local.md`. Evidence private `.local/performance/summary-identity-layout-20261029/` lưu snapshot/preimages/RED/GREEN/setup/geometry/SSRhtml/PNG/hashes/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 48. Card khách hàng mobile: dễ bấm và không submit nhầm form (29/10/2026, local)
+
+- Tiếp Task11, snapshot457union paths/344source-config-test paths,132thay đổi local và815artifact cũ; giữ worktree/HEAD/index/dependencies. Chỉ CustomerMobileCard/CSS scoped, không desktop table/handlers/backend/menu/KPI/CTV hoặc bật lại3menu đã bỏ.
+- Native label44px bao checkbox16px, min44px links/copy/node/edit/delete và focus; card có thể cao hơn, không phóng icon/checkbox toàn app. Article/action/link names Việt theo khách hàng,4nút typebutton; giữ callbacks/account verbatim/tel-Zalo URLs/target-rel/flags/no-node-disabled và ADMIN-only selection/delete.
+- RED đầu8fail/11pass có1queryfixture whitespace-normalizer; giữ source/log, sửa query normalizedtext +assert rawtitle trước app. **CorrectedRED7fail/12pass→GREEN19/19**;4case form wrapper tái hiện onSubmit ngoài callback. Không claim production page hiện bọc table trong form, không skip/suppress/timeout/config changes. Tests còn lại roles, native label/Space/deselect, copy acknowledgement, missing data/flag, nhiều card và desktop expansion/stopPropagation.
+- Chrome actual SSRcomponent/CSS +propsgiả, không Next/auth/API/DB/hydration/link/app mutation.36case30matrix5width×2theme×3role+6root-font200%desktop;18mobilecase trước lỗi44target/type/name và6labelpaddingfail→WTafter0fail. Native paddingclick nhận1change/click rồi togglevềfalse; callback React kiểmRTL riêng.18desktop controls geometry/names/types unchanged; không ép desktop44, không gọifake roles auth-E2E/rootfont làbrowserzoom. Parent xem mobileADMIN before/after, không wholeapp visual.
+- **Worktree và primary chạy riêng đều đạt44file/739scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ; mỗi root ChromeSSR V2after36/36case,18desktopgeometry unchanged. Không cộng hai lượt, dùng focused/reviewer PASS thay primary hoặc gọi selection/matrix là full/native/appE2E acceptance. Không sửa app/fixture/test sau freeze.
+- Static review độc lập APPROVE spec trước quality exact4hash, xác nhận chỉmobile delta/CSS scoped. Exact-scope kiểm desktop/sharedhelpers/defaultparent byte-equal, AST callbacks/link/disabled/checked giữ nguyên và samefixturetest. Source integration có backup/preimage, whitespace/default secret scan không finding; tổng8ownedfile2app/2fixturetest/4docs. Manifests/final-check kiểm457snapshot paths, inventories,132thay đổi cũ/815artifact cũ; API/auth/menu/KPI/CTV/tests có sẵn và mọiRED/querycorrection/browser artifacts bảo toàn, không branch/commit/push/deploy.
+- Chưa hydrate/router/clipboard/CRUD/session/realrole/device/mobilefont200%/screenreader/CLS/RUM/speed/Production acceptance hoặc toànTask11. Native/KPI-timeout/oldvisual/Node0TB timing/release gates vẫn mở; không full-native/build/dependency upgrade hoặc branch/commit/push/deploy.
+
+Chi tiết `docs/customer-mobile-controls.md`; plan `docs/superpowers/plans/2026-10-29-customer-mobile-controls-local.md`. Evidence private `.local/performance/customer-mobile-controls-20261029/` giữ preimages/snapshot/RED/querycorrection/GREEN/geometry/SSRhtml/PNG/hashes/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 49. CTV mobile: thống kê gọn và bỏ khoảng trống tìm kiếm (29/10/2026, local)
+
+- Tiếp Task11, snapshot461union paths/346source-config-test paths,138thay đổi local và887artifact cũ. Giữ HEAD/worktree/index/dependencies và3menu đã bỏ; chỉ2JSX attribute sites +CSS trong media640, không đổi data/backend/guard/requests/filter/counts/handlers/strings cũ.
+- Thống kê tài khoản≤640px thành2×2, giữ đủ4nhãn/value/chú thích, không giảm font/line-height/ẩn chữ/thêm toggle hoặc DOM trùng. Region/search names Việt; CSS scoped giảm min-height/padding, số tabular/wrap. Trên641px và KPIconfig giữ geometry.
+- Root cause search: flex-basis380px của layout ngang thành chiều cao khi toolbar column; input44px nhưng wrapper380px, icon căn giữa wrapper nên lệch và khối sau bị đẩy xuống. Reset basisauto đúng scope mobile, không sửa globalinput. Counts vẫn toàn users sau loạiADMIN, không theo search; hintCTVactive cũ không có kiểm trạng thái active mới.
+- **RTL RED2fail/8pass→GREEN10/10**, fake fetch/router/React DOM: named region/search/scope, ADMINexclusion/totals/fullhints, search/clear/no-match không refetch, empty/loading/error/retry và KPIbranch. Không dùng jsdom khẳng định pixel, sửa existingtests/config/deps/skip/suppress/deadline.
+- Chrome actual CtvClient initialSSR0counts/loading +actual CSS/childCSS/provider, private Nextadapters, không hydration/server/auth/API/DB.32case7width×2theme×2view+4root-font200%desktop; V5before6mobilecompact/searchfield/iconfail và16namefail→WTafter0fail/32case,26noncompact/configgeometryexact. Mobile390 stats479.17→235.72px/search lên243.45px, searchField380→44px, loadingcontent lên579.45px. Không gọi đây loadedrow/latency/Production-speed hoặc browserzoom/device acceptance; parent xem390before/after PNG.
+- Giữ V1setupfail/V2missingchildCSS/V3diagnostic/V4expandedmeasurement; V4after rootfont comparison subpixel fail do font đổi sau render giữa inputtransition. Diagnostic chứng minh37.1875→72.375px sau settle; V5embedfont/theme trướclayout vàbaselinepreimages, không nới tolerance/tắtanimation/thêm sleep/appchange. Exact-scope firstexpectedorder sai privateverifier, sửa đúng aria-label sauplaceholder; app/test/hashes không đổi, failed artifacts bảo toàn.
+- **Worktree và primary chạy riêng đều đạt45file/749scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ; mỗi root ChromeV5after32/32case,26noncompact geometry unchanged. Không cộng hai lượt thành testcase khác nhau hoặc dùng focused/browser/reviewer để suy ra primary/fullnative/build acceptance; app/test không sửa sau freeze.
+- Review static độc lập APPROVE spec trước quality exact4hash, exact-scope chứng minh delta tối thiểu/samefixtures/preimages. Source và docs integration có backup/preimage, whitespace/default secret scan không finding; tổng8ownedfile2app/2fixturetest/4docs. Manifests/final-check kiểm461snapshot paths, inventories,138thay đổi cũ/887artifact cũ và HEAD/index/buildId, mọi API/auth/menu/KPI/tests/app khác bảo toàn. Không branch/commit/push/deploy.
+- Chưa Next hydration/dashboard-shell/realroles/modal/CRUD/loadedcard/device/mobilefont200%/screenreader/CLS/RUM/API speed hoặc toànTask11. Native/KPI-timeout/oldvisual/Node0TBtiming/Task10SQLscope/release gates vẫn mở; không branch/commit/push/deploy.
+
+Chi tiết `docs/ctv-user-stats-compact.md`; plan `docs/superpowers/plans/2026-10-29-ctv-user-stats-compact-local.md`. Evidence private `.local/performance/ctv-user-stats-compact-20261029/` giữ snapshots/preimages/RED/GREEN/geometry/SSRHTML/PNG/fontdiagnostic/hashes/exact-scope/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 50. Card khách hàng mobile: thông báo gọn khi thiếu SĐT/account (29–30/10/2026, local)
+
+- Tiếp Task11, snapshot465union paths/348source-config-test paths,144thay đổi local và992artifact cũ; reuse worktree/HEAD/index/dependencies. Không bật lại3menu đã bỏ hoặc sửa API/auth/data/KPI/CTV/desktop/helpers/parent.
+- Chỉ CustomerMobileCard: guard2phone/account strips theo truthiness cũ, thiếu một/cảhai thì một flex-wrap row hiện rõ `Chưa có SĐT`/`Chưa có account`, thay fullstrip `---`. CSS class mới dùng secondarytext tokens, không trim/mutate/reclassify whitespace/literalplaceholder; full-data subtrees/callbacks/rawaccount/copyfeedback/links/options/ADMINgates/node-disabled và44px controls giữ nguyên. Placeholder CTV/package/date/billing ngoài phạm vi.
+- **RTL RED9fail/5pass→GREEN14/14** actualcomponent/propsgiả:4biến thể/null/empty,3role thiếu cảhai, edit/non-submit/node-disabled, fullraw/URLs/copyfeedback, whitespace/literal`---`, rerenderrestore, flags/metadata và desktopexpand. Không coi propsrole là authE2E hoặc jsdom là pixel; existingtests/config/deps/deadlines giữ nguyên, không skip/suppress.
+- Chrome SSR actualcomponent/CSS, syntheticloadedprops/fakeADMIN,64case6width360/390/768/769/1024/1440×2theme×4variant +16root-font200%390/1440 (không zoom/device). V2before48DOMcontractfail gồm24mobile/24hidden-cardDOM→WTafter0fail/64, text/control0.24mobilemissingcase gọn≥20px/trường;390thiếuSĐT giảm23.89px/account41.36px/cảhai90.78px. Desktoptable canonicalDOM/geometry64case gồm32visible/32hiddenzero; fullcard16case gồm8mobilevisible/8hiddenzero giữ nguyên, không gọi zero bounds là visiblelayout acceptance. Parent xem390missingbefore/after PNG.
+- V1đủ64case/geometry unchanged nhưng rawDOMcomparison failgenerated CSSmodule hash/line tokens. Giữ V1harness/report; V2chỉ map exact exported tokens về logicalclass keys, giữ classorder/externalclasses/attrs/text/DOM khác và strictgeometry, không nới threshold/timing/sửaapp. Exact-scope chứng minh guard2strips+hintrow/1CSSclass là toànappdelta, desktop/helpers/parent/populatedsubtrees byte-equal, samefixture/test/preimages và V1/V2phase hashes.
+- **Worktree đạt46file/763scoped test +22policy**, full TypeScript nonincremental đạt, lint0error/3warning cũ. **Primary762pass/1fail**: `schema-auth-order.test.ts` case GETusers trả401 timeout5000ms; primary22policy/types/lint đạt và ChromeV2after64/64 đạt riêng. Auth+UI chạy riêng75/75 chỉ diagnostic, không thay gate đỏ; nguyên nhân timeout chưa chứng minh, không kết luận máy chậm/flaky/coldimport hoặc bug auth thật. Không sửa test/route/config/pool/deadline hay chạy lại bộ rộng unchanged để lấy xanh; giữ log/QA manifest lỗi nguyên vẹn.
+- Review static độc lập APPROVE spec trước quality exact4hash; source integration có backup/preimage/whitespace/default secret scan, candidate không sửa sau freeze. Docs tích hợp riêng để lưu pending với cùng hàng rào, không chuyển QA đỏ thành xanh; tổng8ownedfile2app/2fixturetest/4docs. Scope-only final-check đối chiếu465snapshot paths/348source-config-test paths, inventories,144thay đổi cũ/992artifact cũ, HEAD/index/buildId và các tests/auth/config/app khác giữ nguyên. `primaryScopedAcceptancePassed:false`, `allRequiredQaGatesPassed:false`, `releaseReady:false`; không xem scope-check là nghiệm thu xong batch.
+- Chưa Next hydration/router/realroles/API/DB/clipboard/CRUD/device/screen-reader/CLS/RUM/speed hoặc toànTask11; placeholdermetadata/CTV/package còn riêng. Native/KPI-timeout/oldNode0TBvisual/timing/Task10SQLscope/release gates vẫn mở. Không branch/commit/push/deploy/fullnative/build/dependency changes.
+
+Chi tiết `docs/customer-empty-fields.md`; plan `docs/superpowers/plans/2026-10-29-customer-empty-fields-local.md`. Evidence private `.local/performance/customer-empty-fields-20261029/` giữ snapshots/preimages/RED/GREEN/browserV1–V2/SSRHTML/PNG/hashes/exact-scope/review/QA/scans/backups/manifests/final-check; không commit env/DB/log/token/business data.
+
+## 51. Truy vết test auth timeout: chưa tái hiện, giữ gate mở (30/10/2026, local)
+
+- Tiếp gate mục50, snapshot469union paths/148dirty và1088artifact cũ, reuse WT/HEAD/index. Không application/publictest/fixture/projectconfig/dependency/permission/menu changes; chỉ4docs public. Giữ nguyên primary auth GETusers timeout5000ms/762pass1fail và pending-acceptance mục50.
+- Đối chiếu invoke/hook/resetModules/mock/importgraph: test budget gồm route.load rồi handler. Chưa tìm thấy bằng chứng quy nguyên nhân cho module/handler/scheduling cụ thể; không chuyển import sang hook/prewarm, đổi assertions/mocks/pool/deadline/deps để né timeout.
+- Private Vite pre-transform đúng1file/2marker đo import:start/end và handler:start/end, không sửa file trên đĩa. EnvDir:false/env-file guard và mockauth/DB hiện có; không credentials/requestbody/session/token/businessdata/loggingruntime thật, không Next/build/browser/realDB/API.
+- V1focused **61/61**, GETusers import109.11ms/handler1.60ms; một V1broad diagnostic **46file/763test**, import262.09ms/handler3.40ms; V2stable-context focused **61/61**, import96.82ms/handler1.55ms. Mỗi run212events53invocations, group identity/phase/time checks đạt; V2capturetest/path/method/pid/sequence đầu invocation, tránh gán event muộn vào test sau. Giữ runner/logsV1-V2, không cộng tests giữa lượt hoặc gọi fake process timings là tốc độ web.
+- **Không tái hiện timeout, chưa chứng minh root cause, không có bản sửa auth.** Traced green có observer effect, không thay uninstrumented primary acceptance; `primaryScopedAcceptancePassed:false`, `releaseReady:false`. Không kết luận do máy chậm/flaky/coldimport/worker contention hoặc bug auth Production, không chạy lại bộ rộng đến khi xanh. Consistency của recorded success không bao phủ mọi failure path tracer.
+- Review static độc lập APPROVE đúng2hash runner/driver, phạm vi transform và kết luận giới hạn; không thay acceptance/scans. Source/publictests/config không đổi, chỉ4docs có backup/whitespace/default secret scan và scope-only hash/inventory guards kiểm469paths/148dirty/1088artifact cũ; original failure/QA/pending gate giữ nguyên. Logging có observer effect/có thể tự lỗi; env-file guard không phải sandbox tổng quát, không suy absolute side-effect guarantees từ metadata.
+- Gate native/libsql/KPI-timeout/Node0TBvisual-timing/Task10/Task11/release cũ vẫn riêng. Cần failing trace rồi regression/rootfix và uninstrumented QA mới xem xét đóng auth gate. Không branch/commit/push/deploy.
+
+Chi tiết `docs/schema-auth-timeout-investigation.md`; plan `docs/superpowers/plans/2026-10-30-schema-auth-trace-local.md`. Evidence private `.local/performance/schema-auth-trace-20261030/` giữ snapshots/preimages/trace rawlogs/state/JSON/runner/summary/review/scan/manifests; original mục50 thất bại không bị ghi đè hoặc đánh dấu lại thành xanh.
+
+## 52. Card khách hàng: gói cước/CTV còn thiếu rõ nghĩa (30/10/2026, local)
+
+- Tiếp Task11 thay vì retryauth không có failingtrace mới. Snapshot471union paths/350source-config-test paths,150dirty và1117artifact cũ, reuse WT/HEAD/index/dependencies; không bật lại3menu ẩn. Chỉ1appfile/2fixture-test/4docs, không CSSfiles/backend/API/auth/permissions/helpers/priceformatter/predicates changes.
+- Mobile chỉcóprice label `Chưa có tên gói`, không renderfake-name`---`,0đ vẫn hiện; package+price cùngrỗng vẫnnostrip. MissingCTV `Chưa có`/title `Chưa có mã CTV`, không suy assignment/status. Whitespace/literal`---`/rawnames/code vẫn dữ liệu; full-data subtrees/actions/links/roles/copy/node-disabled/flags/phone-account hints vàdesktop nguyên.
+- **RTL RED13fail10pass→GREEN23/23**. BrowserV1after metadata đúng nhưng6missingCTVcase ở390rootfont200 bị clip; diagnostic computednowrap/hidden/ellipsis box69.97px/range99.23px. Thêm wrapregression RED1fail23pass, onlymissingCTV inlinewhiteSpace normal/overflowWrap anywhere; suppliedcodes không override.
+- GREEN-V2 còn1testfail do expectReactphải xóa styleattr sau rerender, thực tếstyle="" đãclear. Giữ candidateV2/app/test/failure và đốichiếuinstalledReactsetValueForStyles; chỉ đổi assert hai styleproperties empty, không app/tolerance/matcher thayđổi. **FinalGREEN-V3 24/24**; tests cover6variant/null/empty/zero/negative/decimal/name-only/verbatim/whitespace/literal/3roleprops/flags/rerender/desktop.
+- ChromeV2 actualSSR/CSS/syntheticloadedprops/fakeADMIN,96case6variant×6width×2theme+24root-font200%390/1440: before80DOMmetafail(40mobile/40hidden)→WTafter96/96/0fail. Missinglabel/CTV textfits,44px/horizontalcontrols/nonsubmit; rawdesktopDOM/geometry96(48visible48hiddenzero), completecard16(8mobile8hiddenzero) unchanged, stylesheet hashes same. Không canonicalize/nới geometry hoặc gọihiddenzero/propsrole/rootfont làauth/fullappE2E/device/zoom/speed acceptance; parentxem390before/after PNG.
+- **Worktree và primary chạy riêng đều đạt47file/787scoped test+22policy**, full TypeScript nonincremental đạt; lint0error/3warning cũ, mỗi root ChromeV2after96/96case. Primarycurrentbatch là uninstrumented sau sourcechange52, không traced51 hoặc retryunchanged để lấy xanh. Không cộng lượt/gọiselectionfullnative/build hoặc thay primarybằngfocused/browser/reviewer. Freeze3hash/exact-scope kiểm JSX tối thiểu/samefixture/CSS/app nguyên qua assertcorrection; không sửa candidate saufreeze.
+- Review static độc lập APPROVE spec trước quality3hash; source/docs integration có backup/preimage/whitespace/default secret scan không finding, finalguards kiểm471snapshot paths/350source-config-test paths, inventories,150thay đổi cũ/1117artifact cũ vàHEAD/index/buildId. Chỉ7ownedfile, mọiAPI/auth/tests/config/app khác giữ nguyên. Extra1mẫu390dark/rootfont200 xác nhận CTV2dòng fitbox và7controls trongcardbothaxes, không suy96casefullvertical/header acceptance; parentđãxemPNG.
+- Originalauthtimeout50 chưa córootcause, trace51khôngtáihiện; originalfailedQA/pendingmanifest vẫn byte-equal, không retrođánh dấu fixed khi currentbatchQA đạt. Native/libsql/KPI-timeout/Node0TBvisual-timing/Task10/Task11/browser/Production gates còn riêng; releaseReadyfalse. Không branch/commit/push/deploy/fullnative/build/dependency changes.
+
+Chi tiết `docs/customer-missing-metadata.md`; plan `docs/superpowers/plans/2026-10-30-customer-missing-metadata-local.md`. Evidence private `.local/performance/customer-missing-metadata-20261030/` giữ snapshot/preimages/RED/GREEN/candidates/browser/SSRHTML/PNG/clipdiagnostic/hashes/exact-scope/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 53. Đầu card khách hàng: tên không chồng trạng thái khi chữ lớn (30/10/2026, local)
+
+- Tiếp Task11: snapshot475union paths/352source-config-test paths,154dirty và1233artifact cũ; reuse WT/HEAD/index/dependencies. Chỉ1CSS/2fixture-test/4docs; không JSX/code/auth/backend/roles/data/handlers/helper/font/colors/padding/breakpoint changes, không bật3menu đã bỏ. Classestrùngtên ở churn/disconnect importmodule riêng không bị đổi.
+- Không đoán lỗi từảnh52: actualprobe390/rootfont200 fakeADMIN namebox59.97px/firstglyph85.14px, giao status5.98×38px, computedheadernowrap/nameoverflowwrapnormal. Rootcauseflexmột hàng đểbadgechiếmchỗ vàtênkhôngngắttừ; nameink dọc vượtlinebox chút không tự gọi là clipping.
+- Chỉ7CSSdeclarations/4existingmobileheaderrules: headerflexwrap, mainbasis12rem giữgrow/shrink, nameanywhere, statusmaxwidth100%/normal/anywhere/marginleftauto. Text/phông đầyđủ, status tự xuốnghàng/canhphải khi thiếuchỗ; không xóatên hoặc suy statusbusiness. Longstatusfixture49kýtự trongschema50; tên115trong200, không thêm statusoption/validation.
+- PreservationRTL **13/13trước vàsau**, actualcomponent/rawtext-title/3roleprops/native label/callbacks/non-submit/tone/options/missingcontact/secondary/rerender/desktop; không jsdompixelhoặc giảRED. CSSRED từChromeactualSSR/CSS/syntheticprops:192case4variant×3role×6width×2theme+48rootfont200%390/1440. Before68name/44overlap/18statusfail(control0)→WTafter192/192/0all; metric có thểtrùngkhôngcộngtổngcases.
+- Canonicalcard/tableDOM192giốngpreimage, chỉmapexactexportedCSStokens giữattrs/text/order/externalclasses; component/globalCSS/basefixturehash bấtbiến. Tablegeometry192(96visible96hiddenzero),18normalfont100mobileheader/card/controlsgeometry exact unchanged. Namehorizontalrange/directglyph-statusintersection/statusbounds,44pxtargetsbothaxes/nonsubmit/role-gates; không fulltextmọifield/allpage/CLS/RUM/speed/device/authE2E/browserzoom guarantee. Parentxemnormal390font200before/after vàlongstatus390font100after PNG.
+- **Worktree và primary chạy riêng đều đạt48file/800scoped test+22policy**, TypeScript nonincremental đạt, lint0error/3warning cũ; mỗi root Chromeafter192/192case. Primarycurrentbatch uninstrumented sauCSSsourcechange, không traced51 hoặc retryunchanged để lấy xanh. Không cộng lượt/gọiselectionfullnative/build/appE2E hoặc lấy focused/browser/reviewer thay QAchính; freeze3hash/exactscope, không sửa candidate saufreeze.
+- Review static độc lập APPROVE spec trước quality3hash; source/docs integration có backup/preimage/default secret scan/whitespace không finding. Finalguards kiểm475snapshot paths/352source-config-test paths, inventories,154thay đổi cũ/1233artifact cũ/HEAD/index/buildId, chỉ7ownedfiles; component JSX/globalCSS/fixtures tests cũ/API/auth/config/app khác nguyên. CurrentBatchPrimaryScopedPassedtrue, historicalAuthTimeoutRootCauseProvenfalse/releaseReadyfalse, originalauthfailure/pending/history giữ byte-equal.
+- Original authfailure50/trace51 giữ byte-equal/rootunknown, currentQA nếuđạt khôngchứngminh authfix. Native/libsql/KPI-timeout/Node0TBvisual/timing/Task10/Task11/fullnative/build/realbrowser/release cònriêng, releaseReadyfalse. Không branch/commit/push/deploy.
+
+Chi tiết `docs/customer-header-layout.md`; plan `docs/superpowers/plans/2026-10-30-customer-header-layout-local.md`. Evidence private `.local/performance/customer-header-layout-20261030/` giữ snapshot/preimages/glyphprobe/preservation/browser/SSRHTML/PNG/hashes/exact-scope/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 54. Phân trang khách hàng: không tràn khi chữ lớn, thao tác rõ nghĩa (30/10/2026, local)
+
+- Tiếp Task11, giữ giao diện/nghiệp vụ chính; snapshot479union paths/354source-config-test paths,158dirty và1312artifact cũ. Reuse worktree, không branch/commit/push/deploy, không DB/env/auth thật hoặc bật lại3menu đã bỏ.
+- Baseline Chrome80mẫu xác minh10lỗi điều khiển vượt khung ở390/rootfont200%. Vùng bấm≥44px và Tab/focus đã đạt sẵn: giữ nguyên shared styles, không thêm CSS trùng hoặc nói đã sửa lỗi không tồn tại.
+- Chỉ4CSSdeclarations trong media≤768px: rowwrap và select widthauto/minwidth0/flex1 1 8rem. Khi chữ lớn, chọn số dòng và hai nút có thể tách hàng để không tràn; desktop≥769px giữ geometry. Mẫu số lớn390/font200 tăng khung243.375→325.375px có chủ đích, không cắt chữ để ép gọn.
+- Root thành namednav `Phân trang khách hàng`; select có explicit name `Số khách hàng mỗi trang`, giữ title cũ; nút typebutton/names `Trang trước`/`Trang sau`. Giữ chữ Trước/Sau, options10/20/50/100, page±1, Numberlimit, disabled equality và controlledprops. Không sửa hook/caller/API/data/roles/config/dependencies hoặc tests cũ.
+- Caller thật nằm ngoài form và chỉ hiện phân trang khi có khách hàng. Native form wrapper trong fixture chỉ chứng minh defensive component contract (baseline64submit), không phải lỗi submit của caller production. Select trước sửa đã có accessible title, focus hiện có giữ nguyên.
+- **RTL RED5fail/14pass→GREEN19/19**, kiểm tên, click/Enter/Space, boundaries, numeric callbacks, options/info/title, rerender và Tab bỏ qua nút disabled. Không thêm aria-live báo tải xong theo pageprop vì SWRkeepPreviousData có thể còn rows cũ; refreshing badge/URLfilter là scope sau.
+- **Chrome actual-component SSR/CSS: WT và primary mỗi root80/80**, gồm5variant×6width×2theme=60 +20rootfont200%390/1440. Before10layout/80new-semantic-contract/64synthetic-formfail→after0, targets/focus trước/sau đều0fail; các số lỗi có thể trùng mẫu. Values/options/text/disabled80 và geometrydesktop40 unchanged. Native trusted click64mẫu enabled,16singlepage không click; React callbacks do RTL kiểm, không hydration.
+- Parent đã xem ảnh390 trước/sau số lớnfont200 và sau sửa font100; select100/trang sau sửa vừa khung. Rootfont scaling không phải browserzoom/device; fixture SSR không phải toàn app/authE2E/Nextbuild/SWRnetwork/realdata/native-popup-paint/screenreader/CLS/INP/p95 hoặc speed acceptance.
+- **QA fresh riêng WT và primary:49file/819scoped test +22policy đều đạt**, TypeScript nonincremental đạt, ESLint0error/3warning cũ. Không cộng lượt, không gọi selection là full native, không lấy focused/browser/reviewer thay primary. Không đổi timeout/pool/assertion/mock/config để lấy xanh.
+- Review static độc lập APPROVE spec trước quality đúng4whole-file hashes; parent exact-scope chứng minh chỉ root/attributes JSX và4mobileCSSdeclarations, CSSheader53/hooks/caller/globals/fixtures-tests cũ/app khác giữ nguyên. Source/docs integration có preimage/backup, whitespace/default secret scan và finalguards kiểm snapshot/inventories/old dirty/evidence/HEAD/index/BUILD_ID; chỉ8ownedpaths, progress append-only.
+- Current-batch primary scoped đạt **không sửa lại lịch sử**: original authfailure50/pendingmanifest và trace51 byte-equal, nguyên nhân timeout vẫn chưa chứng minh. Native Windows/libSQL/KPI-timeout/Node0TBvisual-timing/Task10/Task11/fullbrowser/release còn riêng, `releaseReady:false`. Chưa push/deploy.
+
+Chi tiết `docs/customer-pagination-controls.md`; plan `docs/superpowers/plans/2026-10-30-customer-pagination-controls-local.md`. Evidence private `.local/performance/customer-pagination-controls-20261030/` giữ snapshot/preimages/RED/GREEN/browser/SSRHTML/PNG/frozenhashes/exact-scope/review/QA/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 55. Khách hàng: giữ dữ liệu khi tải lại, báo lỗi và thử lại đúng ngữ cảnh (30/10/2026, local)
+
+- Tiếp Task11 sau phân trang54. Snapshot483union paths/356source-config-test paths,163dirty và1396artifact cũ; reuse worktree, không branch/commit/push/deploy, không DB/env/auth thật, không bật3menu đã bỏ.
+- Xác minh installedSWR: previous data vẫn có nhưng keymới chưa cache có thể isLoadingtrue. Hook cũ làm page hiện skeleton dù rows còn; page cũng bỏ qua error, có thể báo Chưa có khách hàng khi request lỗi. Tái hiện bằng hook/page/SWR thật với deferred fetch giả, không đoán do SQL/network chậm.
+- Chỉ tách hasData/loading/refreshing, so đủ7raw/debounced filters để báo chờ ngay cả khoảng500/300ms. Giữ nguyên API key/params/encoding/verbatim search, fetcher/error, delay/SWRoptions/cache/mutate, page/limit/reset/selection/fixedFilters và phân quyền. Rows không bị thay bằng skeleton khi có data; cachedempty vẫn là data.
+- Có strip Đang cập nhật danh sách, nhắc dữ liệu đang hiện có thể chưa khớp filter/trang mới. Initialerror hoặc staleerror có Thử lại, không đưa rawbackenddetail lên UI; khi pending/error không khẳng định kết quả mới là rỗng. Namedregion/aria-busy chỉ ở list, status/error nằm ngoài. Không live-success dựa trên pageprop hoặc đổi các thao tác trên rows.
+- Manual retry giữ page/limit/filter; guard theo context và attempt identity chống click trùng, retry cũ không chặn filter mới hoặc finally cũ xóa guard mới. Không clear data/filter, không success toast hoặc thêm retry policy/timeout; giữ automatic retry mặc định của SWR ngoài wrapper test.
+- TDD22case **RED21fail/1pass→GREEN22/22**; bổ sung race retryA pending, filterB lỗi và retryB bị guard boolean khóa: **RED1fail/22pass→GREEN23/23**. Kiểm đủ7debounces, previous/empty, manualerror, stale page reply, limits/reset/selection/fixedFilters, initialHTTP/networkerror, same-rowDOM, status ngoài busylist và3roleprops. Mock transport/session/router/currentuser, không mock hook/SWR; tắt error auto-retry chỉ trong isolatedtestwrapper, không productionconfig.
+- Chromev1 fixture lỗi routeralias0case, không appRED. V2 chạy96case phát hiện24retry-targetfail ởfont100%, chiều cao390 là40.796875px. Giữ4filecandidatev1/review/QA/hashes/reports; candidatev2 chỉ thêm queryErrorclass và2scopedmin44declarations. Không đổi globalbutton/CSS cũ hoặc nới phép đo.
+- Chromev3 đạt geometry/state nhưng PNG mờ vì animation slideUp350ms còn chạy; V4 chờ finite animation thật kết thúc, loại spinner vô hạn và assert opacity1/transformnone. Không sửa app/disableCSS/sleep tùy ý; giữ V1–V3. **WT và primary V4 mỗi root96/96**:6states×6width×2theme=72 +24rootfont200%390/1440;48mobile/48desktop-tablet, feedback/text/retry44px/busy/rows/no falseempty/rawdetail/pageoverflow đều đạt,0pageerror/request ngoài. Parent xem ảnh V4 initialerror390font100 và refreshing390font200.
+- **QA candidatev2 fresh riêng WT và primary:50file/842scoped test +22policy đều đạt**, full TypeScript nonincremental đạt, ESLint0error/3warning cũ. Không cộng lượt, không gọi selection là fullnative, không dùng focused/SSR/reviewer thay primary hoặc đổi deadline/pool/oldassertions/mocks/config/deps để lấy xanh.
+- Review static độc lập spec trước quality APPROVE đúng4hash-v2; parent exact-scope kiểm chỉ feedback/retry/emptyguard/derivedstate và3newCSSselectors. Mọi oldCSS/header53/pagination54/CustomerTable/CRUD/import/export/roles/API/auth và tests cũ nguyên. Source/docs tích hợp có preimage/backup/whitespace/default secret scan, finalguards kiểm snapshot/inventories/HEAD/index/oldBUILD_ID và8ownedpaths; progress append-only,163dirty/1396artifact cũ bảo toàn.
+- FixtureSSR không dùng realSWR/hydration/auth/DB/API; lifecycle do RTL realSWR kiểm riêng. Roleprops/rootfont không phải serverauth/device/browserzoom/screenreader/axe/fullapp visual acceptance; không before-after browsergeometry claim cho toànpage hoặc chứng minh giảm latency/CLS/INP/p95. Strip/error có thể đổi chiều cao khi xuất hiện, chưa CLS acceptance.
+- Current-batch QA đạt **không xóa gate lịch sử**: original authfailure50/pendingmanifest/trace51 byte-equal, rootcause timeout vẫn chưa chứng minh. Native Windows/libSQL/KPI-timeout/Node0TBvisual-timing/Task10/fullTask11/build/realbrowser/release vẫn mở, `releaseReady:false`. Chưa push/deploy. URLwhitelist/back-forward/filtercontext là bước tiếp theo riêng.
+
+Chi tiết `docs/customer-query-feedback.md`; plan `docs/superpowers/plans/2026-10-30-customer-query-feedback-local.md`. Evidence private `.local/performance/customer-query-feedback-20261030/` giữ snapshots/preimages/RED/GREEN/race/candidate-v1/reviews/frozenhashes/QA/exact-scope/browserV1–V4/SSRHTML/PNG/scans/backups/manifests; không commit env/DB/log/token/business data.
+
+## 56. URL bộ lọc khách hàng: implementation local, còn gate auth timeout (30/10/2026)
+
+- Tiếp Task11 sau55; snapshot486union paths/357source-config-test paths,167dirty và1528oldartifacts. Reuse WT/HEAD/index, không branch/commit/push/deploy, DB/env/auth thật hoặc bật lại3menu đã bỏ. Không coi batch này được nghiệm thu toàn bộ.
+- Thêm parser/serializer whitelist và state/history hook opt-in `/customers`; page chỉ đổi1dònguseCustomersopts. q canonical nhận link node-map vốn có, search legacyfallback khiqvắng; giữ textUnicode/whitespace/plus. Enums đúng UI, pageinteger1..10000capAPI, limit10/20/50/100, duplicatesinvalid vềdefaults. Params lạ/hash giữ trongURL nhưng không forwardAPI hay cấp quyền; fixedFilters thắngURL/useredit.
+- SSR/client initialdefaults/loading đồng nhất, readygate ngăn fetchdefault trước đọcURL. Restore atomic page/limit/rawfilters/revision/requestseed: pop khôngecho hoặc fetchquerytrộn cũ/mới; useredit trướcseedtimer bắt kịp vẫn debounce500/300ms. Chỉ ghi history khi filterssettled; page/limit riêng, không push mỗi ký tự. No-op thật không đổi thứ tựparams chỉ để tạoentry, nhưng samefilter ởpage2 vẫn resetpage1 như cũ.
+- NativeHistorynullstate dùng patchNext sẵn có, không tự sửa privateflags/tree hoặc routerpush mỗi filter. Pathguard không kéo người dùng về customers sau khi đã rời trang; cleanupsubscription, historywrite bị browserrefuse không crashUI (chưa có cảnh báo persistence riêng). Từ khóa có thể chứaPII trongURL, không log/analytics/tự share; cần cẩn thận khi gửilink.
+- Testmới dùng realhook/page/SWR +deferredfetch giả. RED49 đầu có testsetup timeout/actpollution vì giả định URLseed, giữlog và sửa precondition; correctedRED50=13fail37pass. GREEN đầu mới lộ testno-op sai kỳ vọng resetpage2: request-countprobe xác minh hành vi cũ hợp lệ, chỉ sửa case vềpage1 và thêm preservationcasepage2→1. ReorderhistoryRED1fail51pass→**finalGREEN52/52**; không oldtest/assertions/config/deadline/pool changes.
+- NativeChromev1 harness thiếu react-dom root prebundle/createPortal,12scenario chưa mount được vàtimeout; giữreport/moduleerrors, không gọi là appNext bug. V2 chỉ privateoptimizerinclude/failfast, app5hash khôngđổi. **WT và primary V2 mỗi root12/12scenario×11steps (132steps/lượt)**,3roleprops×390/1440×lightdark:deep-link/reload/search/page/limit/Back2/Forward2/reload/back-during-edit, không defaultunfiltered request, hash/from giữ vàunknownparams khôngforward,0pageerror/requestngoài. Parent xemPNG390/1440 saufiniteanimation. Browserclient realpage/hook/SWR nhưng fakeauth/transport, khôngNextAppRouter/SSRhydration/serverauth/fullapp/latency acceptance; RTLadvance500 kiểm late-debounce riêng.
+- **Gate broad QA chưa đạt ở cả WT và primary: mỗi root893pass/1fail trên894test**, cùng GETusers401 trong schema-auth-order timeout5000ms. Policy22/TypeScript nonincremental đạt, ESLint0error/3warning cũ mỗiroot. Primaryfresh sau sourcechange, không rerunWT đếnkhi xanh. Không skip/quarantine/nới deadline/pool/mocks/oldassertions hoặc lấy52focused/staticreview/nativebrowser thay broadgate; nguyên nhân chưa chứng minh.
+- Review static độc lập spec→quality APPROVE đúng5hash chỉ implementation; parent exact-scope giữ fetcher/APIURL/SWRoptions/selection/refresh/CRUD/roles/auth/backend/CSS/shared useDebounce và tests cũ nguyên. Source được lưu local có preimage/backup/default secret scan/whitespace/hash-inventory guards với **pending disposition**, không waive failure hoặc đánh dấu gate xanh. Docs/finalmanifest ghi cả failureSHA, currentBatchWorktreeScopedPassedfalse/currentBatchPrimaryScopedPassedfalse/currentBatchScopedAcceptancePassedfalse/releaseReadyfalse.
+- Original authfailure50/pending/trace51 và1528artifact cũ giữ byte-equal; lỗi mới56 giữ độc lập, không xóa lịch sử vì run khác từng pass. Native Windows/libSQL/KPI-timeout/Node0TBvisual-timing/Task10/fullTask11/Nextrealbrowser/release vẫn riêng. **Ưu tiên tiếp theo: điều tra test GETusers đang tái hiện để đóng gate, không tiếp tục thêm UI nhằm lờ lỗi đỏ.** Chưa publish.
+
+Chi tiết `docs/customer-url-state.md`; plan `docs/superpowers/plans/2026-10-30-customer-url-state-local.md`. Evidence private `.local/performance/customer-url-state-20261030/` giữ snapshots/preimages/RED/GREEN/probes/frozen5hash/review/QA/nativebrowserV1–V2/PNG/scans/backups/scope/pending/finalmanifests; không commit env/DB/log/token/business data.
+
+## 57. Điều tra timeout GET users: chưa tái hiện, chưa sửa auth (30/10/2026, local)
+
+- Tiếp ưu tiên56, không thêmUI để lờ failedgate. Snapshot491union paths/360source-config-test paths,172dirty và1587old artifacts; reuseWT, không branch/commit/push/deploy/build mới, DB/env/auth thật. Chỉ4docs public, application code/publictests/config/deps không đổi.
+- Source test tính cả dynamicimport trong5000ms trước khi gọi handler; GET kiểm auth trước schema/DB. Chưa có bằng chứng import/handler/scheduling hay module cụ thể gây lỗi cũ; không dời import khỏi budget/nới deadline/đổi pool/mocks/assertions/resetModules hoặc skip để lấy xanh.
+- Một broadbodytrace cùng selection56:51file/894PASS,395events/53invocations/61hooktriples; GETusersimport385.29ms/handler7.81ms, không tái hiện. Readonlymodulemap10module nhưng totalTimefieldabsent (internaldurationkhác), không suy tổng hoặc0. In-memory transform/stdout có observer effect.
+- Loaderprofiler không transform thân test, buffer targetspans tới afterAll. V1privatecrossdrive setup /@fs không resolve36jsdomsuite:325testpass/36suitefail, workloadinvalid giữ riêng. V2cùngsetup trong ignoredWT/.local:894PASSnhưng configmerge originalsetup2lần; giữrunner/setup/config/logs, không exactbaseline/acceptance.
+- V3chỉappend privatesetup, preflightkhông chạytest vàworker đều original1+private1/5000ms/forks/isolate unchanged. **51file/894PASS**, target315.56ms;6nestedspan, root evaluator244.20ms, user.schema131.97ms có zod120.36ms. Không cộng nestedwall hoặc gọi rootspan là fullimport; phần còn lại case chưa quy thuộc, không ghép handler7.81ms ở lượt khác hoặc quyZod/Next là nguyên nhân timeout.
+- Privateevaluator/ALS/snapshot/continuations còn observereffect/internalAPIlimit. CPUprocesswide cumulative/ELU không per-moduleCPU hoặc productionmetrics; cleanup pending[] chỉ điểm đo, restore/flush normalcompletiononly, không guarantee khi kill/crash. Không warm/cold/p95/độổnđịnh/production-speedclaim.
+- Independent staticreview APPROVE đúng5finaltoolhash chỉ chodiagnostics/conclusionsgiớihạn, không authfix/gateclosure/release; parent kiểm lại hashes/config/6spancontainment/rawlogs/snapshot. Chỉdocs có preimage/backup/whitespace/defaultredactedsecretscan và hash/inventory/HEAD/index/oldBUILD_ID guards; tiếnđộ append-only,172dirty/1587artifacts cũ bảo toàn.
+- **Chưa sửa được lỗi auth.** Các validdiagnostics không tái hiện; original56WT/primary mỗi893pass1fail/894 vẫn failed và manifest/logs byte-equal, historical50/trace51 cũng nguyên. `originalFailureRootCauseProven:false`, `currentBatchScopedAcceptancePassed:false`, `releaseReady:false`. Không dùng894instrumentedPASS thay uninstrumentedacceptance, không xóa hay ghiđè failure/bảnphântíchV2;57summaryfinal phân biệt rõV1/V2/V3.
+- Bước tiếp: cần failingtrace đủ bằng chứng rồi regressionRED/sửa tốithiểu/review/freshuninstrumented WT+primaryQA; không rerun vô hạn tới xanh. NativeWindows/libSQL/KPI-timeout/Node0TBstrictvisual-timing/Task10/fullTask11/NextAppRouter-hydration/3role-staging/release vẫn mở. Chưa publish.
+
+Chi tiết `docs/schema-auth-timeout-repro.md`; plan `docs/superpowers/plans/2026-10-30-schema-auth-timeout-repro-local.md`. Evidence private `.local/performance/schema-auth-timeout-repro-20261030/` giữ snapshots/preimages/bodytrace/loaderV1–V3/configpreflight/archivedV2tools/summaryfinal/review/scan/backups/integration/pendingmanifests; không commit env/DB/log/token/business data.
+
+## 58. Dọn ba warning cũ, đối chứng auth không gắn worker profiler (30/10/2026, local)
+
+- Snapshot493union paths/360source-config-test paths/174dirty và1624old artifacts; reuseWT, không branch/commit/push/deploy/build mới, DB/env/auth thật. Không thêmUI/bật3menu đã bỏ hoặc sửa auth theo suy đoán.
+- Đối chiếu runners và installedVitest RPC: coordinator tự ghi fetch durations. Một lượtWT cùng selection56, chỉ đọc state sau startVitest trả về, không thêm setup/plugin/reporter/evaluatorpatch: **51file894/894PASS**, GETusers503.34ms/retry0, originalsetup1/5000ms/forks/isolate unchanged. Không rerun tới xanh; logs/config/cases/metadata giữ riêng.
+- URL-level RPCfetchaggregate users48.33ms/user.schema41.64ms/next1.70ms/zod0.69ms không per-case/fullimport/handler attribution, không cộng/ghép với503.34ms hoặc đo Production. Pass không chỉ khi workerprofiler có mặt, nhưng **không chứng minh nguyên nhân hai timeout56 hoặc test không thể tái diễn**; không đọc Vitestflakyfalse thành rootproof.
+- Vì chưa có failingtrace, giữauthgate mở và làm cleanup quality baseline riêng: markerRegistry capture một lần bên trong cluster effect, dùng cho writes+cleanup và giữ cgownershipguard/deps; bỏ unusedskippedRows allocation của Node0TBupload; bỏ uncalledreadSheetObjectRows helper của Nodesupload nhưng giữ SheetRow/matrix/importflows. Không đổi UI/popup/CRUD/auth/DB/date/rowparse/APIresponse/test/config/deps và không tắt lint rule.
+- Testgreen894 trước refactor; sau sửa WTfocusedmap/read-only **42/42**. **FreshQA riêng WT và primary mỗiroot51file894/894scoped+22policy/types nonincremental đạt; ESLint toànsrc0error/0warning với max-warnings0.** Không cộng các lượt, không gọi là fullnative/build/Next/browser/role/device/latency acceptance hoặc authfix.
+- Independentreview APPROVE đúng3whole-filehash chỉ cleanup; exactscope proof đúng ba chỉnh sửa nhỏ. Source/docs có preimage/backup/defaultredactedsecretscan/whitespace/hash-inventory/HEAD/index/oldBUILD_ID guards; chỉ3source+3docs, toàntest/fixture/cấuhình và các thayđổi cũ khác nguyên; progress append-only,174dirty/1624old artifacts giữ nguyên.
+- `cleanupCurrentBatchScopedAcceptancePassed:true` **không đóng auth**: `authTimeoutRootCauseProven:false`, `original56ScopedAcceptanceClosed:false`, `releaseReady:false`; cả2log893pass1fail/894 vàmanifest56/diagnostics57/historical50/51 byte-equal. NativeWindows/libSQL/KPI-timeout/Node0TBstrictvisual-timing/Task10/fullTask11/fullNext3role/CI-RUM-rollout vẫn mở, chưa publish. Cần failingtrace đủ bằng chứng rồi mới authregression/sửa/QA, không nới deadline/skip/pool đổi để lấy xanh.
+
+Chi tiết `docs/schema-auth-timeout-repro.md` follow-up58; roadmapTask13. Evidence private `.local/performance/schema-auth-coordinator-trace-20261030/` giữ snapshot/preimage/coordinatorcontrol/rawstate/summary/cleanupscope/focused/QA/review/source-docsscans/backups/integration/pending; không commit env/DB/token/log/businessdata.

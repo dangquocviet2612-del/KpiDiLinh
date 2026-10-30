@@ -728,7 +728,7 @@ export default function CtvClient({ view = "" }: { view?: string }) {
         </div>
       </section>
 
-      <section className={ctvStyles.statsGrid}>
+      <section className={`${ctvStyles.statsGrid} ${ctvStyles.userStatsCompact}`} aria-label="Thống kê tài khoản CTV">
         <article className={ctvStyles.statCard}>
           <span className={ctvStyles.statLabel}>Tổng tài khoản</span>
           <strong className={ctvStyles.statValue}>{userStats.total}</strong>
@@ -775,6 +775,7 @@ export default function CtvClient({ view = "" }: { view?: string }) {
             <input
               type="text"
               placeholder="Tìm theo tên đăng nhập..."
+              aria-label="Tìm tài khoản CTV"
               className={`input-base ${ctvStyles.searchInput}`}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}

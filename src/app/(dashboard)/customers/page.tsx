@@ -24,7 +24,8 @@ import PaginationControls from "@/components/PaginationControls";
 import PullToRefresh from "@/components/PullToRefresh";
 import { SkeletonTable } from "@/components/SkeletonTable";
 import { useCustomers } from "@/hooks/useCustomers";
-import type { CtvUser, Customer } from "@/types";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import type { Customer } from "@/types";
 import ActionMenu from "@/components/ui/ActionMenu";
 import AsyncState from "@/components/ui/AsyncState";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -54,22 +55,26 @@ export default function CustomersPage() {
         limit,
         setLimit,
         loading,
+        refreshing,
+        hasData,
+        error,
         selectedIds,
         setSelectedIds,
         fetchCustomers,
         filters,
         setFilter,
-    } = useCustomers();
+    } = useCustomers({ syncUrl: true });
 
     const { data: session } = useSession();
     const importInputRef = useRef<HTMLInputElement | null>(null);
+    const retryInFlightRef = useRef<{ page: number; limit: number; filters: typeof filters } | null>(null);
     const importReportUrlRef = useRef<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isImporting, setIsImporting] = useState(false);
-    const [canUseGps, setCanUseGps] = useState(false);
-    const [ctvList, setCtvList] = useState<CtvUser[]>([]);
+    const { data: currentUser } = useCurrentUser();
+    const ctvList = useMemo(() => Array.isArray(currentUser?.ctvList) ? currentUser.ctvList : [], [currentUser]);
     const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -171,21 +176,15 @@ export default function CustomersPage() {
     const canFilterByCtv = session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
     const isAdmin = session?.user?.role === "ADMIN";
 
-    useEffect(() => {
-        const fetchGpsPermission = async () => {
-            try {
-                const res = await fetch("/api/me");
-                if (res.ok) {
-                    const data = await res.json();
-                    setCanUseGps(data.role === "ADMIN" || data.canUseGps === true);
-                    if (Array.isArray(data.ctvList)) setCtvList(data.ctvList);
-                }
-            } catch (error) {
-                console.error("Error fetching GPS permission:", error);
-            }
-        };
-        fetchGpsPermission();
-    }, []);
+    const handleRetryCustomers = useCallback(() => {
+        const current = retryInFlightRef.current;
+        if (current?.page === page && current.limit === limit && current.filters === filters) return;
+        const attempt = { page, limit, filters };
+        retryInFlightRef.current = attempt;
+        void fetchCustomers().catch(() => undefined).finally(() => {
+            if (retryInFlightRef.current === attempt) retryInFlightRef.current = null;
+        });
+    }, [fetchCustomers, page, limit, filters]);
 
     useEffect(() => {
         if (hasAdvancedFilters) {
@@ -707,10 +706,31 @@ export default function CustomersPage() {
                         </div>
                     )}
 
-                    <div className={styles.listShell}>
+                    {refreshing && (
+                        <div className={styles.queryStatus} role="status">
+                            <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                            <span>Đang cập nhật danh sách. Dữ liệu đang hiển thị có thể chưa khớp bộ lọc hoặc trang vừa chọn.</span>
+                        </div>
+                    )}
+
+                    {!loading && !refreshing && error && (
+                        <AsyncState
+                            status="error"
+                            compact
+                            className={styles.queryError}
+                            title={hasData ? "Chưa cập nhật được danh sách" : "Không tải được danh sách khách hàng"}
+                            description={hasData
+                                ? "Dữ liệu đang hiển thị có thể chưa khớp bộ lọc hoặc trang vừa chọn. Bạn có thể thử lại mà không cần nhập lại bộ lọc."
+                                : "Bạn có thể thử lại mà không cần nhập lại bộ lọc."}
+                            actionLabel="Thử lại"
+                            onAction={handleRetryCustomers}
+                        />
+                    )}
+
+                    <div className={styles.listShell} role="region" aria-label="Danh sách khách hàng" aria-busy={loading || refreshing}>
                         {loading ? (
                             <SkeletonTable rows={10} />
-                        ) : customers.length === 0 ? (
+                        ) : customers.length === 0 ? (!error && !refreshing && (
                             <AsyncState
                                 status="empty"
                                 title={hasActiveFilters ? "Không tìm thấy khách hàng" : "Chưa có khách hàng"}
@@ -722,7 +742,7 @@ export default function CustomersPage() {
                                 actionLabel={hasNonSearchFilters ? "Xóa bộ lọc khác" : filters.search ? "Xóa từ khóa" : undefined}
                                 onAction={hasNonSearchFilters ? clearNonSearchFilters : filters.search ? () => setFilter("search", "") : undefined}
                             />
-                        ) : (
+                        )) : (
                             <CustomerTable
                                 customers={customers}
                                 selectedIds={selectedIds}

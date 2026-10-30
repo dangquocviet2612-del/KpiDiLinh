@@ -6,11 +6,12 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureKpiTables } from "@/lib/kpi-db";
 import { getAccessibleCtvCodes } from "@/lib/scope";
-import { getCache, setCache } from "@/lib/kpi-cache";
+import { getCache, getCacheGeneration, setCache } from "@/lib/kpi-cache";
 import { getCuocTargetRatePercent, getLatestCuocReportDate } from "@/lib/prepaid-query";
 import { buildCuocSummaryRow, computeCuocMissingAmount } from "@/lib/cuoc";
 
 export async function GET(request: Request) {
+  const cacheGeneration = getCacheGeneration();
   try {
     const session = await auth();
     if (!session) {
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
     const targetRatePercent = await getCuocTargetRatePercent();
     if (!reportDate) {
       const emptyPayload = { reportDate: null, targetRatePercent, rows: [], summaryRow: null };
-      setCache(cacheKey, emptyPayload, 60_000);
+      setCache(cacheKey, emptyPayload, 60_000, cacheGeneration);
       return NextResponse.json(emptyPayload);
     }
 
@@ -128,7 +129,7 @@ export async function GET(request: Request) {
 
     const summaryRow = buildCuocSummaryRow(rows, targetRatePercent);
     const responsePayload = { reportDate: finalReportDate, targetRatePercent, rows, summaryRow };
-    setCache(cacheKey, responsePayload, 60_000);
+    setCache(cacheKey, responsePayload, 60_000, cacheGeneration);
     return NextResponse.json(responsePayload);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "L\u1ED7i t\u1EA3i b\u00E1o c\u00E1o c\u01B0\u1EDBc" }, { status: 500 });

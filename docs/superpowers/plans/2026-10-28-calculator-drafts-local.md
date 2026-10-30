@@ -1,0 +1,32 @@
+# Preserve same-report calculator drafts — local 28/10/2026
+
+> For agentic workers: use superpowers:subagent-driven-development, TDD and independent spec then quality reviews. User requested continuing after the identified draft-reset bug. Local only, no commit/push/deploy.
+
+**Root cause:** useKpiCalculator.onSuccess always calls setDraftValues(normalizeDraftMap(nextRows)). Reentry forces a fresh GET, so even a same-report successful refresh discards manual values. Existing browser-before AND after bundle slice recorded preservedDate/CTV:true but settled preservedDraft:false; pending-only test was not proof of settlement retention.
+
+**Chosen design:** Retain explicit manual overrides separately from fresh server defaults in one active report context. Preserve overrides across same-context reentry and explicit Refresh while updating source rows/defaults for untouched indicators. Reset button explicitly drops overrides. No removal of refresh, permission checks or network reads; no persistent/multi-context history cache.
+
+**Context policy:** Bound to authenticated/import-revision scope, effective CTV and canonical report date. Changing actual date/CTV/scope/revision, logout, or removing a metric discards inappropriate overrides; do not restore old A draft after A→B→A. Do not render old rows/drafts/totals under new context while loading. Same initial blank→resolved date alias must not refetch or erase edits; later real date change/blank intent/new latest date must not carry unrelated draft. Empty manager CTV selection is inactive. Transient equivalent authenticated scope or callback change must not reset draft.
+
+**Edit policy:** Only explicitly edited fields are preserved; do not derive override detection from dirtyCount/delta score (caps can make changed inputs have zero score delta). Keep raw valid input text including0/empty/decimals, step and target actions. Latest edits during pending GET win at settlement. Reset during pending GET prevents old overrides from reappearing. Prune removed codes, initialize added codes from fresh defaults. Refresh errors retain same-context current data/overrides, no cross-context fallback.
+
+**Implementation boundaries:** Modify src/app/(dashboard)/prepaid/useKpiCalculator.ts; optional focused pure helper src/lib/kpi-calculator-draft.ts. New tests/ui/kpi-calculator-drafts.test.tsx and optional helper unit test. No useLatestKpiRequest, formula, API/auth/cache/schema/dependency changes; panel/shell only amended Reset prop below. Keep existing coalescing/cancel/10s dedupe, guards/status/error and1initial report; reset completed aliases on real context change when required, not automatic date resolution. Keep hook state bounded; no local/sessionStorage or accumulating contexts. Pure state updaters, no render-phase ref writes/side effects inside updaters; StrictMode/idempotence and latest-response guards.
+
+**Necessary related scope amendment:** Reset was disabled by score-based dirtyCount, so edited inputs at a scoring cap could not be cleared. Also allow one boolean hasDraftEdits prop from hook through PrepaidPageImpl to KpiCalculatorPanel, and only change the reset disabled condition when the prop is supplied (old standalone fallback preserved). No scoring/dirtyCount/caption/control/layout changes; no edits still disabled, manual capped edits enable Reset. Add regression for this reachability. All other panel/shell behavior stays unchanged.
+
+**Alternatives rejected:** Stop reentry/Refresh GET (stale data/security risk); retain every old value (blocks fresh defaults); persist drafts by every CTV/date (cross-context leakage/memory and scope creep).
+
+**Safety:** Reuse detached WT D:/code/webkpimoi/.worktrees/ux-performance-batch1, preserve60 prior primary changes and previous322 matching sources. Test only existing fake batch6 SQLite via guarded env; no real env, tokens, DB or cloud. Native Windows/libsql gate stays open regardless green runs, no retry/skip/pool/dependency workaround.
+
+- [x] Snapshot current primary/WT/preexisting60 changes and build identity.402 files,322 matching source/config/test files; previous built identity attested.
+- [x] Reproduce actual settled draft loss and record baseline API/UI/JS on fake preview.34 API/UI baseline cases;6 draft cases all lose edits on reentry/refresh/pending reply and cannot Reset zero-score edits; fakeDB unchanged.
+- [x] RED regressions for reentry/refresh/edit/reset races, context/alias/logout/ABA/pruning;46 failures/10controls ->56pass. Spec P2 inherited-name override lookup reproduced6fail/56pass, fixedown-property selection ->62pass; old19UI files/assertions unchanged.
+- [x] Freeze R2 exact4-file delta; independent spec re-review and quality both APPROVE with hashes/artifacts unchanged, P2closed andno remaining actionableP1/P2.
+- [x] Full R2 WT63 files/815 tests +22 policy/types/lint/guarded build pass,2oldwarnings. Actual6/6browserdraftcasespass and34API/settledUIcasesmatch, fakeDBunchanged. JS639813bytesvs638158beforefix,beloweager783436; no newperformanceclaim. Ownedpreviewstopped.
+- [x] Backup/secret scan/integrate9 exact files preserving60 prior changes; primary63 files/815 tests+22policy/types/lint pass,323 sources byte-match builtR2,2oldlintwarnings; update progress/roadmap and supersede draft-limit docs without rewriting history. No publish.
+
+**Limits:** In-memory same-mounted-shell draft only, not across document reload/unmount/other routes/logout; no persistent saved draft/new DB feature. Error-boundary reload warning remains correct. No KPI formula/p95/cloud claims; Task8 view/hook/CSS extraction and Task7 auth/version/native gaps remain.
+
+**Review revision:** R1 full809 tests/22policy/types/lint/build passed but spec caught delta-caused lookup of inherited overrides.constructor/toString/hasOwnProperty. Current source fixes only own-property selection and adds6 before-edit/after-Reset regressions. All R1 logs/hashes retained in candidate-r1; require fresh R2 QA/build/browser, not reuse R1 green. No native failure or workaround/retry involved.
+
+**Harness qualification:** v1 waited on response while attempting disabled Reset, causing an unhandled waiter timeout; v2 incorrectly demanded zero calculator rows for an empty report date even though existing LEFT JOIN metric config produces default rows. Sources/logs/observations retained; final harness records pre-fix Reset unavailable and checks no draft carry across default rows. After must satisfy all actual fix flags, not ignore those defects.

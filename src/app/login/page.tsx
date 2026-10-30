@@ -1,34 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import PasswordInput from "@/components/PasswordInput";
 import styles from "./login.module.css";
+
+const LOGIN_UNAVAILABLE_MESSAGE = "Không thể đăng nhập lúc này. Vui lòng kiểm tra kết nối và thử lại.";
 
 export default function LoginPage() {
     const router = useRouter();
+    const submittingRef = useRef(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [passwordVisible, setPasswordVisible] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setPasswordVisible(false);
         setLoading(true);
         setError("");
 
-        const res = await signIn("credentials", {
-            username,
-            password,
-            redirect: false,
-        });
+        let navigating = false;
+        try {
+            const res = await signIn("credentials", {
+                username,
+                password,
+                redirect: false,
+            });
 
-        if (res?.error) {
-            setError("Sai tài khoản hoặc mật khẩu");
-            setLoading(false);
-        } else {
+            if (res?.error) {
+                setError("Sai tài khoản hoặc mật khẩu");
+                return;
+            }
+            if (res?.ok !== true) {
+                setError(LOGIN_UNAVAILABLE_MESSAGE);
+                return;
+            }
             router.push("/");
             router.refresh();
+            navigating = true;
+        } catch {
+            setError(LOGIN_UNAVAILABLE_MESSAGE);
+        } finally {
+            if (!navigating) {
+                submittingRef.current = false;
+                setLoading(false);
+            }
         }
     };
 
@@ -43,14 +65,16 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {error && <div className={styles.error}>{error}</div>}
+                {error && <div id="login-error" className={styles.error} role="alert">{error}</div>}
 
-                <form onSubmit={handleSubmit} className={styles.form}>
+                <form onSubmit={handleSubmit} className={styles.form} aria-busy={loading} aria-describedby={error ? "login-error" : undefined}>
                     <div className={styles.inputGroup}>
                         <label className="label-base" htmlFor="username">Tài khoản</label>
                         <input
                             id="username"
                             type="text"
+                            autoComplete="username"
+                            autoCapitalize="none"
                             className="input-base"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -62,9 +86,12 @@ export default function LoginPage() {
 
                     <div className={styles.inputGroup}>
                         <label className="label-base" htmlFor="password">Mật khẩu</label>
-                        <input
+                        <PasswordInput
                             id="password"
-                            type="password"
+                            visible={passwordVisible}
+                            visibilityLabel="mật khẩu"
+                            onToggle={() => { if (!submittingRef.current) setPasswordVisible((current) => !current); }}
+                            autoComplete="current-password"
                             className="input-base"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}

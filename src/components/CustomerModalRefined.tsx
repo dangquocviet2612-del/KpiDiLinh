@@ -12,6 +12,7 @@ import type { CtvUser, Customer, CustomerFormData, EditHistoryItem } from "@/typ
 import { getCustomerDateInputWarning } from "@/lib/customer-date-input";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialogProvider";
 import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface CustomerModalProps {
     customer: Customer | null;
@@ -124,10 +125,13 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [gpsLoading, setGpsLoading] = useState(false);
-    const [canUseGps, setCanUseGps] = useState(false);
     const [edits, setEdits] = useState<EditHistoryItem[]>([]);
-    const [ctvs, setCtvs] = useState<CtvUser[]>([]);
+    const { data: currentUser, scope } = useCurrentUser();
+    const [ctvState, setCtvState] = useState<{ scope: typeof scope; users: CtvUser[] }>({ scope, users: [] });
+    const ctvs = ctvState.scope === scope ? ctvState.users : [];
+    const canUseGps = Boolean(currentUser && (currentUser.role === "ADMIN" || currentUser.canUseGps === true || !!customer));
     const { data: session } = useSession();
+    const role = session?.user?.role;
     const confirm = useConfirmDialog();
 
     const currentSnapshot = useMemo(() => JSON.stringify(formData), [formData]);
@@ -147,37 +151,28 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     }, [customer, defaultLocation]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        let active = true;
+        setCtvState({ scope, users: [] });
         const fetchCtvs = async () => {
-            if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MANAGER") {
+            if (!scope || (role !== "ADMIN" && role !== "MANAGER")) {
                 return;
             }
 
             try {
-                const res = await fetch("/api/users");
+                const res = await fetch("/api/users", { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
-                    setCtvs(data);
+                    if (active && !controller.signal.aborted) setCtvState({ scope, users: Array.isArray(data) ? data : [] });
                 }
             } catch (fetchError) {
-                console.error("Error fetching CTVs:", fetchError);
-            }
-        };
-
-        const fetchGpsPermission = async () => {
-            try {
-                const res = await fetch("/api/me");
-                if (res.ok) {
-                    const data = await res.json();
-                    setCanUseGps(data.role === "ADMIN" || data.canUseGps === true || !!customer);
-                }
-            } catch (fetchError) {
-                console.error("Error fetching GPS permission:", fetchError);
+                if (active && !controller.signal.aborted) console.error("Error fetching CTVs:", fetchError);
             }
         };
 
         fetchCtvs();
-        fetchGpsPermission();
-    }, [customer, session]);
+        return () => { active = false; controller.abort(); };
+    }, [role, scope]);
 
     useEffect(() => {
         if (!customer) {
