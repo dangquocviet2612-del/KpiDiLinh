@@ -75,7 +75,7 @@
   height: 100%;
   min-height: 100%;
   width: 100%;
-  background: #08111b;
+  background: var(--background);
 }
 
 .mapCanvas {
@@ -114,16 +114,15 @@
   pointer-events: auto;
   border-radius: 0.92rem;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(30, 41, 59, 0.82);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
 }
 
 .searchToolbar {
-  width: fit-content;
-  max-width: calc(100% - 0rem);
-  padding: 0.32rem;
+  width: min(100%, 66rem);
+  max-width: 100%;
+  padding: 0.5rem;
 }
 
 .toolbarHeader {
@@ -173,15 +172,15 @@
 
 .toolbarMainRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.34rem;
 }
 
 .searchFieldShell {
   position: relative;
-  flex: 1;
+  flex: 1 1 16rem;
   min-width: 0;
-  min-width: min(48vw, 580px);
 }
 
 .searchBar {
@@ -198,12 +197,12 @@
 
 .searchInput {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0.64rem 2.1rem 0.64rem 2.35rem;
   border-radius: 0.88rem;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(30, 41, 59, 0.88);
-  color: #f8fafc;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--foreground);
   font-size: 0.88rem;
 }
 
@@ -214,45 +213,42 @@
 }
 
 .searchInput::placeholder {
-  color: #6f849a;
+  color: var(--secondary-foreground);
 }
 
 .clearBtn {
   position: absolute;
-  right: 0.5rem;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  color: #94a3b8;
+  color: var(--secondary-foreground);
 }
 
 .clearBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  background: var(--secondary);
+  color: var(--foreground);
 }
 
 .toolbarActionStack {
   display: flex;
+  flex-wrap: wrap;
   flex-direction: row;
   gap: 0.34rem;
   align-items: center;
 }
 
 .primaryActionsRow {
-  display: flex;
-  gap: 0.34rem;
+  display: contents;
 }
 
 .secondaryActionsRow {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
-  order: 2;
+  display: contents;
 }
 
 .secondaryActionsRow:empty {
@@ -266,9 +262,31 @@
   gap: 0.5rem;
 }
 
-.mapActionBtn {
+.mapOuter .mapActionBtn {
   gap: 0.5rem;
   white-space: nowrap;
+  min-height: 44px;
+  background: var(--input-bg);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.76rem;
+}
+
+.mapOuter .mapActionBtn:hover:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+}
+
+.mapActionBtn:focus-visible,
+.filterBtn:focus-visible,
+.clearBtn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .mapActionBtn:disabled {
@@ -286,9 +304,9 @@
 }
 
 .secondaryActionBtn {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0.55rem 0.8rem;
-  border-radius: 999px;
+  border-radius: 0.65rem;
   font-size: 0.76rem;
 }
 
@@ -302,7 +320,7 @@
 }
 
 .optionsTrigger {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0.5rem 0.78rem;
   font-size: 0.76rem;
 }
@@ -313,6 +331,14 @@
   right: 0;
   min-width: 176px;
   overflow: hidden;
+  z-index: 3;
+  background: var(--background);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.mapOuter .mapStyleDropdown :global(.ui-action-menu-item) {
+  min-height: 44px;
 }
 
 .optionsMenu {
@@ -364,9 +390,13 @@
 
 .filterPanel {
   width: fit-content;
-  max-width: calc(100% - 1.5rem);
+  max-width: 100%;
   padding: 0.16rem;
   border-radius: 0.76rem;
+}
+
+.filterPanel[hidden] {
+  display: none;
 }
 
 .filterScrollHint {
@@ -385,21 +415,28 @@
   display: none;
 }
 
-.filterBtn {
+.mapOuter .filterBtn {
   justify-content: space-between;
   gap: 0.38rem;
+  min-height: 44px;
+  box-shadow: none;
+  color: var(--foreground);
+  background: var(--background);
+  border-color: var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .filterBtn.active {
-  border-color: rgba(96, 165, 250, 0.56);
-  background: rgba(30, 64, 104, 0.94);
-  color: #eff6ff;
-  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.12);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  color: var(--primary);
+  box-shadow: none;
 }
 
 .filterResetBtn {
   border-color: rgba(248, 113, 113, 0.32);
-  color: #fecaca;
+  color: var(--destructive);
 }
 
 .filterResetBtn:hover {
@@ -452,8 +489,8 @@
   height: 18px;
   padding: 0 0.32rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  background: var(--secondary);
+  color: var(--foreground);
   font-size: 0.62rem;
   font-weight: 700;
 }
@@ -606,13 +643,13 @@
 .customerNodePanelTitle {
   font-size: 0.95rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .customerNodePanelMeta {
   margin-top: 0.18rem;
   font-size: 0.74rem;
-  color: #94a3b8;
+  color: var(--secondary-foreground);
 }
 
 .customerNodePanelHint {
@@ -626,9 +663,9 @@
   gap: 0.34rem;
 }
 
-.customerNodePanelIconBtn {
-  width: 34px;
-  height: 34px;
+.mapOuter .customerNodePanelIconBtn {
+  width: 44px;
+  height: 44px;
 }
 
 .customerNodeSearchBar {
@@ -646,12 +683,12 @@
 
 .customerNodeSearchInput {
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0.62rem 0.8rem 0.62rem 2.25rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(8, 17, 29, 0.88);
-  color: #f8fafc;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--foreground);
   font-size: 0.85rem;
 }
 
@@ -678,8 +715,8 @@
   gap: 0.5rem;
   padding: 0.48rem 0.56rem;
   border-radius: 0.78rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(8, 17, 29, 0.84);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
 }
 
 .customerNodeRowInteractive {
@@ -692,7 +729,7 @@
 
 .customerNodeRowInteractive:hover {
   border-color: rgba(94, 234, 212, 0.28);
-  background: rgba(12, 24, 38, 0.96);
+  background: color-mix(in srgb, var(--primary) 9%, var(--background));
 }
 
 .customerNodeRowInteractive:focus-visible {
@@ -711,7 +748,7 @@
 .customerNodeAccount {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
   word-break: break-word;
 }
 
@@ -724,31 +761,31 @@
 .customerNodeName {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #99f6e4;
+  color: var(--primary);
   word-break: break-word;
 }
 
 .customerNodeAddress {
   font-size: 0.74rem;
   line-height: 1.4;
-  color: #cbd5e1;
+  color: var(--secondary-foreground);
   word-break: break-word;
 }
 
 .customerNodeUpdated {
   margin-top: 0.08rem;
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: var(--secondary-foreground);
 }
 
 .customerNodeEmpty {
   padding: 1rem 0.75rem;
   border-radius: 0.9rem;
   border: 1px dashed rgba(255, 255, 255, 0.12);
-  background: rgba(8, 17, 29, 0.74);
+  background: var(--input-bg);
   font-size: 0.78rem;
   text-align: center;
-  color: #94a3b8;
+  color: var(--secondary-foreground);
 }
 
 .customerNodeFooter {
@@ -761,7 +798,7 @@
 
 .customerNodeFooterMeta {
   font-size: 0.74rem;
-  color: #cbd5e1;
+  color: var(--secondary-foreground);
 }
 
 .customerNodePagerBtn {
@@ -878,7 +915,7 @@
   background: rgba(8, 17, 29, 0.92) !important;
   border: 1px solid rgba(248, 113, 113, 0.24) !important;
   border-radius: 6px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   color: #f8fafc !important;
   font-size: 0.72rem !important;
   font-weight: 700 !important;
@@ -901,14 +938,22 @@
   align-items: center;
   gap: 0.28rem;
   padding: 0.36rem 0.72rem;
-  border-radius: 999px;
+  border-radius: 0.75rem;
   border: 2px solid rgba(56, 189, 248, 0.44);
   background: rgba(14, 165, 233, 0.86);
   color: #fff;
   font-size: 0.82rem;
-  font-weight: 800;
-  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.28);
-  transition: all 0.2s ease-in-out;
+  font-weight: 700;
+  max-width: 13rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.clusterName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .clusterStatusSymbol {
@@ -922,29 +967,31 @@
   color: #0f172a;
   font-size: 0.68rem;
   font-weight: 900;
+  flex-shrink: 0;
 }
 
 .clusterCount {
-  opacity: 0.76;
+  flex-shrink: 0;
+  opacity: 1;
   font-size: 0.72rem;
 }
 
 .customClusterLabel.clusterRed {
   border-color: rgba(248, 113, 113, 0.6);
   background: rgba(220, 38, 38, 0.9);
-  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.4);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
 }
 
 .customClusterLabel.clusterOrange {
   border-color: rgba(253, 186, 116, 0.6);
   background: rgba(249, 115, 22, 0.9);
-  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
 }
 
 .customClusterLabel.clusterPurple {
   border-color: rgba(216, 180, 254, 0.6);
   background: rgba(147, 51, 234, 0.9);
-  box-shadow: 0 10px 20px rgba(147, 51, 234, 0.4);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
 }
 
 
@@ -1196,6 +1243,8 @@
     width: 100%;
     max-width: 100%;
     padding: 0.42rem 0.5rem;
+    max-height: 60dvh;
+    overflow-y: auto;
   }
 
   .toolbarHeader {
@@ -1247,6 +1296,7 @@
   .searchFieldShell {
     width: 100%;
     min-width: 0;
+    flex-basis: auto;
   }
 
   .searchBar {
@@ -1267,22 +1317,17 @@
   .toolbarActionStack {
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     gap: 0.32rem;
   }
 
   .primaryActionsRow {
-    display: flex;
-    align-items: center;
-    gap: 0.32rem;
-    width: 100%;
+    display: contents;
   }
 
   .secondaryActionsRow {
-    display: flex;
-    align-items: center;
-    gap: 0.32rem;
+    display: contents;
   }
 
   .primaryActionBtn {
@@ -1315,16 +1360,29 @@
   }
 
   .mapStyleDropdown {
+    position: static;
     left: auto;
-    right: 0;
-    min-width: 160px;
+    right: auto;
+    width: 18rem;
+    max-width: 100%;
+    min-width: 0;
+    max-height: 32dvh;
+    overflow-y: auto;
+  }
+
+  .styleMenuAnchor {
+    min-width: 0;
+    max-width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
   }
 
   .optionsMenu {
     left: 0;
     right: auto;
-    min-width: min(17rem, calc(100vw - 1rem));
-    max-height: calc(100dvh - 8.5rem);
+    min-width: 0;
+    max-height: 32dvh;
   }
 
   .filterPanel {
@@ -1360,7 +1418,7 @@
   .filterBtn {
     flex-shrink: 0;
     white-space: nowrap;
-    min-height: 36px;
+    min-height: 44px;
     padding: 0.26rem 0.58rem;
     font-size: 0.72rem;
     font-weight: 600;

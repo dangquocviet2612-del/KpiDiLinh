@@ -22,12 +22,16 @@ describe("customer card header data and interaction preservation", () => {
     expect(longCustomerName.length).toBeLessThanOrEqual(200); expect(longCustomerStatus.length).toBeLessThanOrEqual(50);
   });
 
-  it.each(["ADMIN", "MANAGER", "CTV"])("preserves role-gated controls for long header: %s", (role) => {
+  it.each(["ADMIN", "MANAGER", "CTV"])("preserves role-gated controls for long header: %s", async (role) => {
+    const user = userEvent.setup();
     const props = customerHeaderProps("long-name", role);
     render(<CustomerTableRefined {...props} customers={[{ ...props.customers[0], nodeName: null }]} />);
     const card = screen.getByRole("article");
     expect(within(card).queryAllByRole("checkbox")).toHaveLength(role === "ADMIN" ? 1 : 0);
-    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(0);
+    expect(within(card).queryAllByRole("button", { name: /^Thao tác khác/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    if (role === "ADMIN") await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    expect(within(card).queryAllByRole("menuitem", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
     expect(within(card).getByRole("button", { name: /^Xem node/ })).toBeDisabled();
     expect(within(card).getByRole("button", { name: /^Sửa/ })).toBeEnabled();
   });
@@ -41,7 +45,8 @@ describe("customer card header data and interaction preservation", () => {
     await user.click(label); expect(onSelectIds).toHaveBeenCalledExactlyOnceWith([customer.id]);
     await user.click(within(card).getByRole("button", { name: /^Sao chép/ })); expect(onCopyAccount).toHaveBeenCalledExactlyOnceWith(customer.account);
     await user.click(within(card).getByRole("button", { name: /^Sửa/ })); expect(onEdit).toHaveBeenCalledExactlyOnceWith(customer);
-    await user.click(within(card).getByRole("button", { name: /^Xóa/ })); expect(onDelete).toHaveBeenCalledExactlyOnceWith(customer.id);
+    await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    await user.click(within(card).getByRole("menuitem", { name: /^Xóa/ })); expect(onDelete).toHaveBeenCalledExactlyOnceWith(customer.id);
     expect(submit).not.toHaveBeenCalled(); for (const button of within(card).getAllByRole("button")) expect(button).toHaveAttribute("type", "button");
   });
 

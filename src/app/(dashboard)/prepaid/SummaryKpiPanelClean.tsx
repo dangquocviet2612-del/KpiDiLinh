@@ -1,4 +1,7 @@
-import { ListFilter } from "lucide-react";
+"use client";
+
+import { useId, useState } from "react";
+import { ChevronDown, ListFilter } from "lucide-react";
 import styles from "./kpi.module.css";
 import PrepaidPanelState from "./PrepaidPanelState";
 
@@ -72,6 +75,9 @@ type SummaryKpiPanelCleanProps = {
 };
 
 export default function SummaryKpiPanelClean(props: SummaryKpiPanelCleanProps) {
+  const [secondaryFiltersOpen, setSecondaryFiltersOpen] = useState(false);
+  const secondaryFiltersId = useId();
+  const hasManagerFilter = props.canAdmin && Boolean(props.managerFilter);
   const detailGapLabel = props.summaryMeta.isNegativeGroup ? "Vượt ngưỡng" : "Còn thiếu";
   const incompleteCount = props.summaryRows.filter((row) => Number(row.percent || 0) < 100).length;
   const achievedCount = props.summaryRows.length - incompleteCount;
@@ -92,8 +98,8 @@ export default function SummaryKpiPanelClean(props: SummaryKpiPanelCleanProps) {
         </div>
       </div>
 
-      <div className={`glass-panel ${styles.toolbar} ${styles.mobileStickyFilter}`}>
-        <label className={styles.toolbarField}>
+      <div className={`glass-panel ${styles.toolbar} ${styles.mobileStickyFilter} ${styles.summaryToolbar}`}>
+        <label className={`${styles.toolbarField} ${styles.summaryPrimaryDate}`}>
           <span className={styles.toolbarFieldLabel}>Ngày báo cáo</span>
           <input
             type="date"
@@ -102,6 +108,18 @@ export default function SummaryKpiPanelClean(props: SummaryKpiPanelCleanProps) {
             onChange={(event) => props.onReportDateChange(event.target.value)}
           />
         </label>
+        <button
+          type="button"
+          className={`${props.surfaceActionBtnClass} ${styles.summarySecondaryToggle}`}
+          aria-controls={secondaryFiltersId}
+          aria-expanded={secondaryFiltersOpen}
+          onClick={() => setSecondaryFiltersOpen((current) => !current)}
+        >
+          Bộ lọc khác{hasManagerFilter ? " (1)" : ""}
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+        {hasManagerFilter && <span className={styles.summaryAppliedManager}>Quản lý: {props.managerFilter}</span>}
+        <div id={secondaryFiltersId} className={styles.summarySecondaryFilters} data-open={secondaryFiltersOpen}>
         {props.canAdmin && (
           <label className={styles.toolbarField}>
             <span className={styles.toolbarFieldLabel}>Quản lý</span>
@@ -122,7 +140,8 @@ export default function SummaryKpiPanelClean(props: SummaryKpiPanelCleanProps) {
         <button className={props.surfaceActionBtnClass} onClick={props.onRefresh}>
           Làm mới dữ liệu
         </button>
-        <label className={styles.toolbarField}>
+        </div>
+        <label className={`${styles.toolbarField} ${styles.summaryPrimaryIndicator}`}>
           <span className={styles.toolbarFieldLabel}>Chỉ tiêu</span>
           <select
             className="input-base"
@@ -138,7 +157,7 @@ export default function SummaryKpiPanelClean(props: SummaryKpiPanelCleanProps) {
         </label>
         <button
           type="button"
-          className={`${props.surfaceActionBtnClass} ${props.summaryOnlyIncomplete ? styles.managerFilterActive : ""}`}
+          className={`${props.surfaceActionBtnClass} ${styles.summaryIncompleteToggle} ${props.summaryOnlyIncomplete ? styles.managerFilterActive : ""}`}
           aria-pressed={props.summaryOnlyIncomplete}
           onClick={() => props.onOnlyIncompleteChange(!props.summaryOnlyIncomplete)}
         >

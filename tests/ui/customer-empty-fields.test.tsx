@@ -46,7 +46,10 @@ describe("compact customer missing contact fields", () => {
     expect(within(card).getByText("Chưa có SĐT")).toBeVisible();
     expect(within(card).getByText("Chưa có account")).toBeVisible();
     expect(within(card).queryAllByRole("checkbox")).toHaveLength(role === "ADMIN" ? 1 : 0);
-    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(0);
+    expect(within(card).queryAllByRole("button", { name: /^Thao tác khác/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    if (role === "ADMIN") await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    expect(within(card).queryAllByRole("menuitem", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
     expect(within(card).getByRole("button", { name: /^Xem node/ })).toBeDisabled();
     await user.click(within(card).getByRole("button", { name: /^Sửa/ }));
     expect(onEdit).toHaveBeenCalledExactlyOnceWith(customer);

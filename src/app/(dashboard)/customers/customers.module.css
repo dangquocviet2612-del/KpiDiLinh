@@ -1917,12 +1917,21 @@
     display: flex;
     flex-direction: column;
     gap: 0.28rem;
-    padding: 0.64rem 0.72rem;
-    border-radius: 0.88rem;
-    border: 1px solid color-mix(in srgb, white 8%, var(--border));
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
-        color-mix(in srgb, var(--background) 46%, var(--card));
+    padding: 0.2rem 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.mobileCard .mobileDeleteMenu {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+    min-width: min(16rem, calc(100vw - 2rem));
+}
+
+.mobileCard .mobileDeleteMenu button {
+    min-height: 44px;
+    color: var(--destructive);
 }
 
 .mobilePhoneMain,

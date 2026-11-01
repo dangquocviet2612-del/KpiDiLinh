@@ -23,17 +23,20 @@ describe("customer mobile control contract", () => {
     { label: /^Xóa/, callback: "onDelete" as const, argument: syntheticCustomer.id },
   ])("delegates $callback once without submitting a surrounding form", async ({ label, callback, argument }) => {
     const user = userEvent.setup(); const { card, callbacks, submit } = setup();
-    const button = within(card).getByRole("button", { name: label });
+    if (callback === "onDelete") await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    const button = within(card).getByRole(callback === "onDelete" ? "menuitem" : "button", { name: label });
     await user.click(button);
     expect(callbacks[callback]).toHaveBeenCalledExactlyOnceWith(argument);
     expect(submit).not.toHaveBeenCalled(); expect(button).toHaveAttribute("type", "button");
   });
 
-  it("names the card and its mobile actions for the customer", () => {
-    setup(); const card = screen.getByRole("article", { name: `Khách hàng ${syntheticCustomer.name}` });
-    for (const name of [`Sao chép account của ${syntheticCustomer.name}`, `Xem node của ${syntheticCustomer.name}`, `Sửa khách hàng ${syntheticCustomer.name}`, `Xóa khách hàng ${syntheticCustomer.name}`]) {
+  it("names the card and its mobile actions for the customer", async () => {
+    const user = userEvent.setup(); setup(); const card = screen.getByRole("article", { name: `Khách hàng ${syntheticCustomer.name}` });
+    for (const name of [`Sao chép account của ${syntheticCustomer.name}`, `Xem node của ${syntheticCustomer.name}`, `Sửa khách hàng ${syntheticCustomer.name}`, `Thao tác khác của ${syntheticCustomer.name}`]) {
       expect(within(card).getByRole("button", { name })).toBeInTheDocument();
     }
+    await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    expect(within(card).getByRole("menuitem", { name: `Xóa khách hàng ${syntheticCustomer.name}` })).toBeInTheDocument();
   });
 
   it("uses a native label as the checkbox hit target without double selection", async () => {
@@ -60,10 +63,14 @@ describe("customer mobile control contract", () => {
     expect(callbacks.onSelectIds).toHaveBeenCalledExactlyOnceWith([]);
   });
 
-  it.each(["ADMIN", "MANAGER", "CTV"])("keeps selection and deletion restricted to ADMIN: %s", (role) => {
+  it.each(["ADMIN", "MANAGER", "CTV"])("keeps selection and deletion restricted to ADMIN: %s", async (role) => {
+    const user = userEvent.setup();
     const { card } = setup(role);
     expect(within(card).queryAllByRole("checkbox")).toHaveLength(role === "ADMIN" ? 1 : 0);
-    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(0);
+    if (role === "ADMIN") await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    else expect(within(card).queryByRole("button", { name: /^Thao tác khác/ })).not.toBeInTheDocument();
+    expect(within(card).queryAllByRole("menuitem", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
     expect(within(card).getByRole("button", { name: /^Sửa/ })).toBeEnabled();
   });
 

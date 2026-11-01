@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Node0TbMap from "@/app/(dashboard)/node-0tb/Node0TbMap";
 import type { Node0TbItem } from "@/types";
+import type { MapViewport } from "@/lib/map-viewport";
 
 type MapItem = Pick<Node0TbItem, "id" | "nodeCode" | "dateKdFormatted" | "totalPort" | "categoryKd" | "latitude" | "longitude" | "hasCoordinates">;
 type FixtureMarker = {
@@ -23,6 +24,9 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   clipboard: vi.fn(),
   geolocation: vi.fn(),
+  summary: vi.fn(),
+  viewportOnChange: null as ((viewport: MapViewport) => void) | null,
+  clusterOptions: null as { iconCreateFunction: (cluster: unknown) => { html: string } } | null,
   markers: [] as FixtureMarker[],
   cluster: { addLayers: vi.fn(), zoomToShowLayer: vi.fn() },
   map: { flyTo: vi.fn(), invalidateSize: vi.fn(), addLayer: vi.fn(), removeLayer: vi.fn(), zoomIn: vi.fn(), zoomOut: vi.fn(), fitBounds: vi.fn() },
@@ -30,6 +34,20 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { role: mocks.role } } }) }));
 vi.mock("react-hot-toast", () => ({ toast: { success: mocks.success, error: mocks.error } }));
+vi.mock("@/components/map", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/map")>();
+  return {
+    ...actual,
+    MapDataSummary: (props: Parameters<typeof actual.MapDataSummary>[0]) => {
+      mocks.summary(props);
+      return <actual.MapDataSummary {...props} />;
+    },
+    MapViewportObserver: ({ onChange }: { onChange: (viewport: MapViewport) => void }) => {
+      mocks.viewportOnChange = onChange;
+      return <div data-testid="viewport-observer" />;
+    },
+  };
+});
 vi.mock("react-leaflet", () => ({
   MapContainer: ({ children }: { children: ReactNode }) => <div data-testid="map-canvas">{children}</div>,
   Marker: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -41,10 +59,13 @@ vi.mock("leaflet.markercluster", () => ({}));
 vi.mock("leaflet", () => ({
   default: {
     icon: vi.fn(),
-    divIcon: vi.fn(),
+    divIcon: vi.fn((options) => options),
     Marker: { prototype: { options: {} } },
     latLngBounds: (coordinates: number[][]) => coordinates,
-    markerClusterGroup: () => mocks.cluster,
+    markerClusterGroup: (options: NonNullable<typeof mocks.clusterOptions>) => {
+      mocks.clusterOptions = options;
+      return mocks.cluster;
+    },
     marker: (coordinates: number[], options: { title: string }) => {
       const marker: FixtureMarker = {
         coordinates,
@@ -76,8 +97,16 @@ const projectedUrl = "/api/node-0tb?projection=map";
 
 async function loaded() {
   render(<Node0TbMap />);
-  await screen.findByText("Hiển thị 2 node trên bản đồ");
+  await screen.findByText("Tổng node");
   await waitFor(() => expect(mocks.cluster.addLayers).toHaveBeenCalled());
+}
+
+function expectSummary(counts: { totalCount: number; coordinateCount: number; matchedCount: number; inViewportCount: number | null }) {
+  expect(mocks.summary).toHaveBeenLastCalledWith(expect.objectContaining({ totalLabel: "Tổng node", ...counts }));
+}
+
+function openFilters() {
+  fireEvent.click(screen.getByRole("button", { name: "Bộ lọc" }));
 }
 
 function latestMarker(code: string) {
@@ -90,6 +119,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.role = "ADMIN";
   mocks.markers = [];
+  mocks.viewportOnChange = null;
+  mocks.clusterOptions = null;
   mocks.fetch.mockResolvedValue({ ok: true, json: async () => payload });
   mocks.clipboard.mockResolvedValue(undefined);
   mocks.cluster.zoomToShowLayer.mockImplementation((_marker, callback: () => void) => callback());
@@ -111,6 +142,7 @@ describe("Node0Tb map DTO consumer", () => {
   it("opts in with one projected GET and retains full category counts and mapped marker count", async () => {
     await loaded();
     expect(mocks.fetch).toHaveBeenCalledExactlyOnceWith(projectedUrl);
+    openFilters();
     expect(screen.getByRole("button", { name: "Tất cả3" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: 'Group <A> & "0"1' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Group B2" })).toBeInTheDocument();
@@ -140,8 +172,9 @@ describe("Node0Tb map DTO consumer", () => {
 
   it("retains local category filters and fit/zoom controls including zero coordinates", async () => {
     await loaded();
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: 'Group <A> & "0"1' }));
-    expect(screen.getByText("Hiển thị 1 node trên bản đồ")).toBeInTheDocument();
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 1, inViewportCount: null });
     fireEvent.click(screen.getByRole("button", { name: "Hiện toàn bộ Node 0TB" }));
     expect(mocks.map.fitBounds).toHaveBeenCalledWith([[0, 0]], { padding: [48, 48], maxZoom: 16 });
     fireEvent.click(screen.getByRole("button", { name: "Phóng to bản đồ" }));
@@ -149,7 +182,7 @@ describe("Node0Tb map DTO consumer", () => {
     expect(mocks.map.zoomIn).toHaveBeenCalledOnce();
     expect(mocks.map.zoomOut).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "Tất cả3" }));
-    expect(screen.getByText("Hiển thị 2 node trên bản đồ")).toBeInTheDocument();
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 2, inViewportCount: null });
     expect(mocks.fetch).toHaveBeenCalledOnce();
   });
 
@@ -174,6 +207,7 @@ describe("Node0Tb map DTO consumer", () => {
 
   it("retains name search, cross-category selection and popup opening", async () => {
     await loaded();
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: 'Group <A> & "0"1' }));
     const search = screen.getByRole("combobox", { name: "Tìm Node 0TB trên bản đồ" });
     fireEvent.change(search, { target: { value: "fixture-b" } });
@@ -225,7 +259,7 @@ describe("Node0Tb map DTO consumer", () => {
     render(<Node0TbMap />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Không tải được bản đồ Node 0TB");
     fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
-    await screen.findByText("Hiển thị 2 node trên bản đồ");
+    await screen.findByText("Tổng node");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(mocks.fetch.mock.calls).toEqual([[projectedUrl], [projectedUrl]]);
   });
@@ -244,6 +278,99 @@ describe("Node0Tb map DTO consumer", () => {
     expect(mocks.fetch.mock.calls[1][1].body.get("file")).toBe(file);
     expect(mocks.fetch.mock.calls[2]).toEqual([projectedUrl]);
     expect(mocks.success).toHaveBeenCalledWith("fixture upload accepted");
-    await screen.findByText("Hiển thị 2 node trên bản đồ");
+    await screen.findByText("Tổng node");
+  });
+
+  it("shows the map heading and visible GPS, list and admin action text", async () => {
+    await loaded();
+    expect(screen.getByRole("heading", { name: "Bản đồ Node 0TB" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vị trí của tôi" })).toHaveTextContent("Vị trí của tôi");
+    expect(screen.getByRole("button", { name: "Xem danh sách Node 0TB" })).toHaveTextContent("Danh sách");
+    expect(screen.getByRole("button", { name: "Quản trị dữ liệu Node 0TB" })).toHaveTextContent("Quản trị");
+  });
+
+  it("collapses filters without clearing the category selection or changing markers", async () => {
+    await loaded();
+    const toggle = screen.getByRole("button", { name: "Bộ lọc" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const panel = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+    expect(panel).toHaveAttribute("hidden");
+    openFilters();
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Group B2" }));
+    await waitFor(() => expect(mocks.cluster.addLayers.mock.calls.at(-1)?.[0]).toHaveLength(1));
+    openFilters();
+    expect(panel).toHaveAttribute("hidden");
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 1, inViewportCount: null });
+    openFilters();
+    expect(screen.getByRole("button", { name: "Group B2" })).toHaveAttribute("aria-pressed", "true");
+    expect(mocks.fetch).toHaveBeenCalledOnce();
+  });
+
+  it("distinguishes loaded, coordinate, category and actual viewport counts without filtering by search", async () => {
+    await loaded();
+    expect(screen.getByText("Có tọa độ")).toBeInTheDocument();
+    expect(screen.getByText("Qua bộ lọc")).toBeInTheDocument();
+    expect(screen.getByText("Trong khung")).toBeInTheDocument();
+    expect(screen.getByText(/1 bản ghi chưa có tọa độ hợp lệ/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hiển thị .* node trên bản đồ/)).not.toBeInTheDocument();
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 2, inViewportCount: null });
+    expect(within(screen.getByTestId("map-canvas")).getByTestId("viewport-observer")).toBeInTheDocument();
+    act(() => mocks.viewportOnChange!({ south: -1, west: -1, north: 1, east: 1, zoom: 12 }));
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 2, inViewportCount: 1 });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "fixture-b" } });
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 2, inViewportCount: 1 });
+    expect(mocks.cluster.addLayers.mock.calls.at(-1)?.[0]).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Xóa tìm kiếm" }));
+    openFilters();
+    fireEvent.click(screen.getByRole("button", { name: "Group B2" }));
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 1, inViewportCount: 0 });
+    act(() => mocks.viewportOnChange!({ south: 10, west: 106, north: 12, east: 108, zoom: 15 }));
+    expectSummary({ totalCount: 3, coordinateCount: 2, matchedCount: 1, inViewportCount: 1 });
+    expect(mocks.fetch).toHaveBeenCalledOnce();
+    expect(mocks.map.flyTo).not.toHaveBeenCalled();
+    expect(mocks.map.fitBounds).not.toHaveBeenCalled();
+    expect(mocks.map.zoomIn).not.toHaveBeenCalled();
+    expect(mocks.map.zoomOut).not.toHaveBeenCalled();
+  });
+
+  it("derives coordinate counts and markers from valid finite coordinates rather than stale flags or stats", async () => {
+    const invalidNodes: MapItem[] = [
+      { ...nodes[0], hasCoordinates: false },
+      { ...nodes[1], latitude: 91 },
+      { ...nodes[1], id: "infinite", nodeCode: "INFINITE", longitude: Infinity },
+      { ...nodes[2], hasCoordinates: true },
+    ];
+    mocks.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ ...payload, nodes: invalidNodes, stats: { ...payload.stats, total: 99, withCoords: 99, withoutCoords: 0 } }) });
+    await loaded();
+    expectSummary({ totalCount: 4, coordinateCount: 1, matchedCount: 1, inViewportCount: null });
+    expect(screen.getByText(/3 bản ghi chưa có tọa độ hợp lệ/)).toBeInTheDocument();
+    expect(mocks.cluster.addLayers.mock.calls.at(-1)?.[0]).toHaveLength(1);
+    expect(latestMarker(nodes[0].nodeCode).coordinates).toEqual([0, 0]);
+    fireEvent.click(screen.getByRole("button", { name: "Hiện toàn bộ Node 0TB" }));
+    expect(mocks.map.fitBounds).toHaveBeenCalledWith([[0, 0]], { padding: [48, 48], maxZoom: 16 });
+  });
+
+  it("separates the full escaped cluster prefix from its count and retains category color priority", async () => {
+    await loaded();
+    const prefix = '<script>alert("long-prefix")</script>'.replaceAll("-", "_");
+    const html = mocks.clusterOptions!.iconCreateFunction({
+      getChildCount: () => 3,
+      getAllChildMarkers: () => [
+        { options: { title: `${prefix}-BRANCH-001` }, nodeCategory: "6-12" },
+        { options: { title: `${prefix}-BRANCH-002` }, nodeCategory: "12-24" },
+        { options: { title: `${prefix}-BRANCH-003` }, nodeCategory: ">24" },
+      ],
+    }).html;
+    const cluster = new DOMParser().parseFromString(html, "text/html");
+    const spans = cluster.querySelectorAll("span");
+    expect(spans).toHaveLength(2);
+    expect(spans[0].textContent).toBe(`${prefix}-BRANCH`);
+    expect(spans[0].className).toContain("clusterName");
+    expect(spans[1].textContent).toBe("(3)");
+    expect(spans[1].className).toContain("clusterCount");
+    expect(cluster.querySelector("script")).toBeNull();
+    expect(cluster.querySelector("div")?.className).toContain("clusterRed");
+    expect(latestMarker(nodes[0].nodeCode).options.title).toBe(nodes[0].nodeCode);
   });
 });

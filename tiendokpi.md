@@ -1517,3 +1517,36 @@ Chi tiết `docs/ftth-production-release.md`. Evidence giữ trong `.local/deplo
 - Kết quả phát hành được ghi bằng commit tài liệu riêng sau commit ứng dụng; không đổi code đã deploy hoặc tự deploy lần nữa do Git chưa nối project Vercel.
 
 Evidence private: `.local/deployment/production-publish-20261101/production-upgrade-attempt2-result.json`; chi tiết `docs/ftth-production-release.md`. Không đưa database/backup/env/token vào Git hoặc gói deploy.
+
+## 78. Đối chiếu checklist và chuẩn bị backup ngoài máy (01/11/2026)
+
+- Tiếp theo review plan: chỉ cập nhật tài liệu, không sửa application code/auth/SQL/config/dependencies hoặc chạy lại migration. Snapshot source tại `84781dd`, lưu preimage/hash và giữ nguyên index/HEAD; không lấy candidate68 từ worktree.
+- Thêm bảng trạng thái 13 task vào plan chính, phân biệt triển khai/nghiệm thu/vận hành; cập nhật đúng các phần đã có evidence release77: baseline và nâng FTTH, tám domain, CI Ubuntu, deploy/alias/smoke. Không tick toàn task khi chỉ một phần đạt; Windows/native/auth/Node0TB/ba role/field performance vẫn riêng.
+- Tách các checklist gộp để không gọi bốn nhóm size guard đã phát hành là bảo vệ mọi importer; ghi gap chưa thấy `File.size` preflight ở import CD/FTTH/shared hook, chưa thử upload thật hoặc sửa code. File lớn/job/storage vẫn cần nhu cầu/duyệt riêng.
+- Loại CDT tồn/Rời mạng/Nguy cơ rời mạng khỏi phạm vi cải thiện UI, không khôi phục menu. Ghi rõ bỏ menu không đồng nghĩa xóa deep-link/API/bảng; không tự dọn dữ liệu hoặc code còn phụ thuộc.
+- Thêm `docs/operations-backup-recovery.md`: phân biệt JSON/SQLite/gói mã hóa, cap web restore, bản trước nâng khác bản mới sau FTTH; quy trình chọn nơi lưu, key protection, checksum đọc lại và restore drill trên DB riêng, lịch/retention/RPO/RTO. Hai backup cũ cùng ổ D chưa phải backup ngoài máy; đã hỏi owner chọn đích, chưa copy dữ liệu, mã hóa hoặc bật lịch tự động.
+- Thứ tự tiếp theo: chọn đích/chuẩn bị backup ngoài máy, thiết kế/test thu hồi phiên/quyền, browser staging ba role/CD–FTTH, rồi measurement và gate map/performance. Không gọi CI/smoke chưa đăng nhập là nghiệm thu nghiệp vụ.
+
+Evidence private của đợt này: `.local/performance/plan-reconciliation-20261101/` cho preimage/inventory và validation docs-only; không đọc env/token/database hoặc truy cập Production trong đợt này. Chưa commit/push/deploy các tài liệu mới.
+
+## 79. Tinh gọn ba phần UI theo review, chỉ local (01/11/2026)
+
+- Owner duyệt nhãn tỷ lệ CD/FTTH, bộ lọc Tổng hợp KPI mobile và card khách hàng. Giữ palette/API/công thức/quyền/data; không đổi bản đồ, navigation hoặc cài đặt online. Snapshot 552 đường dẫn public và giữ các tài liệu mục 78; dùng source copy cô lập, không promote candidate68.
+- CD/FTTH: status riêng “Tỷ lệ chưa lưu” cho ADMIN, không gọi draft là “Bộ lọc (1)”; nút Lưu giữ accessible name/busy state khi spinner. Summary mobile: phần phụ mở/đóng không reset manager/ngày/chỉ tiêu hoặc tự refresh; giữ các thông tin chính và nhãn manager đang lọc. Desktop giữ layout cũ.
+- Card mobile bỏ các khung lồng phone/account/package; ADMIN mở menu hiện có mới Xóa, giữ đúng callback/id/role, Escape/outside-click và target 44px; desktop xóa như cũ. Không đổi xác nhận hoặc DELETE backend.
+- TDD đầu 96 case/16 fail; review thêm regression bàn phím 97 case/1 fail → sau sửa **97/97 đạt**. Cập nhật bốn test customer cũ để mở menu trước Xóa, không bỏ role/callback/non-submit assertions. Lượt candidate cuối **95 file/1.671 unit/UI đạt**, types/lint 0 warning, isolated Next build đạt với fake env/database; cảnh báo suy luận workspace root được giữ, không đổi config.
+- Chrome fixture: **24 ảnh/26 kiểm tra đạt**, sáu cặp desktop PNG giống nhau. Fixture 390px light/dark: toolbar summary 324,59→237px, card khách 397,64→349,36px; không phải benchmark tốc độ hoặc số liệu mọi dữ liệu thật. Giữ các lượt lỗi runner và visual/target ban đầu, sửa DOM focus/CSS specificity/44px trước khi nhận lượt cuối.
+- Review source/test theo hash duyệt lại sau khi sửa thứ tự Tab. Tích hợp primary phải có manifest và focused/static riêng; không dùng kết quả candidate thay chứng cứ primary. Không chạy native Windows hoặc đóng gate auth/Node0TB/ba role/hiệu năng; không commit/push/deploy đợt này.
+
+Chi tiết `docs/mobile-ui-polish.md`; plan `docs/superpowers/plans/2026-11-01-mobile-ui-polish-local.md`. Evidence private `.local/performance/ui-polish-20261101/` giữ preimage/source inventory/RED/failures/final QA/browser/review/scope; không commit env, database, ảnh hoặc log riêng tư.
+
+## 80. Đồng bộ giao diện ba bản đồ theo preview đã duyệt (01/11/2026)
+
+- Người dùng duyệt preview Node0TB và yêu cầu áp dụng cho Khách hàng, Node và Node0TB; sau đó cho phép push/deploy khi kiểm tra đạt. Giữ nguyên các thay đổi local của checkpoint78–79, không lấy candidate68 từ worktree hoặc mang fixture/SVG preview vào ứng dụng.
+- Header/toolbar phẳng theo theme, nút có chữ, bộ lọc thu gọn giữ lựa chọn và ngữ cảnh. Tách bốn số đã tải/có tọa độ/qua bộ lọc/trong bounds; không gọi tập tối đa 10.000 khách hàng có tọa độ theo phân quyền là tổng toàn hệ thống. Giữ `(0,0)`, không dùng truthiness hoặc đổi tìm kiếm gợi ý thành lọc marker.
+- Observer chỉ đọc bounds, không gọi API/di chuyển bản đồ; khử snapshot trùng và cleanup. Lọc tọa độ hữu hạn/hợp lệ trước render/fit, giữ thuật toán cụm/màu/escaping. Tên cụm có thể rút gọn nhưng số lượng/full title/popup vẫn còn. Danh sách khách hàng chuyển lên toolbar và trả focus khi đóng.
+- RED domain: 26 case thất bại/24 đạt trước thay đổi; focused cuối **132 case đạt**, toàn unit/UI **98 file/1.698 case đạt**, types/lint đạt, isolated Next build đạt với credentials giả. Giữ báo cáo lỗi trước đó; không đổi pool/timeout hoặc bỏ case.
+- Chrome dùng component và Leaflet thật nhưng API/GPS/tiles giả; mobile/tablet/desktop, light/dark và chữ 200%. Đã sửa CSS global ghi đè 44px và flex customer tràn màn hình; review còn phát hiện badge chữ trắng trên nền sáng và menu Node0TB âm tọa độ trái, đã tái hiện thành hồi quy trước sửa. Panel mobile cuộn tối đa 60dvh để còn thao tác zoom/fit, menu trong luồng không bị cắt.
+- Không đọc/ghi database, đổi API/auth/roles/providers, chạy migration hoặc khẳng định các gate native Windows/auth68/Node0TB timing/strict-visual/ba role thực tế đã qua. Chỉ phát hành sau khi browser/review/scope cuối đạt; kết quả GitHub/Vercel được ghi riêng sau khi xác minh.
+
+Chi tiết `docs/map-workspace-ui.md`; plan `docs/superpowers/plans/2026-11-01-map-workspace-local.md`. Evidence private `.local/performance/map-workspace-20261101/`; không đưa backup/env/token/ảnh QA vào Git hoặc gói deploy.

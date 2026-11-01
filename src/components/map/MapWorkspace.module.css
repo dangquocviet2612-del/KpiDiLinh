@@ -1,0 +1,91 @@
+.heading {
+  padding: 0.45rem 0.5rem 0.7rem;
+  color: var(--foreground);
+}
+
+.heading > span {
+  display: block;
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heading h1 {
+  margin: 0.2rem 0 0;
+  font-size: 1.08rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.summary {
+  width: 100%;
+  min-width: 0;
+  color: var(--foreground);
+  pointer-events: auto;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0.65rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.metric {
+  min-width: 0;
+  padding: 0.6rem 0.5rem 0.3rem;
+}
+
+.metric + .metric {
+  border-left: 1px solid var(--border);
+}
+
+.metric dt {
+  color: var(--secondary-foreground);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  overflow-wrap: normal;
+}
+
+.metric dd {
+  margin: 0.12rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.3;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.65rem;
+  padding: 0.25rem 0.5rem 0.4rem;
+  color: var(--secondary-foreground);
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.25rem), 1fr));
+  }
+
+  .heading {
+    padding-bottom: 0.5rem;
+  }
+
+  .metric {
+    padding-inline: 0.35rem;
+  }
+
+  .metric dt {
+    font-size: 0.66rem;
+  }
+
+  .metric dd {
+    font-size: 1rem;
+  }
+}

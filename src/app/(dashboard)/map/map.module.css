@@ -30,19 +30,51 @@
 
 .searchOverlay {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
-    right: auto;
+    top: 0.72rem;
+    left: 0.72rem;
+    right: 0.72rem;
     z-index: 1010;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    pointer-events: none;
+}
+
+.workspacePanel {
+    width: min(100%, 66rem);
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.92rem;
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    pointer-events: auto;
+}
+
+.toolbarMainRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
     gap: 0.5rem;
-    max-width: calc(100% - 2rem);
+}
+
+.searchField {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+
+.searchLabel {
+    display: block;
+    margin: 0 0 0.3rem 0.25rem;
+    color: var(--secondary-foreground);
+    font-size: 0.72rem;
+    font-weight: 600;
 }
 
 .searchBar {
-    width: min(34rem, calc(100vw - 10rem));
-    max-width: min(34rem, calc(100vw - 10rem));
+    width: 100%;
+    max-width: 100%;
     flex: 1 1 auto;
     position: relative;
 }
@@ -57,14 +89,12 @@
 
 .searchInput {
     width: 100%;
-    height: 3rem;
+    height: 44px;
     padding: 0 2.5rem 0 2.6rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    background: rgba(30, 41, 59, 0.82);
-    color: #f1f5f9;
-    backdrop-filter: blur(14px);
-    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--foreground);
 }
 
 .searchInput:focus {
@@ -74,17 +104,21 @@
 }
 
 .searchInput::placeholder {
-    color: #64748b;
+    color: var(--secondary-foreground);
 }
 
 .clearBtn {
     position: absolute;
-    right: 0.5rem;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
     border-radius: 50%;
-    padding: 0.25rem;
-    color: #94a3b8;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-foreground);
 }
 
 .clearBtn:hover {
@@ -93,14 +127,37 @@
 
 .mapActionsGroup {
     display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
     gap: 0.4rem;
     align-items: center;
 }
 
-.mapActionBtn {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 1rem;
+.mapOuter .mapActionBtn {
+    width: auto;
+    min-height: 44px;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.65rem;
+    background: var(--input-bg);
+    border-color: var(--border);
+    color: var(--foreground);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    font-size: 0.76rem;
+}
+
+.mapOuter .mapActionBtn:hover:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+}
+
+.mapActionBtn:focus-visible,
+.clearBtn:focus-visible,
+.filterBtn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .mapActionBtn:disabled {
@@ -126,21 +183,35 @@
 }
 
 .filterControls {
-    position: absolute;
-    top: 4.6rem;
-    left: 1rem;
-    z-index: 1000;
     display: flex;
     flex-wrap: nowrap;
     gap: 0.3rem;
     padding: 0.28rem;
     border-radius: 1rem;
-    background: rgba(30, 41, 59, 0.84);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    max-width: calc(100% - 2rem);
+    background: var(--background);
+    border: 1px solid var(--border);
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
-    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+    box-shadow: none;
+}
+
+.filterPanel {
+    min-width: 0;
+    max-width: 100%;
+    pointer-events: auto;
+}
+
+.filterPanel[hidden] {
+    display: none;
+}
+
+.mapOuter .filterBtn {
+    min-height: 44px;
+    color: var(--foreground);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .filterControls::-webkit-scrollbar {
@@ -154,9 +225,9 @@
 }
 
 .filterBtn.active {
-    background: rgba(248, 113, 113, 0.18);
-    border-color: rgba(248, 113, 113, 0.38);
-    color: #fff1f2;
+    background: color-mix(in srgb, var(--primary) 12%, var(--background));
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .filterCount {
@@ -167,8 +238,8 @@
     height: 1.1rem;
     padding: 0 0.28rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #f8fafc;
+    background: var(--secondary);
+    color: var(--foreground);
     font-size: 0.62rem;
     font-weight: 700;
 }
@@ -209,16 +280,15 @@
 }
 
 .searchResults {
-    position: absolute;
-    top: 7.35rem;
-    left: 1rem;
+    position: relative;
     z-index: 1000;
-    width: min(23rem, calc(100% - 2rem));
+    width: min(32rem, 100%);
     background: rgba(15, 23, 42, 0.95);
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 1rem;
     overflow: hidden;
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+    pointer-events: auto;
 }
 
 .searchResultsHeader {
@@ -370,9 +440,9 @@
 
 .customerListPanel {
     position: absolute;
-    top: 7.35rem;
+    top: 0.72rem;
     bottom: 4rem;
-    left: 1rem;
+    right: 0.72rem;
     z-index: 1100;
     display: flex;
     width: min(23rem, calc(100% - 2rem));
@@ -381,9 +451,8 @@
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 1rem;
-    background: rgba(15, 23, 42, 0.96);
+    background: var(--background);
     box-shadow: 0 20px 48px rgba(15, 23, 42, 0.3);
-    backdrop-filter: blur(16px);
 }
 
 .customerListHeader {
@@ -397,20 +466,20 @@
 
 .customerListTitle {
     margin: 0;
-    color: #f8fafc;
+    color: var(--foreground);
     font-size: 0.9rem;
     font-weight: 700;
 }
 
 .customerListMeta {
     margin: 0.18rem 0 0;
-    color: #94a3b8;
+    color: var(--secondary-foreground);
     font-size: 0.7rem;
 }
 
-.customerListClose {
-    width: 2rem;
-    height: 2rem;
+.mapOuter .customerListClose {
+    width: 44px;
+    height: 44px;
     flex: 0 0 auto;
 }
 
@@ -420,11 +489,11 @@
     gap: 0.5rem;
     margin: 0.65rem 0.7rem 0.45rem;
     padding: 0 0.7rem;
-    min-height: 2.4rem;
+    min-height: 44px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 0.75rem;
-    color: #94a3b8;
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--secondary-foreground);
+    background: var(--input-bg);
 }
 
 .customerListSearch:focus-within {
@@ -438,7 +507,7 @@
     border: 0;
     outline: 0;
     background: transparent;
-    color: #f8fafc;
+    color: var(--foreground);
     font-size: 0.78rem;
 }
 
@@ -461,7 +530,7 @@
     gap: 0.6rem;
     padding: 0.65rem;
     border-radius: 0.75rem;
-    color: #e2e8f0;
+    color: var(--foreground);
     text-align: left;
 }
 
@@ -494,12 +563,12 @@
 }
 
 .customerListContent strong {
-    color: #f8fafc;
+    color: var(--foreground);
     font-size: 0.8rem;
 }
 
 .customerListContent span {
-    color: #cbd5e1;
+    color: var(--secondary-foreground);
     font-size: 0.72rem;
 }
 
@@ -897,13 +966,28 @@
 .satelliteMapTile {}
 
 @media (max-width: 768px) {
+    .mapOuter .mapStyleDropdown {
+        position: static;
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        max-height: 32dvh;
+        overflow-y: auto;
+    }
+
+    .workspacePanel {
+        max-height: 60dvh;
+        overflow-y: auto;
+    }
+
     .searchOverlay {
         right: 0.55rem;
         left: 0.55rem;
         top: 0.55rem;
         gap: 0.26rem;
         max-width: none;
-        align-items: center;
+        align-items: stretch;
     }
 
     .searchBar {
@@ -921,37 +1005,35 @@
     }
 
     .mapActionsGroup {
-        gap: 0.22rem;
-        flex: 0 0 auto;
+        gap: 0.3rem;
+        flex: 0 1 auto;
+        width: 100%;
     }
 
     .mapActionBtn {
-        width: 2.75rem;
-        height: 2.75rem;
-        border-radius: 0.8rem;
+        width: auto;
+        min-height: 44px;
+        border-radius: 0.65rem;
     }
 
     .filterControls {
-        left: 0.55rem;
-        right: 0.55rem;
-        top: 3.7rem;
         max-width: none;
         padding: 0.14rem;
         gap: 0.2rem;
         border-radius: 0.78rem;
-        background: rgba(30, 41, 59, 0.76);
+        background: var(--background);
     }
 
     .searchResults {
-        left: 0.55rem;
-        right: 0.55rem;
+        left: auto;
+        right: auto;
         width: auto;
-        top: 5.98rem;
+        top: auto;
         max-height: min(38vh, 18rem);
     }
 
     .customerListPanel {
-        top: 5.98rem;
+        top: 0.55rem;
         right: 0.55rem;
         bottom: 3.9rem;
         left: 0.55rem;
@@ -959,7 +1041,7 @@
     }
 
     .filterBtn {
-        min-height: 2rem;
+        min-height: 44px;
         padding: 0 0.56rem;
         font-size: 0.67rem;
         border-radius: 0.72rem;
@@ -1091,45 +1173,23 @@
 
 /* Add customer at current location button */
 .addAtLocationBtn {
-    background: rgba(16, 185, 129, 0.18) !important;
-    border: 1.5px solid rgba(52, 211, 153, 0.35) !important;
-    color: #34d399 !important;
+    background: var(--primary) !important;
+    border: 1px solid var(--primary) !important;
+    color: var(--primary-foreground) !important;
     position: relative;
     overflow: hidden;
-    transition: all 0.25s ease;
 }
 
 .addAtLocationBtn:hover {
-    background: rgba(16, 185, 129, 0.32) !important;
-    border-color: rgba(52, 211, 153, 0.55) !important;
-    color: #6ee7b7 !important;
-    box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
-    transform: scale(1.06);
+    background: var(--primary-light) !important;
+    border-color: var(--primary-light) !important;
+    color: var(--primary-foreground) !important;
+    box-shadow: none;
+    transform: none;
 }
 
 .addAtLocationBtn::after {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    border: 2px solid rgba(52, 211, 153, 0.4);
-    animation: addBtnPulse 2.5s ease-out infinite;
-    pointer-events: none;
-}
-
-@keyframes addBtnPulse {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    70% {
-        opacity: 0;
-        transform: scale(1.45);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(1.45);
-    }
+    content: none;
 }
 
 .confirmDialogOverlay {
@@ -1289,4 +1349,8 @@
 .styleName {
     font-size: 0.8rem;
     font-weight: 500;
+}
+
+.mapOuter .mapStyleDropdown :global(.ui-action-menu-item) {
+    min-height: 44px;
 }

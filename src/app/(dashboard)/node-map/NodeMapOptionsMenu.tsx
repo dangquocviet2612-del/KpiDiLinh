@@ -54,7 +54,7 @@ const NodeMapOptionsMenu = forwardRef<HTMLDivElement, NodeMapOptionsMenuProps>(f
         aria-haspopup="menu"
       >
         {props.busy ? <Loader2 size={17} className="animate-spin" /> : <SlidersHorizontal size={17} />}
-        <span>Tùy chọn</span>
+        <span>Thao tác</span>
       </button>
 
       {props.open && (

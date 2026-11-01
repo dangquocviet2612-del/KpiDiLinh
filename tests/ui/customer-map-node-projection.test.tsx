@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import L from "leaflet";
 import MapComponent from "@/app/(dashboard)/map/MapComponent";
+import type { MapViewport } from "@/lib/map-viewport";
 
 type FixtureMarker = {
   coordinates: number[];
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   clipboard: vi.fn(),
   search: vi.fn(),
   modal: vi.fn(),
+  viewportChange: undefined as undefined | ((viewport: MapViewport) => void),
   autoMoveEnd: true,
   stopMoveEnd: false,
   markers: [] as FixtureMarker[],
@@ -39,6 +41,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("react-hot-toast", () => ({ toast: { success: mocks.success, error: mocks.error, loading: mocks.loading } }));
 vi.mock("@/hooks/useMapSearch", () => ({ useMapSearch: mocks.search }));
+vi.mock("@/components/map", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/components/map")>(),
+  MapViewportObserver: ({ onChange }: { onChange: (viewport: MapViewport) => void }) => {
+    mocks.viewportChange = onChange;
+    return null;
+  },
+}));
 vi.mock("@/components/CustomerModalRefined", () => ({ default: (props: ModalProps) => {
   mocks.modal(props);
   return <div role="dialog" aria-label="Customer form boundary">
@@ -146,6 +155,7 @@ beforeEach(() => {
   mocks.markers = [];
   mocks.clusterEvents = {};
   mocks.mapClick = undefined;
+  mocks.viewportChange = undefined;
   mocks.autoMoveEnd = true;
   mocks.stopMoveEnd = false;
   const mapEvents = L.featureGroup();
@@ -327,7 +337,7 @@ describe("customer map coordinates DTO consumer", () => {
     mocks.fetch.mockResolvedValueOnce(reply({ data: [] }));
     fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
-    expect(screen.getByTitle("Xem danh sách khách hàng trên bản đồ")).toHaveTextContent("0 khách hàng trên bản đồ");
+    expect(screen.getByTitle("Xem danh sách khách hàng trên bản đồ")).toHaveTextContent("Danh sách");
     expect(mocks.fetch.mock.calls).toEqual([[customerUrl], [nodeUrl], [customerUrl]]);
     expect(writes()).toEqual([]);
   });
@@ -495,6 +505,7 @@ describe("customer map coordinates DTO consumer", () => {
     fireEvent.click(screen.getByTitle("Xem danh sách khách hàng trên bản đồ"));
     fireEvent.click(screen.getByRole("button", { name: /Fixture customer/ }));
     await waitFor(() => expect(mocks.map.flyTo).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /Bộ lọc/ }));
     fireEvent.click(screen.getByRole("button", { name: /Di động/ }));
     expect(mocks.map.removeLayer).toHaveBeenCalledWith(oldGroup);
     vi.useFakeTimers();
@@ -519,6 +530,7 @@ describe("customer map coordinates DTO consumer", () => {
     await waitFor(() => expect(mocks.map.flyTo).toHaveBeenCalled());
     await act(async () => { mocks.map.fire("moveend"); });
     expect(callbacks).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /Bộ lọc/ }));
     fireEvent.click(screen.getByRole("button", { name: /Di động/ }));
     fireEvent.click(screen.getByRole("button", { name: /Tất cả/ }));
     const newMarker = latestMarker();
@@ -527,6 +539,76 @@ describe("customer map coordinates DTO consumer", () => {
     await act(async () => { callbacks[0](); });
     expect(oldMarker.openPopup).not.toHaveBeenCalled();
     expect(newMarker.openPopup).not.toHaveBeenCalled();
+    expect(writes()).toEqual([]);
+  });
+});
+
+describe("customer-map-workspace-owned", () => {
+  function expectMetric(label: string, count: number | string) {
+    expect(screen.getByText(label).parentElement).toHaveTextContent(new RegExp(`${count}$`));
+  }
+
+  it("labels the workspace actions and restores focus to the relocated list trigger", async () => {
+    await loaded();
+    expect(screen.getByRole("heading", { name: "Bản đồ khách hàng" })).toBeInTheDocument();
+    const toolbar = screen.getByRole("region", { name: "Công cụ bản đồ khách hàng" });
+    expect(within(toolbar).getByText("Tìm khách hàng")).toBeVisible();
+    expect(within(toolbar).getByText("GPS")).toBeVisible();
+    expect(within(toolbar).getByText("Thêm khách hàng")).toBeVisible();
+    const listTrigger = within(toolbar).getByRole("button", { name: /Danh sách/ });
+    expect(listTrigger).toHaveAttribute("aria-controls", "customer-map-list-panel");
+    fireEvent.click(listTrigger);
+    expect(screen.getByRole("dialog", { name: "Danh sách khách hàng" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Đóng danh sách khách hàng" }));
+    expect(listTrigger).toHaveFocus();
+    fireEvent.click(listTrigger);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(listTrigger).toHaveFocus();
+    expect(mocks.fetch.mock.calls).toEqual([[customerUrl], [nodeUrl]]);
+  });
+
+  it("separates loaded, valid coordinate, filtered and observed viewport counts without treating search as a filter", async () => {
+    const zero = { ...customer, id: "zero", latitude: 0, longitude: 0, subscriberType: "MOBILE" };
+    const outside = { ...customer, id: "outside", latitude: 20, longitude: 110, subscriberType: "MOBILE" };
+    const invalid = [null, undefined, NaN, Infinity, 91].map((latitude, index) => ({
+      ...customer, id: `invalid-${index}`, latitude, longitude: index === 4 ? 181 : 107,
+    }));
+    mocks.fetch.mockResolvedValueOnce(reply({ data: [customer, zero, outside, ...invalid] }))
+      .mockResolvedValueOnce(reply({ data: nodes }));
+    await loaded();
+    expectMetric("Đã tải", 8);
+    expectMetric("Có tọa độ", 3);
+    expectMetric("Qua bộ lọc", 3);
+    expectMetric("Trong khung", "—");
+    expect(screen.getByText(/Tối đa 10[.,]?000.*có tọa độ.*phân quyền/)).toBeInTheDocument();
+    expect(mocks.viewportChange).toBeTypeOf("function");
+    await act(async () => { mocks.viewportChange?.({ south: 0, west: 0, north: 12, east: 108, zoom: 8 }); });
+    expectMetric("Trong khung", 2);
+    const toggle = screen.getByRole("button", { name: /Bộ lọc/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: /Di động/ }));
+    expectMetric("Qua bộ lọc", 2);
+    expectMetric("Trong khung", 1);
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: /Di động/ })).not.toBeInTheDocument();
+    expectMetric("Qua bộ lọc", 2);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "unmatched suggestion" } });
+    expectMetric("Qua bộ lọc", 2);
+    expectMetric("Trong khung", 1);
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: /Di động/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Rời mạng/ }));
+    expectMetric("Qua bộ lọc", 0);
+    expectMetric("Trong khung", 0);
+    await act(async () => { mocks.viewportChange?.({ south: 15, west: 109, north: 25, east: 115, zoom: 10 }); });
+    expectMetric("Trong khung", 0);
+    expect(mocks.map.flyTo).not.toHaveBeenCalled();
+    expect(mocks.map.fitBounds).not.toHaveBeenCalled();
+    expect(mocks.map.zoomIn).not.toHaveBeenCalled();
+    expect(mocks.map.zoomOut).not.toHaveBeenCalled();
+    expect(mocks.fetch.mock.calls).toEqual([[customerUrl], [nodeUrl]]);
     expect(writes()).toEqual([]);
   });
 });

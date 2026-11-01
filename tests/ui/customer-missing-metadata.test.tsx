@@ -102,13 +102,17 @@ describe("explicit customer missing package and CTV metadata", () => {
     expect(within(screen.getByRole("article")).getByRole("button", { name: /^Sao chép/ }).className).toContain(styles.copyActive);
   });
 
-  it.each(["ADMIN", "MANAGER", "CTV"])("retains role/disabled boundaries for missing metadata: %s", (role) => {
+  it.each(["ADMIN", "MANAGER", "CTV"])("retains role/disabled boundaries for missing metadata: %s", async (role) => {
+    const user = userEvent.setup();
     const props = customerMetadataProps("zero-price-no-ctv", role);
     render(<CustomerTableRefined {...props} customers={[{ ...props.customers[0], nodeName: null }]} />);
     const card = screen.getByRole("article");
     expect(card.querySelector(`.${styles.mobileFooterValue}`)).toHaveAttribute("title", "Chưa có mã CTV");
     expect(within(card).queryAllByRole("checkbox")).toHaveLength(role === "ADMIN" ? 1 : 0);
-    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    expect(within(card).queryAllByRole("button", { name: /^Xóa/ })).toHaveLength(0);
+    expect(within(card).queryAllByRole("button", { name: /^Thao tác khác/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
+    if (role === "ADMIN") await user.click(within(card).getByRole("button", { name: /^Thao tác khác/ }));
+    expect(within(card).queryAllByRole("menuitem", { name: /^Xóa/ })).toHaveLength(role === "ADMIN" ? 1 : 0);
     expect(within(card).getByRole("button", { name: /^Xem node/ })).toBeDisabled();
   });
 

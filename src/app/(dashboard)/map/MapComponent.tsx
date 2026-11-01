@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
-import { Search, Navigation, X, MapPin, Plus, Loader2 } from "lucide-react";
+import { Search, Navigation, X, MapPin, Plus, Loader2, List, SlidersHorizontal } from "lucide-react";
 import styles from "./map.module.css";
 import CustomerModal from "@/components/CustomerModalRefined";
 import MapSearchResults from "@/components/MapSearchResults";
@@ -16,7 +16,8 @@ import { toast } from "react-hot-toast";
 import { escapeMapHtml } from "@/lib/map-ui";
 import type { NodeCoordinateItem } from "@/types";
 import { getMapTileConfig } from "@/lib/map-tiles";
-import { MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 
 // Fix for default marker icon in react-leaflet
 const DefaultIcon = L.icon({
@@ -410,6 +411,9 @@ export default function MapComponent() {
     const [mapStyle, setMapStyle] = useState<"dark" | "light" | "satellite">("light");
     const [showStyleMenu, setShowStyleMenu] = useState(false);
     const [showCustomerList, setShowCustomerList] = useState(false);
+    const customerListTriggerRef = useRef<HTMLButtonElement>(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const [viewport, setViewport] = useState<MapViewport | null>(null);
     const [customerListSearch, setCustomerListSearch] = useState("");
     const [addingAtLocation, setAddingAtLocation] = useState(false);
     const [customAddLocation, setCustomAddLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -424,6 +428,12 @@ export default function MapComponent() {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [isMobileView, setIsMobileView] = useState(false);
     const mapRef = useRef<L.Map | null>(null);
+
+    useEffect(() => {
+        if (!showCustomerList) return;
+        const trigger = customerListTriggerRef.current;
+        return () => { if (trigger?.isConnected) trigger.focus(); };
+    }, [showCustomerList]);
 
     useEffect(() => () => { pendingPopupRef.current = null; }, []);
 
@@ -549,6 +559,10 @@ export default function MapComponent() {
         }
         return result;
     }, [customers, colorFilter]);
+
+    const coordinateCount = useMemo(() => customers.filter((customer) => getMapCoordinates(customer) !== null).length, [customers]);
+    const mappableCustomers = useMemo(() => filteredCustomers.filter((customer) => getMapCoordinates(customer) !== null), [filteredCustomers]);
+    const inViewportCount = useMemo(() => countPointsInViewport(mappableCustomers, viewport, getMapCoordinates), [mappableCustomers, viewport]);
 
     const customerListItems = useMemo(() => {
         const query = customerListSearch.trim().toLocaleLowerCase("vi");
@@ -723,7 +737,7 @@ export default function MapComponent() {
     const handleZoomIn = () => mapRef.current?.zoomIn();
     const handleZoomOut = () => mapRef.current?.zoomOut();
     const handleFitCustomers = () => {
-        const visibleCustomers = filteredCustomers.length > 0 ? filteredCustomers : customers;
+        const visibleCustomers = (filteredCustomers.length > 0 ? filteredCustomers : customers).filter((customer) => getMapCoordinates(customer) !== null);
         if (visibleCustomers.length === 0 || !mapRef.current) {
             toast.error("Không có khách hàng để hiển thị.");
             return;
@@ -736,7 +750,7 @@ export default function MapComponent() {
     };
 
     const defaultCenter: [number, number] = [11.537969, 107.955546];
-    const mapCenter = userLocation || (customers.length > 0 ? [customers[0].latitude, customers[0].longitude] as [number, number] : defaultCenter);
+    const mapCenter = userLocation || getMapCoordinates(customers.find((customer) => getMapCoordinates(customer) !== null) || {}) || defaultCenter;
 
     const tileConfig = getMapTileConfig(mapStyle);
     const tileClass = tileConfig.needsDarkFilter
@@ -769,9 +783,15 @@ export default function MapComponent() {
 
             {/* Search & Controls overlay */}
             <MapToolbar className={styles.searchOverlay} label="Công cụ bản đồ khách hàng">
+                <div className={styles.workspacePanel}>
+                <MapHeading title="Bản đồ khách hàng" eyebrow="Khách hàng & vùng phục vụ" />
+                <div className={styles.toolbarMainRow}>
+                <div className={styles.searchField}>
+                <label htmlFor="customer-map-query" className={styles.searchLabel}>Tìm khách hàng</label>
                 <div className={styles.searchBar}>
                     <Search size={16} className={styles.searchIcon} />
                     <input
+                        id="customer-map-query"
                         type="text"
                         placeholder={isMobileView ? "Tìm khách hàng..." : "Tìm khách hàng (tên, SĐT, CTV, địa chỉ)..."}
                         value={searchQuery}
@@ -793,11 +813,23 @@ export default function MapComponent() {
                         </button>
                     )}
                 </div>
+                </div>
 
                 <div className={styles.mapActionsGroup} style={{ position: "relative" }}>
                     <button
                         type="button"
-                        className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn}`}
+                        className={`ui-action-btn ${styles.mapActionBtn}`}
+                        onClick={() => setShowFilters((current) => !current)}
+                        aria-label="Bộ lọc"
+                        aria-expanded={showFilters}
+                        aria-controls="customer-map-filters"
+                    >
+                        <SlidersHorizontal size={16} aria-hidden="true" />
+                        <span>Bộ lọc{colorFilter !== "ALL" ? " •" : ""}</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`ui-action-btn ${styles.mapActionBtn}`}
                         onClick={() => {
                             setShowStyleMenu((current) => !current);
                             setShowCustomerList(false);
@@ -809,6 +841,7 @@ export default function MapComponent() {
                         aria-haspopup="menu"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                        <span>Nền bản đồ</span>
                     </button>
 
                     <MapStyleMenu
@@ -834,17 +867,36 @@ export default function MapComponent() {
                     />
 
                     <button
-                        className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn}`}
+                        className={`ui-action-btn ${styles.mapActionBtn}`}
                         onClick={handleGoToMyLocation}
                         disabled={isLocating}
                         title={userLocation ? "Về vị trí của tôi" : locationError || "Dùng vị trí của tôi"}
                         aria-label="Vị trí của tôi"
                     >
                         {isLocating ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
+                        <span>GPS</span>
                     </button>
 
                     <button
-                        className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn} ${styles.addAtLocationBtn}`}
+                        type="button"
+                        className={`ui-action-btn ${styles.mapActionBtn}`}
+                        onClick={() => {
+                            setSearchQuery("");
+                            setShowStyleMenu(false);
+                            setShowCustomerList((current) => !current);
+                        }}
+                        aria-expanded={showCustomerList}
+                        aria-controls="customer-map-list-panel"
+                        aria-haspopup="dialog"
+                        title="Xem danh sách khách hàng trên bản đồ"
+                        ref={customerListTriggerRef}
+                    >
+                        <List size={16} aria-hidden="true" />
+                        <span>Danh sách</span>
+                    </button>
+
+                    <button
+                        className={`ui-action-btn ${styles.mapActionBtn} ${styles.addAtLocationBtn}`}
                         onClick={() => {
                             if (userLocation) {
                                 setCustomAddLocation({ latitude: userLocation[0], longitude: userLocation[1] });
@@ -858,11 +910,23 @@ export default function MapComponent() {
                         aria-label="Thêm khách hàng"
                     >
                         <Plus size={18} />
+                        <span>Thêm khách hàng</span>
                     </button>
                 </div>
-            </MapToolbar>
+                </div>
+                <MapDataSummary
+                    label="Số liệu bản đồ khách hàng"
+                    totalCount={customers.length}
+                    coordinateCount={coordinateCount}
+                    matchedCount={mappableCustomers.length}
+                    inViewportCount={inViewportCount}
+                    loading={isLoading || Boolean(loadError)}
+                    scopeNote={`Tối đa 10.000 khách hàng có tọa độ theo phân quyền.${colorFilter !== "ALL" ? " Đang lọc theo trạng thái." : ""}`}
+                />
+                </div>
 
             {/* Filter Controls */}
+            <div id="customer-map-filters" className={styles.filterPanel} hidden={!showFilters}>
             <MapLegend className={styles.filterControls} label="Chú giải trạng thái khách hàng">
                 <button className={`ui-filter-chip ${styles.filterBtn} ${colorFilter === "ALL" ? styles.active : ""}`} onClick={() => setColorFilter("ALL")} aria-pressed={colorFilter === "ALL"}>
                     <span className={styles.filterLabel}>Tất cả</span><span className={styles.filterCount}>{filterCounts.ALL}</span>
@@ -895,6 +959,7 @@ export default function MapComponent() {
                     <span className={styles.filterCount}>{filterCounts.PURPLE}</span>
                 </button>
             </MapLegend>
+            </div>
 
             {/* Search results */}
             {searchQuery.trim() && (
@@ -937,6 +1002,7 @@ export default function MapComponent() {
                     )}
                 />
             )}
+            </MapToolbar>
 
             {/* Picking Location Overlay */}
             {
@@ -1017,26 +1083,6 @@ export default function MapComponent() {
                 </MapPanel>
             )}
 
-            {/* Stats Badge and accessible list trigger */}
-            <button
-                type="button"
-                className={styles.statsBadge}
-                onClick={() => {
-                    setSearchQuery("");
-                    setShowStyleMenu(false);
-                    setShowCustomerList((current) => !current);
-                }}
-                aria-expanded={showCustomerList}
-                aria-controls="customer-map-list-panel"
-                aria-haspopup="dialog"
-                title="Xem danh sách khách hàng trên bản đồ"
-            >
-                <MapPin size={16} className={styles.statsBadgeIcon} />
-                <span className={styles.statsBadgeText}>
-                    <span className={styles.statsBadgeCount}>{filteredCustomers.length}</span> khách hàng trên bản đồ
-                </span>
-            </button>
-
             <MapViewportControls
                 className={styles.viewportControls}
                 buttonClassName={styles.viewportControlBtn}
@@ -1052,6 +1098,7 @@ export default function MapComponent() {
                 zoomControl={false}
                 style={{ height: "100%", width: "100%", zIndex: 1, backgroundColor: tileConfig.backgroundColor }}
             >
+                <MapViewportObserver onChange={setViewport} />
                 <MapRefBridge mapInstanceRef={mapRef} />
                 <TileLayer
                     attribution={tileConfig.attribution}
@@ -1143,7 +1190,7 @@ export default function MapComponent() {
 
                 {/* Customer markers with custom clusters */}
                 <VanillaMarkerCluster
-                    customers={filteredCustomers}
+                    customers={mappableCustomers}
                     markersRefObj={markersRef}
                     onEditCustomer={setEditingCustomer}
                     onUpdateLocation={updateCustomerLocation}

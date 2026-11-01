@@ -243,6 +243,9 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
           <p className={`${styles.subtitle} ui-panel-subtitle`}>
             {props.service === "ftth" ? "Báo cáo dữ liệu cước FTTH theo User CNKD" : "Báo cáo dữ liệu cước cố định theo User CNKD"}
           </p>
+          {props.canAdmin && props.rateDirty && (
+            <span className={styles.rateUnsavedHint} role="status" aria-label="Trạng thái tỷ lệ giao">Tỷ lệ chưa lưu</span>
+          )}
         </div>
         <button className={props.surfaceActionBtnClass} onClick={props.onBack}>
           Quay lại KPI
@@ -282,6 +285,8 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
               className={props.surfaceActionBtnClass}
               onClick={props.onSaveRate}
               disabled={props.savingRate || !props.rateDirty}
+              aria-label="Lưu tỷ lệ"
+              aria-busy={props.savingRate}
             >
               {props.savingRate ? <Loader2 size={16} className="animate-spin" /> : "Lưu tỷ lệ"}
             </button>
@@ -352,7 +357,7 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
             onClick={props.onToggleMobileFilters}
             aria-expanded={props.showMobileFilters}
           >
-            <span>{props.rateDirty ? "Bộ lọc (1)" : "Bộ lọc"}</span>
+            <span>Bộ lọc</span>
             {props.showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </div>
@@ -385,6 +390,8 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
                   className={props.surfaceActionBtnClass}
                   onClick={props.onSaveRate}
                   disabled={props.savingRate || !props.rateDirty}
+                  aria-label="Lưu tỷ lệ"
+                  aria-busy={props.savingRate}
                 >
                   {props.savingRate ? <Loader2 size={16} className="animate-spin" /> : "Lưu tỷ lệ"}
                 </button>

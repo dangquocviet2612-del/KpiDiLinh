@@ -1,6 +1,6 @@
 # KpiDiLinh Web UX & Performance Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Owner approved the local batch below, not deployment or every remaining step.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Initial approval covered the local batch below; the FTTH Production upgrade and release were approved separately and completed on 01/11/2026. Neither approval authorizes every remaining step or future releases.
 
 **Goal:** Tải dữ liệu nhanh hơn và thao tác dễ hơn trên cả máy tính/điện thoại, giữ nguyên nghiệp vụ, dữ liệu và phân quyền hiện có.
 
@@ -9,6 +9,32 @@
 **Tech Stack:** Next.js 16 (baseline 16.1.6, local batch 2 nâng 16.4.1), React 19, TypeScript, Prisma/libSQL/Turso, Vercel, SWR, Leaflet, Vitest/RTL, Playwright Core dùng Chrome cài sẵn. CI local config chuyển Node 24 phù hợp Vitest 5.
 
 **Spec/evidence:** `docs/web-ux-performance-audit.md`; baseline source `1ecfa38`, ngày 26/10/2026. Người dùng xác nhận ưu tiên **cả desktop và mobile**. 46 mẫu hiện có là lab single-run, không phải p95/INP.
+
+## Trạng thái đối chiếu ngày 01/11/2026
+
+Checkpoint có ngày bên dưới là lịch sử từng đợt, không phải tất cả đều mô tả trạng thái hiện tại. Không đếm số ô chưa tick thành số task còn lại: một task có thể chứa phần đã triển khai và phần chưa nghiệm thu. `[x]` chỉ xác nhận đúng phạm vi ghi bên cạnh.
+
+Nguồn đối chiếu: [phát hành FTTH](../../ftth-production-release.md), mục 77 của `tiendokpi.md`, commit ứng dụng `1492b49`, commit tài liệu `84781dd`. Database đã nâng, GitHub CI Ubuntu và deploy/smoke đã đạt; không còn chờ chạy lại baseline hoặc migration FTTH.
+
+| Task | Phần đã có bằng chứng | Phần còn mở / điều kiện đóng |
+| --- | --- | --- |
+| 1 — Baseline | Harness và phase timing đã có | SQL count, mốc dữ liệu hữu ích, mẫu lặp desktop/mobile và field metrics; chưa có cam kết tăng tốc Production |
+| 2 — Archive | Đường đọc không auto-purge, export/cron safeguard và regression đã triển khai | Không làm lại chỉ vì checkpoint cũ ghi chưa deploy; vận hành thực tế theo Task 13 |
+| 3 — Migration | Runner/ledger, thử bản sao, baseline adoption và chỉ nâng FTTH trên đúng Production đã duyệt | Negative build không cấp secret thật; contention Turso nhiều process/region chưa nghiệm thu |
+| 4 — Runtime schema | Guard chỉ đọc; tám runtime domain sẵn sàng sau nâng Production | Không suy ra latency cloud hoặc độ đúng của mọi luồng restore từ readiness |
+| 5 — Lifecycle KPI | Các slice dedupe, session/me và filter/lifecycle đã triển khai | Thu hồi quyền thuộc Task 7; browser staging của release hiện tại thuộc Task 13 |
+| 6 — Query/region | Đã rút một số read và chạy query độc lập song song | Query/rows/serialize count, EXPLAIN workload mục tiêu và A/B region trên DB thử riêng |
+| 7 — Cache/quyền | Invalidation, bound/TTL và generation fence cùng process | P0: phiên cũ sau đổi quyền/xóa user/đổi mật khẩu; cache nhiều instance và kiểm tra PWA thực tế |
+| 8 — Bundle | Lazy panel và một số lifecycle đã triển khai | View-owned hooks/state, CSS/network budget và nghiệm thu không tạo waterfall |
+| 9 — Bản đồ | Projection, batch lookup và memo có bằng chứng từng slice | Visual/timing Node0TB, các thao tác bản đồ và workload mục tiêu chưa đóng toàn bộ |
+| 10 — CDT/cước | Giữ các domain đang dùng, gồm Cước CD và FTTH | Tối ưu query/scope/metadata cần fixture đối soát; không khôi phục các menu đã bỏ |
+| 11 — UI | Nhiều slice mobile, login, form và feedback đã triển khai | Browser/hydration, light/dark, keyboard/zoom và CLS trên các màn còn sử dụng |
+| 12 — File/backup | Guard dung lượng và feedback cho bốn nhóm đã triển khai; snapshot/restore bản sao trước nâng FTTH đã đối soát | CD/FTTH import size, backup mới sau nâng và backup ngoài máy; file lớn/job chỉ khi có nhu cầu/duyệt riêng |
+| 13 — CI/rollout | Node 24 CI, toàn bộ `npm test`/lint/build Ubuntu và release `1492b49` đã đạt | Browser staging đủ ba role, performance regression và RUM; không đồng nhất Linux CI với native Windows |
+
+**Phạm vi menu đã bỏ:** CDT tồn, Rời mạng và Nguy cơ rời mạng không còn là mục tiêu cải thiện UI của plan này theo yêu cầu owner. Không tự thêm lại. Việc bỏ menu không chứng minh API/view/bảng dữ liệu tương ứng đã bị xóa: source vẫn có deep-link `cdt-outstanding`/`disconnect`; chỉ dọn sau inventory phụ thuộc và phê duyệt riêng, không xóa dữ liệu cũ trong task hiệu năng.
+
+**Thứ tự tiếp theo:** (1) đối chiếu checklist và chuẩn bị [backup/recovery ngoài máy](../../operations-backup-recovery.md); (2) thiết kế/test thu hồi phiên và cache quyền; (3) nghiệm thu FTTH đủ ba role trên DB thử riêng; (4) đo tốc độ lặp và chốt các gate map/browser còn mở. Không bật dịch vụ trả phí, copy dữ liệu ra ngoài máy, sửa auth hoặc tự deploy từ lần cập nhật tài liệu này.
 
 **Checkpoint local 26/10/2026:** Owner đã duyệt làm đợt đầu và xác nhận **chỉ hoàn thiện/kiểm thử local**, không commit/push/deploy. Batch này xử lý Task 2, phần lifecycle của Task 5, instrumentation/harness của Task 1 và riêng việc tách build khỏi migration của Task 3. Không coi toàn bộ đợt 1 hoặc 13 task là hoàn thành. Production vẫn giữ release trước; xem kết quả và giới hạn ở mục 16 của `tiendokpi.md`.
 
@@ -131,15 +157,16 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - Read/preserve: `prisma/migrations/*/migration.sql`, đặc biệt `20260920000002_fix_node0tb_id`.
 
 - [x] Regression test FAIL/GREEN cho command build không gọi migration; build thật trên fixture không đổi SHA-256 SQLite.
-- [ ] Negative test build với DB credential online chỉ đọc; chưa dùng credential/DB thật để kiểm tra.
+- [ ] Negative test build với credential giả và trap/instrumentation chặn DB/network; không cấp credential Production chỉ để thử build. Build snapshot đã chặn discovery env thật, nhưng chưa là bằng chứng chặn mọi kết nối.
 - [x] Migration trên fixture managed chạy lần hai no-op, không replay rebuild Node0Tb; wrapper mặc định check, apply tường minh, không tự đọc env hay chọn database mặc định.
 - [x] Thiết kế hàng rào baseline: refuse database untracked/ledger rỗng không hợp lệ, giữ nguyên SQL lịch sử; checklist snapshot/schema/index/default/foreign keys/content checksum trong `docs/migration-safety.md`.
-- [ ] Thực hiện verified baseline/adoption và upgrade trên bản sao fixture/anonymized của database phục hồi; không đánh dấu applied chỉ dựa vào tên bảng/số dòng. Chưa cho phép chạy target thật.
+- [x] Đã đối chiếu schema/index/default/FK và content checksum của bản sao backup Production trong thư mục ACL riêng; ba thử nghiệm baseline/FTTH và rollback đạt trước khi owner duyệt nâng đích thật. Đây là bản sao dữ liệu thật được bảo vệ, không gọi là anonymized và không đưa vào Git/CI. Xem `docs/ftth-production-release.md`, mục 75–77 tiến độ.
 - [x] Runner libSQL ghi version/checksum chuẩn hóa line endings, recheck sau write lock; DDL/data/ledger commit nguyên tử theo version, checksum/history drift fail-closed, rollback khi lỗi. Có compatibility rule tường minh cho đúng cột expirationDate bị lặp trong hai SQL lịch sử, không generic-ignore lỗi.
 - [x] Tách `scripts/migrate.mjs` khỏi `build`; `build` chỉ còn `next build`, có regression test cho command. `db:migrate` vẫn là runner legacy tường minh, không chạy trên database đã có dữ liệu.
-- [ ] Hoàn thiện release migration step riêng trên đúng target với ledger, backup và quyền riêng; việc tách command không chứng minh runner idempotent.
+- [x] Release FTTH ngày 01/11: owner xác nhận đúng target/ngừng ghi; helper theo hash đã review, hai backup đối chiếu, baseline adoption năm version và chỉ chạy migration FTTH ngoài build. Hai commit DB riêng đều được xác nhận; ledger sáu version `current`. Đây không phải quyền chạy helper lại hoặc tự baseline cho database khác.
 - [x] Fault-injection sau DROP và RENAME trong SQL rebuild Node0Tb thật: giữ rows/schema/ledger cũ, không còn bảng tạm; retry thành công và foreign key check sạch trên fixture. Hai client độc lập chỉ commit một lần mỗi version.
-- [ ] Đối soát content checksum toàn bộ database mới và bản nâng cấp/anonymized có đủ runtime schema; SQLite local không thay thế contention multi-process/region trên Turso.
+- [x] Sau nâng FTTH Production đã đối soát schema/content 25 bảng cũ, sequence/headers và foreign keys; tám runtime domain sẵn sàng, default FTTH 99,5%. Fresh six-migration fixture có test riêng; không dùng chúng để tuyên bố mọi database/luồng restore đã nghiệm thu.
+- [ ] Nghiệm thu contention nhiều process/region trên Turso bằng database thử riêng; bản sao SQLite và một lượt nâng Production không thay thế phép thử này.
 - [x] Tài liệu hóa rollback source vs rollback data, giới hạn JSON backup không lưu ledger; không ghi đè dữ liệu phát sinh sau snapshot khi rollback.
 
 **Acceptance:** Build thuần không kết nối DB để migrate. Fresh install và upgrade đều đủ schema, migration lần hai no-op, interrupted migration không để bảng dở dang.
@@ -158,7 +185,7 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - [x] Chuyển 6 index thiếu và 3 default sang migration mới, giữ SQL lịch sử. Runtime kiểm tra contract, không ghi ledger hoặc tự adoption; bỏ GET auto Excel, giữ import thủ công. POST restore bổ sung default thiếu trong transaction như invariant của restore.
 - [x] Khi schema/default chưa đủ, báo `SCHEMA_NOT_READY`; không biến ensure thành no-op hoặc ghi đè rate tùy chỉnh. Hỗ trợ UNIQUE đảo thứ tự cột nhưng từ chối partial/expression key thay UNIQUE đầy đủ.
 - [x] Chạy test mới/cũ, 27 response hash/status qua 3 role và 6 lượt Chrome desktop/mobile; đối chiếu KPI/users/customer/cuoc-CD/Node0TB/node, giữ phân quyền. Build đạt, hết 4 cảnh báo tracing; không suy diễn cloud latency.
-- [ ] Gate rollout riêng: preflight snapshot/target thật được duyệt, verified adoption/upgrade nếu cần, restore drill và owner cho phép cutover. Chưa thực hiện trong batch local này.
+- [x] Gate nâng FTTH trên đúng Production ngày 01/11 đã thực hiện: preflight, snapshot nhất quán/phục hồi bản sao và đối soát, owner duyệt adoption/upgrade, xác nhận dưới write lock và đối soát sau nâng. Kết quả đủ phạm vi release này, không phải disaster-recovery drill toàn ứng dụng hoặc nghiệm thu browser ba role.
 
 **Acceptance:** Không còn chuỗi 49 setup call-site trên request path; warm hit không `ALTER`/`COUNT` để auto-seed. Chỉ khẳng định mức tăng tốc sau trace.
 
@@ -206,6 +233,8 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 **Acceptance:** Payload/công thức/rounding khớp baseline; trace ngắn hơn. Budget staging đề xuất warm p50 ≤1 s/p95 ≤2,5 s cần chốt qua Task 1, không coi single-run hiện có là p95.
 
 ### Task 7 — Cache đúng dependency và quyền truy cập
+
+**Ưu tiên bổ sung sau release:** P0 cho thiết kế và nghiệm thu thu hồi phiên/quyền, trước tối ưu cache mới. `src/auth.ts` cập nhật role khi có user trong JWT callback; `requireAuth` thường kiểm tra role từ session, chỉ đọc User khi cần GPS. Chưa thay auth trong lần đối chiếu này. Cần test trên fixture riêng cho phiên đang mở sau hạ quyền/xóa user/đổi mật khẩu/đổi manager, cả hai instance, và kiểm tra service worker/browser cache khi đổi tài khoản; không coi TTL hoặc generation token local là SLA thu hồi quyền.
 
 **Priority:** P1, correctness trước hit ratio. **Dependencies:** Task 1, 4.
 
@@ -354,7 +383,7 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 
 - [ ] Viết test cho chuỗi mã dài không lấn cột KH; dùng wrap/ellipsis + full text accessible, số dùng alignment/tabular-nums rõ ràng.
 - [ ] Chuẩn hóa hit-area mobile 44×44 px ở tác vụ chính/icon/checkbox wrapper, không chỉ tăng kích thước hình vẽ; giữ bố cục desktop gọn.
-- [ ] Skeleton reserve đúng stats/filter/table height; đo lại CLS CDT tồn/Rời mạng và không nhảy vị trí nút khi refresh.
+- [ ] Skeleton reserve đúng stats/filter/table height; đo CLS ở các màn đang dùng (KPI, Cước/CD/FTTH, CDT còn dùng, khách hàng), không nhảy vị trí nút khi refresh. Không phục hồi CDT tồn/Rời mạng/Nguy cơ rời mạng để làm QA.
 - [x] Implementation local rút gọn phone/account rỗng thành explicit missing hints, giữ populated data/actions/desktop (mục50, synthetic-props SSR/RTL); primary scoped gate vẫn pending timeout, không real appE2E/release acceptance.
 - [x] Implementation local placeholderCTV/package rõ nghĩa, không fake-name`---` khi chỉ có giá, giữ0đ/rawdata và missingCTVwrap khi phóng chữ (mục52). Không đổi nghiệp vụ hoặc đóng auth/fullbrowser/release gate.
 - [ ] Metadata khác/real loaded/mobile/hydration/screen-reader acceptance còn riêng; không suy toàncard/app được nghiệm thu từ fixtureSSR.
@@ -363,7 +392,7 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - [x] Implementation local URL khách hàng: whitelist/deep-link/reload/pop/settled history và ready/debounce fences (mục56), focused52/52; không đóng wholeURLview/Next/browser hoặc broadgate. **WT/primaryauth timeout còn đỏ, currentBatchScopedAcceptancePassedfalse/releaseReadyfalse**; không đánh dấu feature được nghiệm thu release.
 - [x] Khách hàng local: giữ previous-data khi đổi key/refresh, refreshing strip cả debounce, lỗi có retry và không false-empty; guard retry theo context, không đổi query/cache/quyền (mục55). Chưa real app/hydration/CLS/URL/browser-back acceptance hoặc hoàn tất toàn Task11.
 - [x] Phân trang khách hàng local: reflow khi chữ lớn, named navigation/select/actions và non-submit buttons; giữ props/options/callbacks/disabled/desktop (mục54). Không đồng nghĩa URLfilter/refreshing/real browser lifecycle hay toàn Task11 đã xong.
-- [ ] Login lỗi mạng luôn thoát loading, live region/autocomplete/hiện mật khẩu phù hợp; công cụ iframe có loading/timeout/reload và tiếng Việt có dấu, giữ server access guard.
+- [x] Implementation/regression của login lỗi mạng, busy/alert/autocomplete, hiện mật khẩu và tool iframe loading/timeout/reload đã có ở mục 43–46; đã nằm trong source phát hành. Browser matrix hiện tại vẫn là gate riêng bên dưới, không đánh dấu toàn Task 11 hoàn tất.
 - [ ] Với map label/legend/bottom-sheet, tạo preview nhỏ và xin duyệt trước đổi trải nghiệm; không thay palette/toolbar toàn bộ trong cùng PR hiệu năng.
 - [ ] Test 360/390/768/1024/1440, light/dark, zoom text/keyboard; không kết luận lỗi header overlap khi probe chưa xác nhận.
 
@@ -400,11 +429,13 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - Modify: `src/app/api/official-documents/upload/route.ts`, `src/lib/official-doc-assets.ts`, `src/app/api/admin/backup/route.ts` (GET backup và POST restore dùng chung route này; không giả định có route restore riêng).
 - Create theo thiết kế được duyệt: upload/export job service, job status API, storage adapter và `tests/integration/backup-restore-roundtrip.test.ts`.
 
-- [ ] Trước tiên sửa thông báo/validation theo giới hạn thật của hosting; không chấp nhận file 20/200 MB rồi mới thất bại ở Function.
+- [x] Guard dung lượng/feedback đã triển khai và phát hành cho import khách hàng, ba loại upload Node, upload công văn và JSON restore (mục 61–66/71; hosted cap 4.000.000 byte, local giữ contract riêng). Không suy ra mọi importer đều được bảo vệ.
+- [ ] Bổ sung size preflight/feedback cho import Cước CD và FTTH dùng chung hook; kiểm tra server sau auth và trước buffer/parser, giữ công thức/quyền/transaction. Tại audit này, hai route đọc `file.arrayBuffer()` và shared hook gửi `FormData` nhưng chưa thấy check `File.size` như nhóm khách hàng. Đây là gap source, không phải thử upload lỗi trên Production; khảo sát các importer khác riêng.
 - [ ] Benchmark import row-wise với fixture giả; multi-row UPSERT/staging set-based publish, batch theo bind count/byte, retry idempotent.
 - [ ] Nếu cần file lớn, trình bày lựa chọn storage/job + quyền truy cập/chi phí; chỉ triển khai sau owner approval.
 - [ ] File upload/download lớn đi trực tiếp storage; API trả metadata/job status. Không giải quyết bằng tăng Next proxy body limit hoặc timeout.
-- [ ] Backup dùng snapshot/read-consistency phù hợp; restore sang DB thử, kiểm checksum/foreign key rồi mới quyết định activation có rollback.
+- [x] Snapshot trước nâng FTTH đã được phục hồi ra DB riêng, kiểm schema/content/sequence/integrity/FK và thử upgrade/rollback. Hai bản trước nâng được giữ, nhưng cùng ổ D; không coi là backup ngoài máy hay bản mới nhất sau phát sinh FTTH.
+- [ ] Theo `docs/operations-backup-recovery.md`: chọn nơi lưu ngoài máy và bảo vệ khóa; tạo backup mới đủ FTTH/ledger theo định dạng đã chọn, kiểm checksum, giải mã/restore drill trên DB riêng, chốt lịch/retention/RPO/RTO. Chưa copy dữ liệu hoặc bật tự động hóa.
 - [ ] Theo dõi progress, failure/retry/cancel và cleanup asset tạm; test tải lại trang không mất trạng thái job.
 
 **Acceptance:** Không job/file lớn làm treo UI hay dồn cả backup vào RAM Function; không nửa snapshot sau import lỗi. Giữ local recovery/backup riêng, không đụng web cũ.
@@ -420,12 +451,13 @@ Không cam kết số ngày hoặc phần trăm tăng tốc khi chưa có SQL tr
 - Create: `tests/e2e/critical-workflows.spec.ts`, `src/components/PerformanceVitals.tsx` hoặc instrumentation tương đương, `docs/performance-budgets.md`.
 - Retain: `tests/ui/customer-workflow.test.tsx` và các test KPI/permission/import hiện có.
 
-- [ ] Chốt Node CI/runtime tương thích, chạy unit/RTL + browser smoke thật trên DB giả; không chạy browser write suite vào Production.
+- [x] CI Node 24 chạy Prisma validate/generate, lint, toàn bộ `npm test`, performance-policy và Next build trên Ubuntu cho release `1492b49`: run `41268490835` đạt. Không dùng kết quả Linux để xóa failure/gate native Windows cũ.
+- [ ] Bổ sung browser smoke thật trên DB staging/fixture riêng cho ADMIN/MANAGER/CTV và CD/FTTH, gồm import đúng template, sửa tỷ lệ đúng quyền, đối chiếu CD không đổi. Không chạy browser write suite vào Production hoặc tạo user test trên dữ liệu thật.
 - [ ] Performance regression job so request count, JS/payload budget và layout screenshots ổn định; không dùng timing single-run quá chặt làm CI flaky.
 - [ ] RUM chỉ ghi route template/view/viewport/metrics không PII; không ghi query search, account, tên/SĐT/token. Chốt nơi lưu/retention/chi phí trước bật.
 - [ ] So baseline trước/sau theo từng đợt; không tuyên bố “nhanh gấp X” khi chưa có số liệu cùng điều kiện.
-- [ ] Staging smoke cả 3 role; owner duyệt rồi mới commit/push/deploy. Đổi config/region/migration có rollback/checklist riêng.
-- [ ] Cập nhật `tiendokpi.md`: done/deferred/known limitations, metrics và commit/deploy thật, không tick việc chỉ mới đề xuất.
+- [x] Owner đã duyệt release FTTH: push `1492b49`, deploy candidate `--skip-domain`, chờ CI/READY và sáu smoke GET trước promote; alias chính đã xác minh đúng deployment `dpl_TX7KA5EzLd6hg7Us7hSuNcg2ppZS`. Smoke không đăng nhập, không thay nghiệm thu ba role hoặc cho phép future deploy.
+- [x] Mục 77 `tiendokpi.md` và `docs/ftth-production-release.md` ghi commit, DB upgrade, CI/deploy/smoke và giới hạn thật; lần đối chiếu tiếp theo append mục 78, không sửa kết quả lịch sử thành đạt.
 
 **Acceptance:** Mỗi release có bằng chứng tốc độ, độ đúng và quyền truy cập; phát hiện regression form native-browser như lỗi Node vừa sửa, không chỉ “unit test xanh”.
 
@@ -441,7 +473,7 @@ npm.cmd run lint
 git diff --check
 ```
 
-Expected baseline hiện có: 37 file/127 test đạt, TypeScript đạt, lint 0 error/4 warning cũ. Khi thêm test, số lượng tăng; không ép về 127 bằng cách bỏ case.
+Baseline lịch sử 26/10: 37 file/127 test và 4 warning cũ; không dùng số này làm trạng thái hiện tại. Release 01/11: local unit/UI 94 file/1.655 case, types/lint sạch; CI Ubuntu chạy toàn bộ suite/build đạt đúng commit `1492b49`. Số case local unit/UI không phải tổng case CI/native; Windows reliability và gate cũ vẫn riêng. Không ép số lượng bằng bỏ case hoặc rerun để ghi đè failure.
 
 Harness local đã có; set `PERF_USERNAME`/`PERF_PASSWORD` trong process riêng, chỉ trỏ preview dùng dữ liệu giả rồi chạy:
 
@@ -462,5 +494,9 @@ npm.cmd run perf:summarize
 - Dark theme/contrast, tablet, điện thoại thật, slow-network/offline và iframe internals cần QA bổ sung; không coi 46 sample hiện có là kiểm thử đầy đủ.
 
 ## 7. Đề nghị bắt đầu
+
+### Cập nhật giao diện bản đồ 01/11/2026 (checkpoint80)
+
+Theo preview được duyệt, áp dụng bố cục chung cho Khách hàng/Node/Node0TB: header/search/nút có nhãn, filter thu gọn giữ state, bốn số liệu riêng và viewport observer chỉ đọc. Khách hàng giữ giới hạn API 10.000 bản ghi có tọa độ theo quyền, không đổi nghĩa tìm kiếm hoặc clustering/providers. Local 98 file/1.698 unit/UI, focused132, types/lint/build đạt; browser dùng dữ liệu giả và Leaflet thật, không thay cho nghiệm thu nghiệp vụ ba role/Production. Xem `docs/map-workspace-ui.md` và plan `2026-11-01-map-workspace-local.md`; các gate native/auth68/Node0TB timing/strict-visual cũ vẫn mở. Người dùng đã cho phép push/deploy **sau** khi browser/review/scope cuối đạt; không nâng database trong đợt giao diện này.
 
 **Duyệt đợt 1 và quick win Task 5 trước.** Có baseline + hàng rào dữ liệu, sau đó loại request lặp và runtime setup. Khi số liệu load đã tốt hơn mới triển khai các thay đổi UI có preview. Tài liệu này không phải yêu cầu tự chạy toàn bộ tasks ngay.

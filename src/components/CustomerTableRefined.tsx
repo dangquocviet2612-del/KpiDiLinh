@@ -4,6 +4,7 @@ import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
 import { Check, ChevronDown, Copy, Edit, MapPin, MessageCircle, PhoneCall, Trash2 } from "lucide-react";
 import styles from "@/app/(dashboard)/customers/customers.module.css";
 import type { Customer } from "@/types";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -481,14 +482,20 @@ const CustomerMobileCard = memo(function CustomerMobileCard({
             <Edit size={16} />
           </button>
           {isAdmin && (
+            <ActionMenu
+              label={`Thao tác khác của ${customer.name}`}
+              triggerClassName={`ui-icon-btn ${styles.iconBtn}`}
+              menuClassName={styles.mobileDeleteMenu}
+            >
             <button
               type="button"
-              className={`ui-icon-btn ui-icon-btn--danger ${styles.iconBtn} ${styles.delete}`}
+              className={styles.delete}
               onClick={() => onDelete(customer.id)}
               aria-label={`Xóa khách hàng ${customer.name}`}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} aria-hidden="true" /> Xóa khách hàng
             </button>
+            </ActionMenu>
           )}
         </div>
       </div>

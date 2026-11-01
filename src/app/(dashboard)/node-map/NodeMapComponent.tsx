@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
-import { Copy, ExternalLink, Loader2, MapPin, Navigation, Radio, RefreshCw, Search, X, Zap } from "lucide-react";
+import { Copy, ExternalLink, Loader2, MapPin, Navigation, Radio, RefreshCw, Search, SlidersHorizontal, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -18,10 +18,10 @@ import { escapeMapHtml as escapeHtml, formatMapPercent } from "@/lib/map-ui";
 import { toast } from "react-hot-toast";
 import { getClientNodeUploadMaxBytes, NODE_UPLOAD_SIZE_ERROR } from "@/lib/node-upload-limits";
 import Dialog from "@/components/ui/Dialog";
-import { MapLegend, MapPanel, MapToolbar, MapViewportControls } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 import { getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
 import {
-  formatNodeMapCount,
   getNextMapSearchIndex,
   getNodeStatusSymbol,
   hasActiveNodeMapFilters,
@@ -403,7 +403,7 @@ function VanillaMarkerCluster({
         }
 
         return L.divIcon({
-          html: `<div class="${styles.customClusterLabel} ${clusterColorClass}"><span class="${styles.clusterStatusSymbol}">${getNodeStatusSymbol(clusterCategory)}</span>${escapeHtml(mainPrefix)} <span class="${styles.clusterCount}">(${childCount})</span></div>`,
+          html: `<div class="${styles.customClusterLabel} ${clusterColorClass}"><span class="${styles.clusterStatusSymbol}">${getNodeStatusSymbol(clusterCategory)}</span><span class="${styles.clusterName}">${escapeHtml(mainPrefix)}</span> <span class="${styles.clusterCount}">(${childCount})</span></div>`,
           className: styles.customClusterIcon,
           iconSize: undefined,
         });
@@ -489,6 +489,8 @@ export default function NodeMapComponent() {
   const [radiusFilter, setRadiusFilter] = useState<number | null>(null);
   const [mapStyle, setMapStyle] = useState<MapStyleMode>("light");
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [importReport, setImportReport] = useState<{ title: string; message: string } | null>(null);
 
   const userLocationRef = useRef<[number, number] | null>(null);
@@ -586,7 +588,9 @@ export default function NodeMapComponent() {
   }, [colorFilter, nodes, radiusFilter, userLocation]);
 
   const hasActiveFilters = hasActiveNodeMapFilters(colorFilter, radiusFilter);
-  const mapCountLabel = formatNodeMapCount(filteredNodes.length, nodes.length, hasActiveFilters);
+  const coordinateCount = useMemo(() => nodes.filter((node) => getMapCoordinates(node) !== null).length, [nodes]);
+  const mappableNodes = useMemo(() => filteredNodes.filter((node) => getMapCoordinates(node) !== null), [filteredNodes]);
+  const inViewportCount = useMemo(() => countPointsInViewport(mappableNodes, viewport, getMapCoordinates), [mappableNodes, viewport]);
 
   const handleExportFilteredNodes = () => {
     if (filteredNodes.length === 0) {
@@ -910,7 +914,7 @@ export default function NodeMapComponent() {
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleFitNodes = () => {
-    const visibleNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
+    const visibleNodes = (filteredNodes.length > 0 ? filteredNodes : nodes).filter((node) => getMapCoordinates(node) !== null);
     if (visibleNodes.length === 0 || !mapRef.current) {
       toast.error("Không có node để hiển thị.");
       return;
@@ -1166,7 +1170,7 @@ export default function NodeMapComponent() {
 
   const defaultCenter: [number, number] = [11.537969, 107.955546];
   const mapCenter =
-    userLocation || (nodes.length > 0 ? ([nodes[0].latitude, nodes[0].longitude] as [number, number]) : defaultCenter);
+    userLocation || getMapCoordinates(nodes.find((node) => getMapCoordinates(node) !== null) || {}) || defaultCenter;
   const nearestDistance =
     userLocation && nearestNode
       ? getDistanceFromLatLonInKm(
@@ -1182,6 +1186,7 @@ export default function NodeMapComponent() {
     <div className={styles.mapOuter}>
       <MapToolbar className={styles.searchOverlay} label="Công cụ bản đồ hạ tầng node">
         <div className={`${styles.toolbarPanel} ${styles.searchToolbar}`}>
+          <MapHeading title="Bản đồ Node" eyebrow="Hạ tầng mạng" />
           <div className={styles.toolbarMainRow}>
             <div className={styles.searchFieldShell}>
               <div className={styles.searchBar}>
@@ -1280,6 +1285,17 @@ export default function NodeMapComponent() {
 
             <div className={styles.toolbarActionStack}>
               <div className={styles.primaryActionsRow}>
+                <button
+                  type="button"
+                  className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
+                  onClick={() => setShowFilters((current) => !current)}
+                  aria-expanded={showFilters}
+                  aria-controls="node-map-filters"
+                  aria-label="Bộ lọc"
+                >
+                  <SlidersHorizontal size={16} aria-hidden="true" />
+                  <span>Bộ lọc{hasActiveFilters ? " •" : ""}</span>
+                </button>
                 <NodeMapOptionsMenu
                   ref={optionsMenuRef}
                   open={showOptionsMenu}
@@ -1307,6 +1323,7 @@ export default function NodeMapComponent() {
                   className={`ui-action-btn ui-action-btn--pill ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
                   onClick={handleGoToMyLocation}
                   disabled={isLocating}
+                  aria-label="Vị trí của tôi"
                   title={userLocation ? "Vị trí của tôi" : locationError || "Dùng vị trí của tôi"}
                 >
                   {isLocating ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
@@ -1324,10 +1341,18 @@ export default function NodeMapComponent() {
               </div>
             </div>
           </div>
-
+          <MapDataSummary
+            label="Số liệu bản đồ Node"
+            totalCount={nodes.length}
+            coordinateCount={coordinateCount}
+            matchedCount={mappableNodes.length}
+            inViewportCount={inViewportCount}
+            loading={isLoading || Boolean(loadError)}
+            scopeNote={hasActiveFilters ? `Đang lọc: ${NODE_FILTERS.find((filter) => filter.key === colorFilter)?.label}${radiusFilter !== null ? ` • ≤ ${radiusFilter}km` : ""}` : undefined}
+          />
         </div>
 
-        <div className={`${styles.toolbarPanel} ${styles.filterPanel}`}>
+        <div id="node-map-filters" className={`${styles.toolbarPanel} ${styles.filterPanel}`} hidden={!showFilters}>
           <MapLegend className={styles.filterControls} label="Chú giải hiệu suất node">
             {NODE_FILTERS.map((filter) => (
               <button
@@ -1590,11 +1615,6 @@ export default function NodeMapComponent() {
 
       </MapToolbar>
 
-      <div className={styles.mapCountPill} aria-live="polite">
-        <MapPin size={15} className={styles.mapCountIcon} />
-        <span>{mapCountLabel}</span>
-      </div>
-
       <MapViewportControls
         className={styles.viewportControls}
         buttonClassName={styles.viewportControlBtn}
@@ -1649,6 +1669,7 @@ export default function NodeMapComponent() {
           backgroundColor: tileConfig.backgroundColor,
         }}
       >
+        <MapViewportObserver onChange={setViewport} />
         <ZoomTracker onChange={setCurrentZoom} />
         <MapRefBridge
           onReady={(mapInstance) => {
@@ -1749,7 +1770,7 @@ export default function NodeMapComponent() {
           </Marker>
         )}
         <VanillaMarkerCluster
-          nodes={filteredNodes}
+          nodes={mappableNodes}
           userLocationRef={userLocationRef}
           markersRefObj={markersRef}
           onMarkersReady={handleMarkersReady}

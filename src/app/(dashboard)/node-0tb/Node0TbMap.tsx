@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
-import { Download, Eye, FileSpreadsheet, Layers, Loader2, MapPin, Navigation, Network, Search, Upload, X } from "lucide-react";
+import { Download, Eye, FileSpreadsheet, Layers, Loader2, MapPin, Navigation, Network, Search, SlidersHorizontal, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
@@ -14,7 +14,8 @@ import styles from "../node-map/node-map.module.css";
 import MapSearchResults from "@/components/MapSearchResults";
 import { encodeMapEventValue, escapeMapHtml as escapeHtml, isValidMapCoordinate } from "@/lib/map-ui";
 import type { Node0TbMapResponse, Node0TbMapItem } from "@/types";
-import { MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 import { MAP_STYLE_OPTIONS, getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
 
 const DefaultIcon = L.icon({
@@ -267,7 +268,7 @@ function VanillaMarkerCluster({
         else if (hasPurple) clusterColorClass = styles.clusterPurple;
 
         return L.divIcon({
-          html: `<div class="${styles.customClusterLabel} ${clusterColorClass}">${escapeHtml(mainPrefix || "Node 0TB")} <span style="opacity:0.7;font-size:0.75rem">(${childCount})</span></div>`,
+          html: `<div class="${styles.customClusterLabel} ${clusterColorClass}"><span class="${styles.clusterName}">${escapeHtml(mainPrefix || "Node 0TB")}</span> <span class="${styles.clusterCount}">(${childCount})</span></div>`,
           className: styles.customClusterIcon,
           iconSize: undefined,
         });
@@ -340,6 +341,8 @@ export default function Node0TbMap() {
   const [showStyleMenu, setShowStyleMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showListPanel, setShowListPanel] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [listPanelSearch, setListPanelSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
@@ -384,6 +387,10 @@ export default function Node0TbMap() {
     }
     return list;
   }, [allNodes, selectedCategory]);
+
+  const coordinateCount = useMemo(() => allNodes.filter((node) => getMapCoordinates(node) !== null).length, [allNodes]);
+  const mappableNodes = useMemo(() => filteredNodes.filter((node) => getMapCoordinates(node) !== null), [filteredNodes]);
+  const inViewportCount = useMemo(() => countPointsInViewport(mappableNodes, viewport, getMapCoordinates), [mappableNodes, viewport]);
 
   const requestUserLocation = () => {
     if (!navigator.geolocation) {
@@ -574,9 +581,7 @@ export default function Node0TbMap() {
   const handleFitNodes = () => {
     if (!mapRef.current) return;
 
-    const coordinates = filteredNodes
-      .filter((node) => node.latitude !== null && node.longitude !== null)
-      .map((node) => [node.latitude as number, node.longitude as number] as [number, number]);
+    const coordinates = mappableNodes.map((node) => [node.latitude as number, node.longitude as number] as [number, number]);
     if (coordinates.length === 0) {
       toast.error("Không có node có tọa độ trong bộ lọc hiện tại.");
       return;
@@ -625,15 +630,14 @@ export default function Node0TbMap() {
   const defaultCenter: [number, number] = [11.537969, 107.955546];
   const mapCenter =
     userLocation ||
-    (allNodes.length > 0 && allNodes[0].latitude !== null && allNodes[0].longitude !== null
-      ? ([allNodes[0].latitude, allNodes[0].longitude] as [number, number])
-      : defaultCenter);
+    getMapCoordinates(allNodes.find((node) => getMapCoordinates(node) !== null) || {}) || defaultCenter;
   const tileConfig = getMapTileConfig(mapStyle);
 
   return (
     <div className={styles.mapOuter}>
       <MapToolbar className={styles.searchOverlay} label="Công cụ bản đồ Node 0TB">
         <div className={`${styles.toolbarPanel} ${styles.searchToolbar}`}>
+          <MapHeading title="Bản đồ Node 0TB" eyebrow="Hạ tầng mạng" />
           <div className={styles.toolbarMainRow}>
             <div className={styles.searchFieldShell}>
               <div className={styles.searchBar}>
@@ -707,20 +711,32 @@ export default function Node0TbMap() {
               <div className={styles.primaryActionsRow}>
                 <button
                   type="button"
-                  className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn} ${styles.primaryActionBtn}`}
+                  className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
+                  onClick={() => setShowFilters((current) => !current)}
+                  aria-label="Bộ lọc"
+                  aria-expanded={showFilters}
+                  aria-controls="node-0tb-filters"
+                >
+                  <SlidersHorizontal size={16} aria-hidden="true" />
+                  <span>Bộ lọc{selectedCategory !== "ALL" ? " •" : ""}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
                   onClick={handleGoToMyLocation}
                   disabled={isLocating}
                   title={userLocation ? "Vị trí của tôi" : locationError || "Dùng vị trí của tôi"}
                   aria-label="Vị trí của tôi"
                 >
                   {isLocating ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
+                  <span>Vị trí của tôi</span>
                 </button>
 
                 {session?.user?.role === "ADMIN" && (
                   <div className={styles.styleMenuAnchor} ref={adminMenuRef}>
                     <button
                       type="button"
-                      className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn} ${styles.primaryActionBtn}`}
+                      className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
                       onClick={() => {
                         setShowAdminMenu((current) => !current);
                         setShowStyleMenu(false);
@@ -732,6 +748,7 @@ export default function Node0TbMap() {
                       aria-haspopup="menu"
                     >
                       <Upload size={18} className={isUploading ? "animate-spin" : ""} />
+                      <span>Quản trị</span>
                     </button>
 
                     {showAdminMenu && (
@@ -767,7 +784,7 @@ export default function Node0TbMap() {
 
                 <button
                   type="button"
-                  className={`ui-action-btn ui-action-btn--icon ${styles.mapActionBtn} ${styles.primaryActionBtn}`}
+                  className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
                   onClick={() => {
                     setShowListPanel((v) => !v);
                     setShowAdminMenu(false);
@@ -780,6 +797,7 @@ export default function Node0TbMap() {
                   aria-haspopup="dialog"
                 >
                   <Eye size={18} />
+                  <span>Danh sách</span>
                 </button>
               </div>
 
@@ -827,10 +845,20 @@ export default function Node0TbMap() {
               </div>
             </div>
           </div>
+          <MapDataSummary
+            label="Số liệu bản đồ Node 0TB"
+            totalLabel="Tổng node"
+            totalCount={allNodes.length}
+            coordinateCount={coordinateCount}
+            matchedCount={mappableNodes.length}
+            inViewportCount={inViewportCount}
+            loading={isLoading || Boolean(loadError)}
+            scopeNote={selectedCategory !== "ALL" ? `Đang lọc: ${selectedCategory}` : undefined}
+          />
         </div>
 
         {/* Filter Panel */}
-        <div className={`${styles.toolbarPanel} ${styles.filterPanel}`}>
+        <div id="node-0tb-filters" className={`${styles.toolbarPanel} ${styles.filterPanel}`} hidden={!showFilters}>
           <MapLegend className={styles.filterControls} label="Chú giải phân loại Node 0TB">
             <button
               type="button"
@@ -926,7 +954,7 @@ export default function Node0TbMap() {
                         Phân loại: {node.categoryKd || "-"}
                       </div>
                       <div className={styles.customerNodeUpdated}>
-                        {node.hasCoordinates ? "✓ Đã có tọa độ" : "⚠ Chưa có tọa độ"}
+                        {getMapCoordinates(node) ? "✓ Đã có tọa độ" : "⚠ Chưa có tọa độ"}
                       </div>
                     </div>
                   </button>
@@ -944,6 +972,7 @@ export default function Node0TbMap() {
         className={styles.mapCanvas}
         zoomControl={false}
       >
+        <MapViewportObserver onChange={setViewport} />
         <MapRefBridge mapInstanceRef={mapRef} />
         <MapSizeBridge />
         <FlyToPosition position={flyTarget} zoom={flyZoom} />
@@ -964,17 +993,11 @@ export default function Node0TbMap() {
         )}
 
         <VanillaMarkerCluster
-          nodes={filteredNodes}
+          nodes={mappableNodes}
           userLocationRef={userLocationRef}
           markersRefObj={markersRefObj}
         />
       </MapContainer>
-
-      {/* Map bottom count pill */}
-      <div className={styles.mapCountPill} aria-live="polite">
-        <MapPin size={14} className={styles.mapCountIcon} />
-        <span>Hiển thị {filteredNodes.filter((n) => n.hasCoordinates).length} node trên bản đồ</span>
-      </div>
 
       <MapViewportControls
         className={styles.viewportControls}
