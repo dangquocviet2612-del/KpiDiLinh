@@ -2,7 +2,16 @@
 
 ## Trạng thái
 
-**Database Production đã nâng và đối soát thành công; đang chuẩn bị commit/push/deploy source.** Project đích là `kpidi-linh`, web `kpidi-linh.vercel.app`; cấu hình Vercel được kiểm tra trước phát hành là chưa nối tự động deploy Git.
+**Đã nâng database, push GitHub và phát hành Production thành công ngày 01/11/2026.** Project đích là `kpidi-linh`, web [kpidi-linh.vercel.app](https://kpidi-linh.vercel.app); cấu hình Vercel được kiểm tra trước phát hành là chưa nối tự động deploy Git.
+
+## Phát hành source
+
+- Commit ứng dụng [1492b49](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/1492b49b46a203aaf75cd1db501df7a78ef09f58), 82 file public, đã push `main`. Trước commit đối chiếu 551 đường dẫn với candidate đã kiểm thử, quét các rule secret và xác minh không đưa env/database/backup hoặc hai thay đổi candidate68 từ worktree vào.
+- [GitHub CI 41268490835](https://github.com/dangquocviet2612-del/KpiDiLinh/actions/runs/41268490835) hoàn tất thành công đúng commit: Prisma validate/generate, lint, toàn bộ `npm test`, performance-policy và Next production build trên Ubuntu. Không thay timeout/pool hoặc bỏ test để phát hành.
+- Deployment `dpl_TX7KA5EzLd6hg7Us7hSuNcg2ppZS`, URL `kpidi-linh-ezcjn866n-vietdq9.vercel.app`, đạt `READY`. Deploy ban đầu dùng `--prod --skip-domain`; chỉ promote sau khi CI và smoke candidate đạt. Không chạy migration trong build.
+- Sáu kiểm tra GET trên candidate và sáu trên domain chính đều đạt: login 200 với form mật khẩu, ba trang bảo vệ chuyển về login, hai API FTTH trả 401 khi chưa đăng nhập. Kiểm tra Vercel API xác nhận alias `kpidi-linh.vercel.app` trỏ đúng deployment/commit mới.
+- Candidate dùng quyền protection token đã có của owner, chỉ trong bộ nhớ; không tạo token bảo vệ mới hoặc thay settings. Smoke domain chính không dùng token bảo vệ, không đăng nhập app, không đọc business rows hoặc ghi dữ liệu. Vì vậy đây không phải nghiệm thu luồng import/sửa tỷ lệ thực tế hay ba role trong trình duyệt.
+- Bổ sung bằng chứng private: `publication-staged.json`, `github-ci-job-results.json`, `promotion-ready.json`, `smoke-candidate-readonly.json`, `smoke-production-readonly.json`, `live-alias-verified.json` và log deploy/promote. Commit tài liệu tiếp theo chỉ ghi kết quả, không đổi source ứng dụng đã deploy.
 
 ## Kết quả nâng database ngày 01/11/2026
 
@@ -64,6 +73,6 @@ Có thêm bản sao đã xác minh checksum ngoài repo tại `D:/code/KpiDiLinh
 3. Ghi metadata baseline theo đúng manifest, chạy riêng FTTH qua runner, kiểm tra ledger/runtime/FK và đối soát dữ liệu. Kết quả commit không rõ phải dừng và kiểm tra lại, không replay mù quáng.
 4. Chỉ khi database và các cổng phát hành đạt mới commit/push đúng candidate, deploy có kiểm tra trạng thái/alias và smoke; không promote candidate68 từ worktree.
 
-Native libSQL Windows, full integration và trình duyệt thật ba role vẫn chưa được nghiệm thu đầy đủ; lần unit/UI hoặc build đạt không tự đóng những gate đó. Không tuyên bố tăng tốc Production từ các kết quả này.
+GitHub CI đã chạy toàn bộ `npm test` thành công trên Ubuntu cho commit phát hành. Native libSQL Windows và trình duyệt thật ba role vẫn chưa được nghiệm thu đầy đủ; CI Linux không tự đóng các gate Windows/auth/Node0TB cũ hoặc chứng minh hiệu năng thực tế. Không tuyên bố tăng tốc Production từ các kết quả này.
 
 Evidence private: `.local/deployment/production-publish-20261101/` gồm log lượt lỗi/lượt sửa, build, preflight, ACL, backup/shadow, schema diff, proposal V1–V3 và addendum. Không commit các file này.

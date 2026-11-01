@@ -74,4 +74,4 @@ Nếu chưa có bảng, FTTH và xuất backup mới trả lỗi schema; các do
 
 ## Chuẩn bị Production
 
-Đợt kiểm tra/sao lưu online, thử nghiệm trên bản sao dữ liệu thật và nâng Production sau phê duyệt được ghi riêng tại `docs/ftth-production-release.md`. Database đã sẵn sàng; xem tài liệu phát hành để biết trạng thái push/deploy. Những kết quả này không thay các giới hạn của unit test nêu trên hoặc tự cấp quyền baseline/nâng schema cho database khác.
+Đợt kiểm tra/sao lưu online, thử nghiệm trên bản sao dữ liệu thật và nâng Production sau phê duyệt được ghi riêng tại `docs/ftth-production-release.md`. Commit ứng dụng `1492b49` đã push `main`, GitHub CI trên Ubuntu đạt và đã deploy/promote lên [web chính](https://kpidi-linh.vercel.app/prepaid?view=cuoc-ftth) ngày 01/11/2026; alias và smoke GET đã xác minh. Smoke chưa đăng nhập app, không thay nghiệm thu ba role/import template thực tế hoặc native Windows. Những kết quả này không tự cấp quyền baseline/nâng schema cho database khác.
