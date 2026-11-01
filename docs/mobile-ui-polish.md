@@ -38,3 +38,7 @@ Independent review đã yêu cầu sửa thứ tự Tab rồi duyệt lại sour
 - Không auto-deploy. Khi owner muốn phát hành cần kiểm tra lại candidate/CI, staging smoke và target; bản đồ vẫn phải demo/duyệt riêng trước khi thay giao diện.
 
 Evidence private: `.local/performance/ui-polish-20261101/`, gồm preimage/hash inventory, RED/các lượt lỗi và lượt cuối, browser reports/ảnh, review và scope manifest. Không commit ảnh/log/fixture runtime hoặc dữ liệu riêng.
+
+## Cập nhật phát hành sau đợt local
+
+Sau khi duyệt riêng preview bản đồ, người dùng yêu cầu push/deploy khi kiểm tra đạt. Các thay đổi UI tại đây được giữ nguyên và phát hành cùng ba bản đồ trong commit `e7a152c`; CI41289760697 và build Vercel đạt, alias Production được xác minh, 10 smoke GET trước/sau promote đều đạt. Không sửa API/database hoặc coi các gate nghiệm thu thật còn mở là đã qua. Những ghi chú “chưa commit/push/deploy” phía trên là trạng thái lịch sử của checkpoint79, không phải trạng thái sau checkpoint81. Xem `docs/map-workspace-ui.md` và `tiendokpi.md`.

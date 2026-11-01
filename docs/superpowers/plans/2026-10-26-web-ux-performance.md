@@ -499,4 +499,6 @@ npm.cmd run perf:summarize
 
 Theo preview được duyệt, áp dụng bố cục chung cho Khách hàng/Node/Node0TB: header/search/nút có nhãn, filter thu gọn giữ state, bốn số liệu riêng và viewport observer chỉ đọc. Khách hàng giữ giới hạn API 10.000 bản ghi có tọa độ theo quyền, không đổi nghĩa tìm kiếm hoặc clustering/providers. Local 98 file/1.698 unit/UI, focused132, types/lint/build đạt; browser dùng dữ liệu giả và Leaflet thật, không thay cho nghiệm thu nghiệp vụ ba role/Production. Xem `docs/map-workspace-ui.md` và plan `2026-11-01-map-workspace-local.md`; các gate native/auth68/Node0TB timing/strict-visual cũ vẫn mở. Người dùng đã cho phép push/deploy **sau** khi browser/review/scope cuối đạt; không nâng database trong đợt giao diện này.
 
+Checkpoint81: đã phát hành code `e7a152c` cùng các thay đổi UI local trước đó sau khi browser30/review/primary gates đạt. CI41289760697 thành công; Vercel READY, alias Production đúng deployment `dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu`, 10 smoke GET trước/sau promote đạt. Không đổi database/settings hoặc đóng các gate nghiệm thu thật còn mở.
+
 **Duyệt đợt 1 và quick win Task 5 trước.** Có baseline + hàng rào dữ liệu, sau đó loại request lặp và runtime setup. Khi số liệu load đã tốt hơn mới triển khai các thay đổi UI có preview. Tài liệu này không phải yêu cầu tự chạy toàn bộ tasks ngay.

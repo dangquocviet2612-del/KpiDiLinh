@@ -11,3 +11,5 @@
 **Candidate evidence:** Focused 97, broad 1.671 unit/UI, types/lint and isolated build passed; 24 screenshots/26 browser checks passed after DOM/CSS fixes. See `docs/mobile-ui-polish.md`; these numbers do not include native Windows or authenticated staging acceptance.
 
 **Integration gate:** `.local/performance/ui-polish-20261101/final-scope.json` must exist and confirm exact reviewed hashes and primary validation. This document is not a substitute for that manifest. No commit/push/deploy in this batch.
+
+**Later publication (01/11/2026):** After separate map-preview approval and explicit owner authorization to push/deploy, this unchanged UI batch was included in application commit `e7a152c`. CI41289760697, Vercel READY, verified Production alias and 10 read-only smoke GETs before/after promotion passed. Original local-only scope above remains a historical record; see `docs/map-workspace-ui.md` and checkpoint81 in `tiendokpi.md`. Native/auth68/Node0TB/real-role acceptance gaps remain separate.

@@ -25,3 +25,11 @@
 ## Kiểm tra thủ công sau phát hành
 
 Trên điện thoại và máy tính, mở lần lượt ba bản đồ; đổi bộ lọc rồi thu gọn/mở lại, tìm một khách hàng/node, mở danh sách, bật GPS và thử zoom/fit. Kiểm tra số trong khung thay đổi khi kéo bản đồ. ADMIN kiểm tra menu upload/template nhưng không import dữ liệu thật chỉ để thử giao diện.
+
+## Phát hành đã xác minh
+
+- Code đã commit/push: [`e7a152c49aca14ff744fed8168d53ce2cc4b53ca`](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/e7a152c49aca14ff744fed8168d53ce2cc4b53ca), gồm 34 file của checkpoint78–80; không có env/database/backup/evidence riêng.
+- [CI Pipeline 41289760697](https://github.com/dangquocviet2612-del/KpiDiLinh/actions/runs/41289760697) đạt đúng commit. Primary focused132, types/lint đạt; candidate98 file/1.698 case, Chrome24 ảnh/30 kiểm tra và review hai bước đạt sau sửa hai P2.
+- Production candidate build `READY`, 10 smoke GET đạt trước promote. Vercel API xác nhận [kpidi-linh.vercel.app](https://kpidi-linh.vercel.app) trỏ deployment `dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu` của đúng commit, 10 smoke GET trên domain chính đạt sau promote (01/11/2026).
+- Smoke xác minh form đăng nhập 200, sáu trang bảo vệ chuyển về login và ba API bản đồ trả 401 khi chưa đăng nhập; không đăng nhập app hoặc thao tác dữ liệu thật. Đây không phải nghiệm thu nghiệp vụ ba role hoặc tốc độ Production.
+- Không chạy migration, đổi env/database settings hoặc tạo protection token mới. Giữ deployment trước `dpl_TX7KA5EzLd6hg7Us7hSuNcg2ppZS` làm mốc rollback. Project chưa liên kết Git, commit tài liệu sau phát hành không tự deploy lại application.

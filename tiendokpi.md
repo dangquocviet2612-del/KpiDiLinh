@@ -1550,3 +1550,14 @@ Chi tiết `docs/mobile-ui-polish.md`; plan `docs/superpowers/plans/2026-11-01-m
 - Không đọc/ghi database, đổi API/auth/roles/providers, chạy migration hoặc khẳng định các gate native Windows/auth68/Node0TB timing/strict-visual/ba role thực tế đã qua. Chỉ phát hành sau khi browser/review/scope cuối đạt; kết quả GitHub/Vercel được ghi riêng sau khi xác minh.
 
 Chi tiết `docs/map-workspace-ui.md`; plan `docs/superpowers/plans/2026-11-01-map-workspace-local.md`. Evidence private `.local/performance/map-workspace-20261101/`; không đưa backup/env/token/ảnh QA vào Git hoặc gói deploy.
+
+## 81. Push GitHub và phát hành giao diện Production sau kiểm tra (01/11/2026)
+
+- Tích hợp 21 file theo hash/review, giữ 15 thay đổi local của checkpoint78–79, không đổi ngoài scope. Primary focused **132 case**, types/lint đạt; bản QA cuối **98 file/1.698 case**, isolated build đạt. Chrome **24 ảnh/30 kiểm tra đạt**, gồm hồi quy contrast badge, menu mobile theo role/chữ lớn và đối chiếu bounds Leaflet. Review lại đúng hash không còn P0/P1/P2 trong phạm vi đã xét.
+- Commit/push **`e7a152c49aca14ff744fed8168d53ce2cc4b53ca`**, 34 file public của checkpoint78–80. Full snapshot quét secrets chỉ có một CI dummy đã đối chiếu theo đúng file/rule/line; không có secret chưa xử lý. Vercel dry-run554 file, không env/database/backup/worktree/evidence hoặc geometry/dữ liệu demo.
+- [CI Pipeline 41289760697](https://github.com/dangquocviet2612-del/KpiDiLinh/actions/runs/41289760697) **completed/success** đúng commit. Vercel Production candidate **`dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu`** build `READY` với `--skip-domain`; 10 smoke GET đạt trước promote, giữ mốc rollback `dpl_TX7KA5EzLd6hg7Us7hSuNcg2ppZS`.
+- Promote thành công; Vercel API xác nhận [kpidi-linh.vercel.app](https://kpidi-linh.vercel.app) trỏ đúng candidate/commit. **10 smoke GET trên domain chính đạt**: form login200, sáu trang bảo vệ chuyển về login, ba API bản đồ401 khi chưa đăng nhập. Không dùng protection token ở domain chính, không đăng nhập app hoặc sửa dữ liệu thật.
+- Không chạy migration, đổi env/database settings hoặc tạo protection token mới. Phiên Vercel cũ403 được thay bằng đăng nhập device do owner tự xác thực; credential chỉ ở thư mục ignored. Project chưa liên kết Git nên commit tài liệu riêng sau phát hành không tự deploy lại app.
+- Các gate native Windows/libSQL, auth68, Node0TB timing/strict-visual, tốc độ/tiles mạng thật và nghiệm thu nghiệp vụ ba role vẫn mở; không suy ra từ CI/fixture/smoke rằng các mục này đã hoàn tất. Người dùng kiểm tra ba bản đồ sau khi đăng nhập bằng tài khoản thật.
+
+Chi tiết `docs/map-workspace-ui.md`. Evidence private `.local/performance/map-workspace-20261101/` giữ snapshot/hash, các lượt lỗi, review, CI/deployment metadata và smoke; application source sau deploy không đổi khi cập nhật tài liệu.

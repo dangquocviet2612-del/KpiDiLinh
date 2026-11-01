@@ -24,7 +24,7 @@
 - [x] Focused132, unit/UI 98 file/1.698 case, types/lint và build riêng đạt. Các lượt lỗi được giữ riêng.
 - [x] Chrome 24 ảnh/30 kiểm tra với Leaflet thật và API/GPS/tiles giả: mobile/tablet/desktop, light/dark, chữ 200%, filter, list/focus, bounds và menu mobile theo role.
 - [x] Review độc lập phát hiện hai P2; tái hiện và sửa badge contrast/menu bị cắt, review lại đúng hash đạt. Không có P0/P1/P2 còn mở trong scope review này.
-- [ ] Tích hợp có kiểm tra hash, chạy focused/static ở primary và cập nhật kết quả phát hành.
+- [x] Tích hợp 21 file đúng hash, giữ 15 thay đổi local trước; primary focused132/types/lint đạt, không thay đổi ngoài scope. Cả checkpoint78–80 đã được push/phát hành theo xác nhận người dùng.
 
 ## Phát hành sau xác nhận người dùng
 
@@ -32,6 +32,8 @@
 - Project xác minh `kpidi-linh`, chưa liên kết Git tự deploy. Build script chỉ `next build`; postinstall `prisma generate`, không chạy migration.
 - Tạo Production candidate `--skip-domain`, chờ READY và smoke GET không đăng nhập trước promote. Giữ deployment cũ để rollback; xác minh alias và smoke lại sau promote.
 - Native Windows/libSQL, auth68, Node0TB timing/strict-visual và nghiệm thu nghiệp vụ ba role thực tế vẫn chưa hoàn tất; không đóng gate cũ vì giao diện mới hoặc fixture đã đạt.
+
+**Kết quả:** code `e7a152c`, CI41289760697 thành công, Vercel deployment `dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu` READY. Candidate và Production đều đạt 10 smoke GET; alias `kpidi-linh.vercel.app` đã được API xác nhận đúng deployment/commit. Chi tiết `docs/map-workspace-ui.md`, checkpoint81 trong `tiendokpi.md`. Commit tài liệu sau phát hành không thay đổi source ứng dụng đã deploy.
 
 ## Giới hạn nghiệm thu
 QA local không đại diện tốc độ mạng/tiles và dữ liệu Production, không đóng các gate native Windows/auth timeout68 hoặc timing/strict-visual Node0TB cũ. Không tự sửa snapshot để coi thay đổi giao diện là vượt qua gate cũ.
