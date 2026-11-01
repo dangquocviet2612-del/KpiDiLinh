@@ -23,4 +23,12 @@ Kiểm tra mở form khách hàng → chỉnh tên → Escape phát hiện hộp
 
 ## Trạng thái phát hành
 
-Đợt sửa này chỉ hoàn thiện và kiểm thử local. Chưa commit/push/deploy lại; Production vẫn là bản checkpoint81 cho đến khi có xác nhận phát hành bản thu gọn. Evidence private trong `.local/performance/map-compact-20261101/`, không commit fixture, ảnh QA, env, database hoặc token.
+Đợt local ở checkpoint82 được người dùng xem thử rồi yêu cầu push/deploy ngày 01/11/2026. Bản thu gọn đã được phát hành và xác minh:
+
+- Application commit [`36189a9ff588c079683c01f0a57dba4f7013eb08`](https://github.com/dangquocviet2612-del/KpiDiLinh/commit/36189a9ff588c079683c01f0a57dba4f7013eb08), 15 file, giữ nguyên source đã review/QA. Bản demo localhost và dữ liệu/API/GPS mẫu không nằm trong gói deploy.
+- Chạy lại 99 file/1.704 unit/UI, types/lint và isolated Next build đều đạt; [CI Pipeline 41293008047](https://github.com/dangquocviet2612-del/KpiDiLinh/actions/runs/41293008047) completed/success đúng commit.
+- Production candidate `dpl_DtA9Wzorqf8fimWDY11XBiqPUNb6` build READY với `--skip-domain`; 10 smoke GET đạt trước promote. Vercel API xác nhận [kpidi-linh.vercel.app](https://kpidi-linh.vercel.app) đã trỏ đúng deployment/commit, 10 smoke GET trên domain chính đạt sau promote.
+- Smoke không đăng nhập app: login200, sáu trang bảo vệ chuyển về login và ba API bản đồ401. Không coi đây là nghiệm thu dữ liệu thật theo ba role; không đổi database/env, chạy migration hoặc tạo protection token mới. Giữ deployment cũ `dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu` để rollback.
+- Lỗi pointer hộp xác nhận cũ và các gate native/auth68/Node0TB/hiệu năng thực tế ở trên vẫn chưa được xử lý. Commit tài liệu sau phát hành không đổi application đã deploy; project hiện chưa nối Git tự deploy.
+
+Evidence private trong `.local/performance/map-compact-20261101/` và `.local/deployment/map-compact-publish-20261101/`; không commit fixture, ảnh QA, env, database hoặc token.

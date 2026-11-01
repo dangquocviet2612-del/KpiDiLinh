@@ -1573,3 +1573,14 @@ Chi tiết `docs/map-workspace-ui.md`. Evidence private `.local/performance/map-
 - **Chưa commit/push/deploy bản thu gọn.** Production vẫn checkpoint81 cho đến khi owner xác nhận phát hành. Không đóng các gate native/auth68/Node0TB timing/strict-visual/ba role và mạng thật còn mở.
 
 Chi tiết `docs/map-compact-controls.md`; evidence private `.local/performance/map-compact-20261101/`, không đưa fixture/ảnh/log/env/database/token lên Git hoặc Vercel.
+
+## 83. Phát hành bản đồ tối giản sau khi người dùng xem local (01/11/2026)
+
+- Người dùng mở bản xem local rồi yêu cầu push/deploy. Kiểm tra lại đúng 15 file theo manifest/hash; chạy mới **99 file/1.704 unit/UI**, types/lint và isolated Next build đều đạt. Không sửa thêm application ngoài bản thu gọn đã review/QA; giữ lỗi modal pointer cũ và các giới hạn nghiệm thu đã ghi ở checkpoint82.
+- Quét snapshot558 file public: chỉ một CI dummy đối chiếu đúng file/rule/line, không secret chưa xử lý. Vercel dry-run557 file, không chứa env/database/backup/worktree/evidence hoặc fixture/API/GPS mẫu của localhost.
+- Commit/push **`36189a9ff588c079683c01f0a57dba4f7013eb08`** lên main. [CI Pipeline 41293008047](https://github.com/dangquocviet2612-del/KpiDiLinh/actions/runs/41293008047) completed/success đúng commit: Prisma/lint/tests/performance policy/Next production build đạt.
+- Tạo Production candidate **`dpl_DtA9Wzorqf8fimWDY11XBiqPUNb6`**, `kpidi-linh-g0dbj27vg-vietdq9.vercel.app`, build READY với `--skip-domain`. **10 smoke GET đạt trước promote**; giữ deployment `dpl_hp1U8JvXerrHi57ET4GMNwFbCvCu` làm mốc rollback.
+- Promote thành công; API Vercel xác nhận [kpidi-linh.vercel.app](https://kpidi-linh.vercel.app) trỏ đúng deployment/commit. **10 smoke GET trên domain chính đạt**: form login200, sáu trang bảo vệ chuyển về login, ba API bản đồ401 khi chưa đăng nhập. Không đăng nhập app hoặc sửa dữ liệu thật; không dùng protection token trên domain chính.
+- Không đổi env/database settings, chạy migration hoặc tạo protection token mới. Không đóng gate native Windows/libSQL, auth68, Node0TB timing/strict-visual, lỗi pointer hộp xác nhận hay nghiệm thu ba role/dữ liệu/mạng thật. Commit tài liệu riêng sau phát hành chỉ ghi nhận kết quả, không thay source đã deploy; project chưa nối Git tự deploy.
+
+Chi tiết `docs/map-compact-controls.md`. Evidence private `.local/deployment/map-compact-publish-20261101/` giữ source/hash, scan/dry-run, CI/provider metadata, rollback và smoke; không đưa credential/database/dữ liệu mẫu local lên Git hoặc Vercel.
