@@ -16,7 +16,7 @@ import { toast } from "react-hot-toast";
 import { escapeMapHtml } from "@/lib/map-ui";
 import type { NodeCoordinateItem } from "@/types";
 import { getMapTileConfig } from "@/lib/map-tiles";
-import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapToolsDisclosure, MapViewportControls, MapViewportObserver } from "@/components/map";
 import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 
 // Fix for default marker icon in react-leaflet
@@ -432,7 +432,12 @@ export default function MapComponent() {
     useEffect(() => {
         if (!showCustomerList) return;
         const trigger = customerListTriggerRef.current;
-        return () => { if (trigger?.isConnected) trigger.focus(); };
+        return () => {
+            if (!trigger?.isConnected) return;
+            const disclosure = trigger.closest("details");
+            if (disclosure && !disclosure.open) disclosure.querySelector("summary")?.focus();
+            else trigger.focus();
+        };
     }, [showCustomerList]);
 
     useEffect(() => () => { pendingPopupRef.current = null; }, []);
@@ -827,6 +832,7 @@ export default function MapComponent() {
                         <SlidersHorizontal size={16} aria-hidden="true" />
                         <span>Bộ lọc{colorFilter !== "ALL" ? " •" : ""}</span>
                     </button>
+                    <MapToolsDisclosure panelClassName={styles.compactToolsPanel}>
                     <button
                         type="button"
                         className={`ui-action-btn ${styles.mapActionBtn}`}
@@ -912,6 +918,7 @@ export default function MapComponent() {
                         <Plus size={18} />
                         <span>Thêm khách hàng</span>
                     </button>
+                    </MapToolsDisclosure>
                 </div>
                 </div>
                 <MapDataSummary

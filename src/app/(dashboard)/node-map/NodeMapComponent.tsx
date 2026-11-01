@@ -18,7 +18,7 @@ import { escapeMapHtml as escapeHtml, formatMapPercent } from "@/lib/map-ui";
 import { toast } from "react-hot-toast";
 import { getClientNodeUploadMaxBytes, NODE_UPLOAD_SIZE_ERROR } from "@/lib/node-upload-limits";
 import Dialog from "@/components/ui/Dialog";
-import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapToolbar, MapToolsDisclosure, MapViewportControls, MapViewportObserver } from "@/components/map";
 import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 import { getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
 import {
@@ -1296,6 +1296,7 @@ export default function NodeMapComponent() {
                   <SlidersHorizontal size={16} aria-hidden="true" />
                   <span>Bộ lọc{hasActiveFilters ? " •" : ""}</span>
                 </button>
+                <MapToolsDisclosure panelClassName={styles.compactToolsPanel}>
                 <NodeMapOptionsMenu
                   ref={optionsMenuRef}
                   open={showOptionsMenu}
@@ -1338,6 +1339,7 @@ export default function NodeMapComponent() {
                   <Zap size={14} style={{ color: "#f59e0b" }} />
                   <span className={styles.actionLabel}>Node 0TB</span>
                 </Link>
+                </MapToolsDisclosure>
               </div>
             </div>
           </div>

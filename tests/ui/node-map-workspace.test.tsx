@@ -31,6 +31,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 async function loaded() {
   render(<NodeMapComponent />);
   await waitFor(() => expect(screen.queryByText("Đang tải bản đồ hạ tầng")).not.toBeInTheDocument());
+  fireEvent.click(screen.getByText("Công cụ bản đồ"));
 }
 
 describe("Node map workspace", () => {

@@ -6,3 +6,4 @@ export { default as MapViewportControls } from "./MapViewportControls";
 export { default as MapDataSummary } from "./MapDataSummary";
 export { default as MapHeading } from "./MapHeading";
 export { default as MapViewportObserver } from "./MapViewportObserver";
+export { default as MapToolsDisclosure } from "./MapToolsDisclosure";

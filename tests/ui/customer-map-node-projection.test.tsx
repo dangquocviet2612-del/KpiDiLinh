@@ -114,6 +114,7 @@ async function loaded(groups?: FixtureCluster[]) {
   await waitFor(() => expect(screen.queryByText("Đang tải bản đồ")).not.toBeInTheDocument());
   if (groups) await waitFor(() => expect(groups.at(-1)?.addLayers).toHaveBeenCalled());
   else await waitFor(() => expect(mocks.cluster.addLayers).toHaveBeenCalled());
+  fireEvent.click(screen.getByText("Công cụ bản đồ"));
 }
 
 async function dispatch(name: string, detail: unknown) {
@@ -544,6 +545,15 @@ describe("customer map coordinates DTO consumer", () => {
 });
 
 describe("customer-map-workspace-owned", () => {
+  it("returns focus to Tools when the list trigger is inside the collapsed disclosure", async () => {
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Danh sách" }));
+    const close=screen.getByRole("button", { name: "Đóng danh sách khách hàng" });
+    fireEvent.pointerDown(close);
+    fireEvent.click(close);
+    expect(screen.getByText("Công cụ bản đồ").closest("summary")).toHaveFocus();
+  });
+
   function expectMetric(label: string, count: number | string) {
     expect(screen.getByText(label).parentElement).toHaveTextContent(new RegExp(`${count}$`));
   }
@@ -552,7 +562,7 @@ describe("customer-map-workspace-owned", () => {
     await loaded();
     expect(screen.getByRole("heading", { name: "Bản đồ khách hàng" })).toBeInTheDocument();
     const toolbar = screen.getByRole("region", { name: "Công cụ bản đồ khách hàng" });
-    expect(within(toolbar).getByText("Tìm khách hàng")).toBeVisible();
+    expect(within(toolbar).getByRole("combobox", { name: "Tìm khách hàng trên bản đồ" })).toBeVisible();
     expect(within(toolbar).getByText("GPS")).toBeVisible();
     expect(within(toolbar).getByText("Thêm khách hàng")).toBeVisible();
     const listTrigger = within(toolbar).getByRole("button", { name: /Danh sách/ });

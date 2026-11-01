@@ -14,7 +14,7 @@ import styles from "../node-map/node-map.module.css";
 import MapSearchResults from "@/components/MapSearchResults";
 import { encodeMapEventValue, escapeMapHtml as escapeHtml, isValidMapCoordinate } from "@/lib/map-ui";
 import type { Node0TbMapResponse, Node0TbMapItem } from "@/types";
-import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapViewportControls, MapViewportObserver } from "@/components/map";
+import { MapDataSummary, MapHeading, MapLegend, MapPanel, MapStyleMenu, MapToolbar, MapToolsDisclosure, MapViewportControls, MapViewportObserver } from "@/components/map";
 import { countPointsInViewport, getMapCoordinates, type MapViewport } from "@/lib/map-viewport";
 import { MAP_STYLE_OPTIONS, getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
 
@@ -708,7 +708,6 @@ export default function Node0TbMap() {
             </div>
 
             <div className={styles.toolbarActionStack}>
-              <div className={styles.primaryActionsRow}>
                 <button
                   type="button"
                   className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
@@ -720,6 +719,8 @@ export default function Node0TbMap() {
                   <SlidersHorizontal size={16} aria-hidden="true" />
                   <span>Bộ lọc{selectedCategory !== "ALL" ? " •" : ""}</span>
                 </button>
+              <MapToolsDisclosure panelClassName={styles.compactToolsPanel}>
+              <div className={styles.primaryActionsRow}>
                 <button
                   type="button"
                   className={`ui-action-btn ${styles.mapActionBtn} ${styles.secondaryActionBtn}`}
@@ -843,6 +844,7 @@ export default function Node0TbMap() {
                   <span className={styles.actionLabel}>Bản đồ Node</span>
                 </Link>
               </div>
+              </MapToolsDisclosure>
             </div>
           </div>
           <MapDataSummary

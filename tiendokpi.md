@@ -1561,3 +1561,15 @@ Chi tiết `docs/map-workspace-ui.md`; plan `docs/superpowers/plans/2026-11-01-m
 - Các gate native Windows/libSQL, auth68, Node0TB timing/strict-visual, tốc độ/tiles mạng thật và nghiệm thu nghiệp vụ ba role vẫn mở; không suy ra từ CI/fixture/smoke rằng các mục này đã hoàn tất. Người dùng kiểm tra ba bản đồ sau khi đăng nhập bằng tài khoản thật.
 
 Chi tiết `docs/map-workspace-ui.md`. Evidence private `.local/performance/map-workspace-20261101/` giữ snapshot/hash, các lượt lỗi, review, CI/deployment metadata và smoke; application source sau deploy không đổi khi cập nhật tài liệu.
+
+## 82. Thu gọn ba bản đồ theo ảnh phản hồi thực tế — local (01/11/2026)
+
+- Người dùng phản hồi toolbar checkpoint81 chiếm quá nhiều canvas trên desktop/mobile. Thay mặc định bằng tiêu đề nhỏ, một hàng tìm kiếm/Bộ lọc/`…`; GPS, danh sách, nền bản đồ, thêm khách hàng và quản trị/xuất/nhập nằm trong Công cụ. Giữ toàn bộ quyền/callback/file inputs, API, search và marker/clustering, không đổi database hoặc providers.
+- Thống kê mặc định còn một dòng trong khung/qua lọc. Mở Số liệu mới hiện bốn chỉ số cùng cảnh báo thiếu tọa độ và giới hạn khách hàng theo quyền; không bỏ các thông tin này hoặc biến số đã tải thành tổng hệ thống. Nút vẫn tối thiểu44px, panel desktop tối đa34rem, popup có scroll riêng không làm toolbar tăng nhiều hàng.
+- So cùng fixture ở mobile, toolbar mặc định khoảng **127px**: Node0TB390px **302,48→127,03px**, Node390px **276,08→127,03px**, Customer360px **327,09→127,03px**; các mẫu mobile giảm khoảng **54–64% chiều cao**. Đây là số đo bố cục với dữ liệu giả, không phải phần trăm tăng tốc hoặc mọi thiết bị/dữ liệu thực.
+- TDD và review bắt hai hồi quy focus: Escape phải tôn trọng modal riêng; đóng danh sách phải trở về nút Công cụ còn nhìn thấy nếu trigger danh sách đã bị thu lại. Cả hai có lượt RED trước sửa; static review lại đúng hash đạt. Nhãn Công cụ dùng CSS visually-hidden riêng, không dựa vào global class không tồn tại.
+- Candidate cuối **99 file/1.704 unit/UI**, focused126, types/lint và isolated Next build đạt. Chrome **24 ảnh/30 kiểm tra** bao gồm light/dark,360/390/768/1440px,chữ200%, role và thao tác filter/GPS/nền bản đồ/danh sách/keyboard. Tích hợp và primary scoped/static có manifest riêng; không dùng kết quả candidate thay cho kiểm tra primary.
+- Trong QA phát hiện lỗi pointer cũ: xác nhận bỏ thay đổi của form khách hàng bị form che. Probe cả bản trước/sau đều hit cùng form, chưa sửa stacking/modal ngoài scope. Hủy bằng Enter vẫn trả focus trong form; browser matrix chỉ nghiệm thu luồng bàn phím này. Giữ báo cáo timeout và ảnh/probe cũ; không force-click, tăng timeout hay báo pointer flow đã qua. Chờ cleanup focus bất đồng bộ của hook trước assertion, không sửa hook để làm test đạt.
+- **Chưa commit/push/deploy bản thu gọn.** Production vẫn checkpoint81 cho đến khi owner xác nhận phát hành. Không đóng các gate native/auth68/Node0TB timing/strict-visual/ba role và mạng thật còn mở.
+
+Chi tiết `docs/map-compact-controls.md`; evidence private `.local/performance/map-compact-20261101/`, không đưa fixture/ảnh/log/env/database/token lên Git hoặc Vercel.

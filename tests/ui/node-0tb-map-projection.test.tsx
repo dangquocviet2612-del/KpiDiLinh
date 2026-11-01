@@ -99,6 +99,7 @@ async function loaded() {
   render(<Node0TbMap />);
   await screen.findByText("Tổng node");
   await waitFor(() => expect(mocks.cluster.addLayers).toHaveBeenCalled());
+  fireEvent.click(screen.getByText("Công cụ bản đồ"));
 }
 
 function expectSummary(counts: { totalCount: number; coordinateCount: number; matchedCount: number; inViewportCount: number | null }) {

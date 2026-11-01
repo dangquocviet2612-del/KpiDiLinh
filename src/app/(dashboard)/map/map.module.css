@@ -1354,3 +1354,42 @@
 .mapOuter .mapStyleDropdown :global(.ui-action-menu-item) {
     min-height: 44px;
 }
+
+.mapOuter .workspacePanel {
+    width: min(100%, 34rem);
+    padding: 0.4rem;
+    max-height: none;
+    overflow: visible;
+}
+
+.mapOuter .toolbarMainRow {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.mapOuter .searchField {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.searchLabel {
+    display: none;
+}
+
+.mapOuter .mapActionsGroup {
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+}
+
+.mapOuter .compactToolsPanel .mapStyleDropdown {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 0 auto;
+    max-height: 35dvh;
+    overflow-y: auto;
+}
