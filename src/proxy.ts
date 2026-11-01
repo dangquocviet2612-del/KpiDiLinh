@@ -30,7 +30,8 @@ export default function proxy(req: NextRequest) {
     (pathname === "/api/import" ||
       pathname === "/api/kpi/import" ||
       pathname === "/api/cuoc/import" ||
-      pathname === "/api/cuoc-cd/import") &&
+      pathname === "/api/cuoc-cd/import" ||
+      pathname === "/api/cuoc-ftth/import") &&
     req.method === "POST"
   ) {
     const result = checkRateLimit(`rl:import:${pathname}:${ip}`, 6, 60_000);

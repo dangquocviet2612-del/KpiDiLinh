@@ -1,8 +1,11 @@
 type RestoreTransaction = { $executeRawUnsafe: (query: string) => Promise<unknown> };
 
-export async function applyRestoreSystemDefaults(transaction: RestoreTransaction): Promise<void> {
+export async function applyRestoreSystemDefaults(transaction: RestoreTransaction, options: { cuocFtth?: boolean } = {}): Promise<void> {
   await transaction.$executeRawUnsafe(`INSERT INTO "CuocConfig" ("id", "targetRatePercent") VALUES (1, 97) ON CONFLICT("id") DO NOTHING`);
   await transaction.$executeRawUnsafe(`INSERT INTO "CuocCdConfig" ("id", "targetRatePercent") VALUES (1, 99.5) ON CONFLICT("id") DO NOTHING`);
+  if (options.cuocFtth) {
+    await transaction.$executeRawUnsafe(`INSERT INTO "CuocFtthConfig" ("id", "targetRatePercent") VALUES (1, 99.5) ON CONFLICT("id") DO NOTHING`);
+  }
   await transaction.$executeRawUnsafe(`
     INSERT INTO "KpiMetricConfig"
     ("kpiCode", "kpiName", "displayName", "baseScore", "maxPercent", "sortOrder", "isEnabled", "isNegative", "updatedAt")

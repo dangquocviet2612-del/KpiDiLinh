@@ -190,6 +190,7 @@ export default function KpiPage() {
   const isManagerSummaryView = searchParams.get("view") === "summary-manager";
   const isCuocView = searchParams.get("view") === "cuoc";
   const isCuocCdView = searchParams.get("view") === "cuoc-cd";
+  const isCuocFtthView = searchParams.get("view") === "cuoc-ftth";
   const isCdtView = searchParams.get("view") === "cdt";
   const isCdtOutstandingView = searchParams.get("view") === "cdt-outstanding";
   const isDisconnectView = searchParams.get("view") === "disconnect";
@@ -254,7 +255,7 @@ export default function KpiPage() {
   const [summaryScope, setSummaryScope] = useState(scopeKey);
   const personalEnabled = hasSession && !(
     isOfficialView || isCdtReportView || isCdtView || isCdtOutstandingView || isDisconnectView ||
-    isSummaryView || isManagerSummaryView || isCuocView || isCuocCdView || isKpiCalculatorView
+    isSummaryView || isManagerSummaryView || isCuocView || isCuocCdView || isCuocFtthView || isKpiCalculatorView
   );
   const summaryEnabled = hasSession && isSummaryView && canViewSummary;
   const managerSummaryEnabled = hasSession && isManagerSummaryView && canViewManagerKpi;
@@ -565,12 +566,20 @@ export default function KpiPage() {
     hasSession: !!session?.user,
   });
 
-  const cuocCdPanel = useCuocCdPanel({
+  const cuocCdState = useCuocCdPanel({
     canAdmin,
     canViewCuoc,
     enabled: isCuocCdView,
     hasSession: !!session?.user,
   });
+  const cuocFtthState = useCuocCdPanel({
+    canAdmin,
+    canViewCuoc,
+    enabled: isCuocFtthView,
+    hasSession: !!session?.user,
+    kind: "ftth",
+  });
+  const cuocCdPanel = isCuocFtthView ? cuocFtthState : cuocCdState;
 
   const handleResolvedReportDate = useCallback((value: string) => {
     setReportDate(value);
@@ -650,12 +659,13 @@ export default function KpiPage() {
       isManagerSummaryView ||
       isCuocView ||
       isCuocCdView ||
+      isCuocFtthView ||
       isKpiCalculatorView
     ) { cancelPersonal(); return; }
     if (canSelectCtv && (!debouncedCtv || debouncedCtv !== selectedCtv)) { cancelPersonal(); return; }
     if (debouncedDate !== reportDate) { cancelPersonal(); return; }
     void fetchPersonal();
-  }, [cancelPersonal, canSelectCtv, ctvReady, debouncedCtv, debouncedDate, fetchPersonal, hasSession, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, reportDate, selectedCtv]);
+  }, [cancelPersonal, canSelectCtv, ctvReady, debouncedCtv, debouncedDate, fetchPersonal, hasSession, isCdtOutstandingView, isCdtReportView, isCdtView, isCuocCdView, isCuocFtthView, isCuocView, isDisconnectView, isKpiCalculatorView, isManagerSummaryView, isOfficialView, isSummaryView, reportDate, selectedCtv]);
 
   useEffect(() => {
     setSummaryPage(1);
@@ -1075,9 +1085,11 @@ export default function KpiPage() {
     );
   }
 
-  if (isCuocCdView && canViewCuoc) {
+  if ((isCuocCdView || isCuocFtthView) && canViewCuoc) {
     return (
       <CuocCdPanelClean
+        key={isCuocFtthView ? "ftth" : "cd"}
+        service={isCuocFtthView ? "ftth" : "cd"}
         canAdmin={canAdmin}
         isCtv={role === "CTV"}
         reportDate={cuocCdPanel.reportDate}

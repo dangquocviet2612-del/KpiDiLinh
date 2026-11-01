@@ -6,6 +6,7 @@ import * as xlsx from "xlsx";
 import AdmZip from "adm-zip";
 import { DOMParser } from "@xmldom/xmldom";
 import { auth } from "@/auth";
+import { getNodeUploadMaxBytes, NODE_UPLOAD_SIZE_ERROR } from "@/lib/node-upload-limits";
 import { prisma } from "@/lib/prisma";
 import { invalidateCacheForMutation } from "@/lib/cache-tags";
 import { ensureNodeEfficiencyColumns } from "@/lib/node-efficiency-db";
@@ -465,6 +466,11 @@ export async function POST(request: Request) {
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Vui lòng chọn file để tải lên." }, { status: 400 });
+    }
+
+    const maxBytes = getNodeUploadMaxBytes();
+    if (maxBytes !== null && file.size > maxBytes) {
+      return NextResponse.json({ error: NODE_UPLOAD_SIZE_ERROR }, { status: 413 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

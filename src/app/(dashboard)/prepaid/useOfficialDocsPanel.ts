@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import toast from "react-hot-toast";
+import { getClientOfficialDocUploadMaxBytes, OFFICIAL_DOC_UPLOAD_SIZE_ERROR } from "@/lib/official-doc-upload-limits";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialogProvider";
 import {
   appendOfficialDocImageUrl,
@@ -167,10 +168,16 @@ export default function useOfficialDocsPanel({
 
   const uploadDocFiles = useCallback(async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    const maxBytes = getClientOfficialDocUploadMaxBytes();
+    if (maxBytes !== null && files.some((file) => file.size > maxBytes)) {
+      toast.error(OFFICIAL_DOC_UPLOAD_SIZE_ERROR);
+      return;
+    }
     setDocBusy("upload");
     try {
       const uploaded: DocAsset[] = [];
-      for (const file of Array.from(fileList)) {
+      for (const file of files) {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/official-documents/upload", { method: "POST", body: fd });

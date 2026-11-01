@@ -159,7 +159,7 @@ beforeEach(() => {
     if (["/api/kpi/summary", "/api/kpi/manager-summary"].includes(url.pathname)) {
       return jsonResponse({ rows: [], allRows: [], indicators: [], selectedGroup: "", reportDate: url.searchParams.get("reportDate") || "2026-10-25", isNegativeGroup: false, maxPercent: 120 });
     }
-    if (["/api/cdt/report", "/api/cdt/summary", "/api/cdt/outstanding/report", "/api/disconnect/report", "/api/cuoc/report", "/api/cuoc-cd/report"].includes(url.pathname)) {
+    if (["/api/cdt/report", "/api/cdt/summary", "/api/cdt/outstanding/report", "/api/disconnect/report", "/api/cuoc/report", "/api/cuoc-cd/report", "/api/cuoc-ftth/report"].includes(url.pathname)) {
       return jsonResponse({ rows: [], summaryRow: null, pagination: { page: 1, totalPages: 1 }, availableReportMonths: [], availableExpiryMonths: [], availableCancelMonths: [] });
     }
     throw new Error(`Unexpected synthetic request: ${url.pathname}`);
@@ -175,6 +175,15 @@ afterEach(() => {
 });
 
 describe("prepaid on-demand panel code", () => {
+  it("reuses the CD panel for FTTH without fetching CD or personal data", async () => {
+    const { page } = await loadShell("cuoc-ftth");
+    render(page());
+    await screen.findByRole("region", { name: "cuoc-cd" });
+    await waitFor(() => expect(dataPaths()).toEqual(["/api/cuoc-ftth/report"]));
+    await settleDebounces();
+    expect(evaluated).toEqual(["personal", "cuoc-cd"]);
+    expect(dataPaths()).toEqual(["/api/cuoc-ftth/report"]);
+  });
   it("keeps personal entry static without evaluating calculator, documents, CDT or other report modules", async () => {
     const { page } = await loadShell();
     render(page());

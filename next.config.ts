@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import withPWAInit from "next-pwa";
+import { getCustomerImportMaxBytes } from "./src/lib/customer-import-limits";
+import { getNodeUploadMaxBytes } from "./src/lib/node-upload-limits";
+import { getOfficialDocUploadMaxBytes } from "./src/lib/official-doc-upload-limits";
+import { getBackupRestoreMaxBytes } from "./src/lib/backup-restore-limits";
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -9,6 +13,12 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_CUSTOMER_IMPORT_MAX_BYTES: String(getCustomerImportMaxBytes() ?? 0),
+    NEXT_PUBLIC_NODE_UPLOAD_MAX_BYTES: String(getNodeUploadMaxBytes() ?? 0),
+    NEXT_PUBLIC_OFFICIAL_DOC_UPLOAD_MAX_BYTES: String(getOfficialDocUploadMaxBytes() ?? 0),
+    NEXT_PUBLIC_BACKUP_RESTORE_MAX_BYTES: String(getBackupRestoreMaxBytes() ?? 0),
+  },
   experimental: {
     proxyClientMaxBodySize: "64mb",
   },

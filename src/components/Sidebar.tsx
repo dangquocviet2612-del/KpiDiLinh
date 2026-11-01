@@ -373,6 +373,17 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
                                     Cước CD
                                 </Link>
                             )}
+                            {canViewCuoc && (
+                                <Link
+                                    href="/prepaid?view=cuoc-ftth"
+                                    onClick={() => closeSubmenuAfterNavigation("kpi")}
+                                    aria-current={isKpiRoute && prepaidView === "cuoc-ftth" ? "page" : undefined}
+                                    className={cn(styles.submenuLink, isKpiRoute && prepaidView === "cuoc-ftth" && styles.submenuLinkActive)}
+                                >
+                                    <span className={styles.submenuIcon}><Receipt size={14} /></span>
+                                    Cước FTTH
+                                </Link>
+                            )}
                             <Link
                                 href="/prepaid?view=cdt"
                                 onClick={() => closeSubmenuAfterNavigation("kpi")}

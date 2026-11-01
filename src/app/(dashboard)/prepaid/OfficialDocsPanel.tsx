@@ -392,7 +392,14 @@ export default function OfficialDocsPanel({ role, onBack, panel }: Props) {
                     <div className={styles.docAssetControls}>
                       <label className={surfaceActionBtnClass}>
                         <Paperclip size={14} /> Upload file
-                        <input type="file" multiple hidden onChange={(e) => uploadDocFiles(e.target.files)} />
+                        <input type="file" multiple hidden onChange={async (event) => {
+                          const input = event.currentTarget;
+                          try {
+                            await uploadDocFiles(input.files);
+                          } finally {
+                            input.value = "";
+                          }
+                        }} />
                       </label>
                       <button className={surfaceActionBtnClass} onClick={addDocVideoLink}>
                         <Video size={14} /> Thêm link video

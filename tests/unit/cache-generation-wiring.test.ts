@@ -8,6 +8,7 @@ const writerFiles = [
   "src/app/api/cdt/report/route.ts",
   "src/app/api/cdt/summary/route.ts",
   "src/app/api/cuoc-cd/report/route.ts",
+  "src/app/api/cuoc-ftth/report/route.ts",
   "src/app/api/cuoc/report/route.ts",
   "src/app/api/customers/map-data/route.ts",
   "src/app/api/customers/route.ts",

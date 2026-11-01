@@ -31,6 +31,7 @@ import AsyncState from "@/components/ui/AsyncState";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Dialog from "@/components/ui/Dialog";
 import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
+import { CUSTOMER_IMPORT_SIZE_ERROR, getClientCustomerImportMaxBytes } from "@/lib/customer-import-limits";
 
 type DeleteTarget =
     | { type: "single"; id: string }
@@ -43,6 +44,25 @@ type ImportReport = {
     errorCsvUrl?: string;
     errorFileName?: string;
 };
+
+type ImportResponse = {
+    added: number;
+    updated: number;
+    errors?: string[];
+    errorCsv?: string;
+};
+
+function isImportResponse(value: unknown): value is ImportResponse {
+    if (!value || typeof value !== "object") return false;
+    const result = value as Record<string, unknown>;
+    return typeof result.added === "number" && Number.isSafeInteger(result.added) && result.added >= 0
+        && typeof result.updated === "number" && Number.isSafeInteger(result.updated) && result.updated >= 0
+        && (result.errors === undefined || (Array.isArray(result.errors) && result.errors.every((error) => typeof error === "string")))
+        && (result.errorCsv === undefined || typeof result.errorCsv === "string");
+}
+
+const importUnknownMessage = "Chưa xác nhận được kết quả import. Hãy tải lại danh sách để kiểm tra trước khi thử lại.";
+const importRefreshMessage = "Import đã hoàn tất nhưng danh sách chưa tải lại được. Hãy tải lại trang để kiểm tra.";
 
 export default function CustomersPage() {
     const router = useRouter();
@@ -67,6 +87,7 @@ export default function CustomersPage() {
 
     const { data: session } = useSession();
     const importInputRef = useRef<HTMLInputElement | null>(null);
+    const importInFlightRef = useRef(false);
     const retryInFlightRef = useRef<{ page: number; limit: number; filters: typeof filters } | null>(null);
     const importReportUrlRef = useRef<string | null>(null);
 
@@ -81,6 +102,7 @@ export default function CustomersPage() {
     const [showMobileSheet, setShowMobileSheet] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [importReport, setImportReport] = useState<ImportReport | null>(null);
+    const [visibleImportErrorCount, setVisibleImportErrorCount] = useState(5);
     const mobileSheetDialogRef = useDialogAccessibility<HTMLDivElement>({
         enabled: showMobileSheet,
         onClose: () => setShowMobileSheet(false),
@@ -342,21 +364,42 @@ export default function CustomersPage() {
 
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || importInFlightRef.current) return;
 
+        const input = e.currentTarget;
+        const maxBytes = getClientCustomerImportMaxBytes();
+        if (maxBytes !== null && file.size > maxBytes) {
+            input.value = "";
+            toast.error(CUSTOMER_IMPORT_SIZE_ERROR);
+            return;
+        }
+
+        importInFlightRef.current = true;
         closeTransientPanels();
         setIsImporting(true);
-        const formData = new FormData();
-        formData.append("file", file);
 
         try {
+            const formData = new FormData();
+            formData.append("file", file);
             const res = await fetch("/api/import", {
                 method: "POST",
                 body: formData,
             });
-            const data = await res.json();
+            if (res.status === 413) {
+                toast.error("File tải lên vượt giới hạn cho phép. Hãy chia nhỏ file Excel rồi thử lại.");
+                return;
+            }
+            if (res.status >= 500) {
+                toast.error(importUnknownMessage);
+                return;
+            }
+            const data: unknown = await res.json();
 
             if (res.ok) {
+                if (!isImportResponse(data)) {
+                    toast.error(importUnknownMessage);
+                    return;
+                }
                 if (importReportUrlRef.current) {
                     URL.revokeObjectURL(importReportUrlRef.current);
                     importReportUrlRef.current = null;
@@ -365,30 +408,43 @@ export default function CustomersPage() {
                 let errorCsvUrl: string | undefined;
                 let errorFileName: string | undefined;
                 if (data.errorCsv) {
-                    const blob = new Blob([data.errorCsv], { type: "text/csv;charset=utf-8;" });
-                    errorCsvUrl = URL.createObjectURL(blob);
-                    errorFileName = `import_errors_${Date.now()}.csv`;
-                    importReportUrlRef.current = errorCsvUrl;
+                    try {
+                        const blob = new Blob([data.errorCsv], { type: "text/csv;charset=utf-8;" });
+                        errorCsvUrl = URL.createObjectURL(blob);
+                        errorFileName = `import_errors_${Date.now()}.csv`;
+                        importReportUrlRef.current = errorCsvUrl;
+                    } catch {
+                        toast.error("Import đã hoàn tất nhưng chưa tạo được file báo cáo lỗi. Bạn vẫn có thể xem lỗi trong bảng kết quả.");
+                    }
                 }
 
+                setVisibleImportErrorCount(5);
                 setImportReport({
-                    added: Number(data.added) || 0,
-                    updated: Number(data.updated) || 0,
-                    errors: Array.isArray(data.errors) ? data.errors : [],
+                    added: data.added,
+                    updated: data.updated,
+                    errors: data.errors ?? [],
                     errorCsvUrl,
                     errorFileName,
                 });
                 toast.success("Import khách hàng đã hoàn tất.");
 
-                fetchCustomers();
+                try {
+                    void Promise.resolve(fetchCustomers()).catch(() => toast.error(importRefreshMessage));
+                } catch {
+                    toast.error(importRefreshMessage);
+                }
             } else {
-                toast.error(`Lỗi: ${data.error}`);
+                const message = data && typeof data === "object" && "error" in data ? data.error : undefined;
+                toast.error(res.status >= 400 && res.status < 500 && typeof message === "string" && message.trim()
+                    ? `Lỗi: ${message}`
+                    : importUnknownMessage);
             }
         } catch {
-            toast.error("Lỗi import file.");
+            toast.error(importUnknownMessage);
         } finally {
+            importInFlightRef.current = false;
             setIsImporting(false);
-            e.target.value = "";
+            input.value = "";
         }
     };
 
@@ -944,13 +1000,18 @@ export default function CustomersPage() {
                     {importReport.errors.length > 0 && (
                         <div className={styles.importReportErrors}>
                             <h3>Một số lỗi cần kiểm tra</h3>
-                            <ul>
-                                {importReport.errors.slice(0, 5).map((error, index) => (
+                            <ul id="customer-import-row-errors">
+                                {importReport.errors.slice(0, importReport.errorCsvUrl ? 5 : visibleImportErrorCount).map((error, index) => (
                                     <li key={`${index}-${error}`}>{error}</li>
                                 ))}
                             </ul>
-                            {importReport.errors.length > 5 && (
+                            {importReport.errorCsvUrl && importReport.errors.length > 5 && (
                                 <p>Còn {importReport.errors.length - 5} lỗi khác trong báo cáo CSV.</p>
+                            )}
+                            {!importReport.errorCsvUrl && importReport.errors.length > visibleImportErrorCount && (
+                                <button className="btn btn-secondary" type="button" aria-controls="customer-import-row-errors" onClick={() => setVisibleImportErrorCount((count) => count + 5)}>
+                                    Hiện thêm lỗi
+                                </button>
                             )}
                         </div>
                     )}

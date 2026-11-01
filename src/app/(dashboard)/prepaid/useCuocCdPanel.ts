@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import type { CuocCdRow, CuocCdSummaryRow } from "@/lib/cuoc-cd";
 
 type UseCuocCdPanelProps = {
+  kind?: "cd" | "ftth";
   canAdmin: boolean;
   canViewCuoc: boolean;
   enabled: boolean;
@@ -16,7 +17,10 @@ export default function useCuocCdPanel({
   canViewCuoc,
   enabled,
   hasSession,
+  kind = "cd",
 }: UseCuocCdPanelProps) {
+  const apiBase = kind === "ftth" ? "/api/cuoc-ftth" : "/api/cuoc-cd";
+  const reportName = kind === "ftth" ? "Cước FTTH" : "Cước CD";
   const [reportDate, setReportDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,11 +55,11 @@ export default function useCuocCdPanel({
         const params = new URLSearchParams();
         if (targetDate) params.set("reportDate", targetDate);
 
-        const res = await fetch(`/api/cuoc-cd/report?${params.toString()}`);
+        const res = await fetch(`${apiBase}/report?${params.toString()}`);
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || "Không tải được báo cáo Cước CD");
+          throw new Error(data.error || `Không tải được báo cáo ${reportName}`);
         }
 
         setRows(data.rows || []);
@@ -69,7 +73,7 @@ export default function useCuocCdPanel({
           if (!rateDirty) setTargetRate(persisted);
         }
       } catch (err: any) {
-        const msg = err.message || "Lỗi tải báo cáo Cước CD";
+        const msg = err.message || `Lỗi tải báo cáo ${reportName}`;
         setErrorMessage(msg);
         toast.error(msg);
       } finally {
@@ -77,7 +81,7 @@ export default function useCuocCdPanel({
         setRefreshing(false);
       }
     },
-    [canViewCuoc, enabled, hasSession, rateDirty, reportDate, rows.length]
+    [apiBase, reportName, canViewCuoc, enabled, hasSession, rateDirty, reportDate, rows.length]
   );
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export default function useCuocCdPanel({
     if (!canAdmin) return;
     setSavingRate(true);
     try {
-      const res = await fetch("/api/cuoc-cd/config", {
+      const res = await fetch(`${apiBase}/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetRatePercent: targetRate }),
@@ -116,7 +120,7 @@ export default function useCuocCdPanel({
     } finally {
       setSavingRate(false);
     }
-  }, [canAdmin, fetchReport, targetRate]);
+  }, [apiBase, canAdmin, fetchReport, targetRate]);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,24 +131,24 @@ export default function useCuocCdPanel({
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/cuoc-cd/import", {
+      const res = await fetch(`${apiBase}/import`, {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Import Cước CD thất bại");
+        throw new Error(data.error || `Import ${reportName} thất bại`);
       }
 
-      toast.success(data.message || `Import Cước CD thành công (${data.inserted} dòng)`);
+      toast.success(data.message || `Import ${reportName} thành công (${data.inserted} dòng)`);
       const importedDate = data.reportDate ? String(data.reportDate) : undefined;
       if (importedDate) {
         setReportDate(importedDate);
       }
       await fetchReport({ force: true, reportDateOverride: importedDate });
     } catch (err: any) {
-      toast.error(err.message || "Import Cước CD thất bại");
+      toast.error(err.message || `Import ${reportName} thất bại`);
     } finally {
       setImporting(false);
       e.target.value = "";

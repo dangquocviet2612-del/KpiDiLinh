@@ -165,6 +165,24 @@ model CuocCdDailyResult {
   @@index([reportDate, managerCodeRaw])
 }
 
+model CuocFtthDailyResult {
+  id              Int      @id @default(autoincrement())
+  reportDate      String
+  ctvUser         String
+  employeeCodeRaw String
+  managerCodeRaw  String?
+  dauKy           Float    @default(0)
+  luyKe           Float    @default(0)
+  thuaThieu       Float    @default(0)
+  tonChuaThu      Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([reportDate, employeeCodeRaw])
+  @@index([reportDate, ctvUser])
+  @@index([reportDate, employeeCodeRaw])
+  @@index([reportDate, managerCodeRaw])
+}
+
 model ManagerKpiDailyResult {
   id              Int      @id @default(autoincrement())
   reportDate      String
@@ -285,6 +303,12 @@ model CuocConfig {
 }
 
 model CuocCdConfig {
+  id                Int      @id @default(1)
+  targetRatePercent Float    @default(99.5)
+  updatedAt         DateTime @default(now()) @updatedAt
+}
+
+model CuocFtthConfig {
   id                Int      @id @default(1)
   targetRatePercent Float    @default(99.5)
   updatedAt         DateTime @default(now()) @updatedAt

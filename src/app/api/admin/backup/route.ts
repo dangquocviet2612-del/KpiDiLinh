@@ -13,6 +13,7 @@ import { ensureCustomerNodeMappingTable } from "@/lib/customer-node-mapping-db";
 import { ensureNode0TbTable } from "@/lib/node-0tb-db";
 import { getOfficialDocumentAssetRowsForBackup } from "@/lib/official-doc-assets";
 import { Session } from "next-auth";
+import { BackupRestoreSizeError, readBackupRestorePayload } from "@/lib/backup-restore-body";
 
 type BackupPayload = {
     meta?: {
@@ -32,6 +33,8 @@ type BackupPayload = {
         cuocDailyResults?: Array<Record<string, unknown>>;
         cuocCdDailyResults?: Array<Record<string, unknown>>;
         cuocCdConfigs?: Array<Record<string, unknown>>;
+        cuocFtthDailyResults?: Array<Record<string, unknown>>;
+        cuocFtthConfigs?: Array<Record<string, unknown>>;
         cdtTransactions?: Array<Record<string, unknown>>;
         cdtOutstandingRecords?: Array<Record<string, unknown>>;
         disconnectRecords?: Array<Record<string, unknown>>;
@@ -176,6 +179,44 @@ function findDuplicates(values: string[]) {
 
 function hasBackupKey(payload: BackupPayload["data"], key: keyof NonNullable<BackupPayload["data"]>) {
     return !!payload && Object.prototype.hasOwnProperty.call(payload, key);
+}
+
+function hasValidBackupData(data: unknown): data is NonNullable<BackupPayload["data"]> {
+    if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+
+    const collections: Record<keyof NonNullable<BackupPayload["data"]>, true> = {
+        users: true,
+        customers: true,
+        nodes: true,
+        editHistory: true,
+        customerNotes: true,
+        kpiMetricConfigs: true,
+        kpiDailyResults: true,
+        managerKpiDailyResults: true,
+        cuocDailyResults: true,
+        cuocCdDailyResults: true,
+        cuocCdConfigs: true,
+        cuocFtthDailyResults: true,
+        cuocFtthConfigs: true,
+        cdtTransactions: true,
+        cdtOutstandingRecords: true,
+        disconnectRecords: true,
+        churnRiskRecords: true,
+        archiveLogs: true,
+        archiveExportLogs: true,
+        cuocConfigs: true,
+        officialDocuments: true,
+        officialDocumentAssets: true,
+        officialDocumentRevisions: true,
+        customerNodeMappings: true,
+        node0TbRecords: true,
+    };
+
+    return Object.keys(collections).every((key) => {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) return true;
+        const rows = (data as Record<string, unknown>)[key];
+        return Array.isArray(rows) && rows.every((row) => row !== null && typeof row === "object" && !Array.isArray(row));
+    });
 }
 
 async function getRawTableRows(tableName: string, orderBySql = "") {
@@ -862,6 +903,7 @@ export async function GET() {
         await Promise.all([
             ensureNodeEfficiencyColumns(),
             ensureRuntimeSchema("kpi", { requireDefaults: false }),
+            ensureRuntimeSchema("cuocFtth", { requireDefaults: false }),
             ensureOfficialDocTables(),
             ensureCustomerNodeMappingTable(),
             ensureNode0TbTable(),
@@ -879,6 +921,8 @@ export async function GET() {
             cuocDailyResults,
             cuocCdDailyResults,
             cuocCdConfigs,
+            cuocFtthDailyResults,
+            cuocFtthConfigs,
             cdtTransactions,
             cdtOutstandingRecords,
             disconnectRecords,
@@ -915,6 +959,8 @@ export async function GET() {
             getRawTableRows("CuocDailyResult", 'ORDER BY "reportDate" ASC, "ctvUser" ASC'),
             getRawTableRows("CuocCdDailyResult", 'ORDER BY "reportDate" ASC, "employeeCodeRaw" ASC'),
             getRawTableRows("CuocCdConfig", 'ORDER BY "id" ASC'),
+            getRawTableRows("CuocFtthDailyResult", 'ORDER BY "reportDate" ASC, "employeeCodeRaw" ASC'),
+            getRawTableRows("CuocFtthConfig", 'ORDER BY "id" ASC'),
             getRawTableRows("CdtTransaction", 'ORDER BY "transactionDate" ASC, "ctvUser" ASC, "account" ASC'),
             getRawTableRows("CdtOutstandingRecord", 'ORDER BY "reportMonth" DESC, "expiryMonth" ASC, "ctvCode" ASC, "account" ASC'),
             getRawTableRows("DisconnectRecord", 'ORDER BY "reportMonth" DESC, "cancelMonth" ASC, "ctvCode" ASC, "account" ASC'),
@@ -931,7 +977,7 @@ export async function GET() {
 
         const payload = {
             meta: {
-                schemaVersion: 10,
+                schemaVersion: 11,
                 exportedAt: new Date().toISOString(),
                 appVersion: "0.1.0",
             },
@@ -947,6 +993,8 @@ export async function GET() {
                 cuocDailyResults,
                 cuocCdDailyResults,
                 cuocCdConfigs,
+                cuocFtthDailyResults,
+                cuocFtthConfigs,
                 cdtTransactions,
                 cdtOutstandingRecords,
                 disconnectRecords,
@@ -983,9 +1031,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Bạn không có quyền thực hiện thao tác này" }, { status: 401 });
         }
 
-        const payload = (await request.json()) as BackupPayload;
-        if (!payload?.data) {
+        const payload = (await readBackupRestorePayload(request)) as BackupPayload;
+        if (!hasValidBackupData(payload?.data)) {
             return NextResponse.json({ error: "File backup không hợp lệ" }, { status: 400 });
+        }
+
+        if (payload.data.cuocFtthConfigs?.some((row) =>
+            typeof row.targetRatePercent !== "number" ||
+            !Number.isFinite(row.targetRatePercent) ||
+            row.targetRatePercent < 0 || row.targetRatePercent > 200
+        )) {
+            return NextResponse.json({ error: "Tỉ lệ giao Cước FTTH không hợp lệ (từ 0% đến 200%)" }, { status: 400 });
         }
 
         const users = Array.isArray(payload.data.users) ? payload.data.users : [];
@@ -999,6 +1055,8 @@ export async function POST(request: Request) {
         const hasCuocDailyResults = hasBackupKey(payload.data, "cuocDailyResults");
         const hasCuocCdDailyResults = hasBackupKey(payload.data, "cuocCdDailyResults");
         const hasCuocCdConfigs = hasBackupKey(payload.data, "cuocCdConfigs");
+        const hasCuocFtthDailyResults = hasBackupKey(payload.data, "cuocFtthDailyResults");
+        const hasCuocFtthConfigs = hasBackupKey(payload.data, "cuocFtthConfigs");
         const hasCdtTransactions = hasBackupKey(payload.data, "cdtTransactions");
         const hasCdtOutstandingRecords = hasBackupKey(payload.data, "cdtOutstandingRecords");
         const hasDisconnectRecords = hasBackupKey(payload.data, "disconnectRecords");
@@ -1018,6 +1076,8 @@ export async function POST(request: Request) {
         const cuocDailyResults = hasCuocDailyResults && Array.isArray(payload.data.cuocDailyResults) ? payload.data.cuocDailyResults : [];
         const cuocCdDailyResults = hasCuocCdDailyResults && Array.isArray(payload.data.cuocCdDailyResults) ? payload.data.cuocCdDailyResults : [];
         const cuocCdConfigs = hasCuocCdConfigs && Array.isArray(payload.data.cuocCdConfigs) ? payload.data.cuocCdConfigs : [];
+        const cuocFtthDailyResults = hasCuocFtthDailyResults && Array.isArray(payload.data.cuocFtthDailyResults) ? payload.data.cuocFtthDailyResults : [];
+        const cuocFtthConfigs = hasCuocFtthConfigs && Array.isArray(payload.data.cuocFtthConfigs) ? payload.data.cuocFtthConfigs : [];
         const cdtTransactions = hasCdtTransactions && Array.isArray(payload.data.cdtTransactions) ? payload.data.cdtTransactions : [];
         const cdtOutstandingRecords =
             hasCdtOutstandingRecords && Array.isArray(payload.data.cdtOutstandingRecords) ? payload.data.cdtOutstandingRecords : [];
@@ -1098,6 +1158,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: cuocCdConfigPreparation.error }, { status: 400 });
         }
 
+        const cuocFtthDailyResultPreparation = prepareCuocCdDailyResultsForRestore(cuocFtthDailyResults);
+        if ("error" in cuocFtthDailyResultPreparation) {
+            return NextResponse.json({ error: cuocFtthDailyResultPreparation.error }, { status: 400 });
+        }
+
+        const cuocFtthConfigPreparation = prepareCuocCdConfigsForRestore(cuocFtthConfigs);
+        if ("error" in cuocFtthConfigPreparation) {
+            return NextResponse.json({ error: cuocFtthConfigPreparation.error }, { status: 400 });
+        }
+
         const cdtTransactionPreparation = prepareCdtTransactionsForRestore(cdtTransactions);
         if ("error" in cdtTransactionPreparation) {
             return NextResponse.json({ error: cdtTransactionPreparation.error }, { status: 400 });
@@ -1166,6 +1236,10 @@ export async function POST(request: Request) {
             ensureNode0TbTable(),
         ]);
 
+        if (hasCuocFtthDailyResults || hasCuocFtthConfigs) {
+            await ensureRuntimeSchema("cuocFtth", { requireDefaults: false });
+        }
+
         await prisma.$transaction(async (tx) => {
             if (hasOfficialDocumentRevisions) await tx.$executeRawUnsafe(`DELETE FROM "OfficialDocumentRevision"`);
             if (hasOfficialDocumentAssets) await tx.$executeRawUnsafe(`DELETE FROM "OfficialDocumentAsset"`);
@@ -1180,6 +1254,8 @@ export async function POST(request: Request) {
             if (hasCuocDailyResults) await tx.$executeRawUnsafe(`DELETE FROM "CuocDailyResult"`);
             if (hasCuocCdDailyResults) await tx.$executeRawUnsafe(`DELETE FROM "CuocCdDailyResult"`);
             if (hasCuocCdConfigs) await tx.$executeRawUnsafe(`DELETE FROM "CuocCdConfig"`);
+            if (hasCuocFtthDailyResults) await tx.$executeRawUnsafe(`DELETE FROM "CuocFtthDailyResult"`);
+            if (hasCuocFtthConfigs) await tx.$executeRawUnsafe(`DELETE FROM "CuocFtthConfig"`);
             if (hasManagerKpiDailyResults) await tx.$executeRawUnsafe(`DELETE FROM "ManagerKpiDailyResult"`);
             if (hasKpiDailyResults) await tx.$executeRawUnsafe(`DELETE FROM "KpiDailyResult"`);
             if (hasKpiMetricConfigs) await tx.$executeRawUnsafe(`DELETE FROM "KpiMetricConfig"`);
@@ -1526,6 +1602,24 @@ export async function POST(request: Request) {
                 );
             }
 
+            if (hasCuocFtthDailyResults) {
+                await insertRawRows(
+                    tx,
+                    "CuocFtthDailyResult",
+                    ["id", "reportDate", "ctvUser", "employeeCodeRaw", "managerCodeRaw", "dauKy", "luyKe", "thuaThieu", "tonChuaThu", "createdAt"],
+                    cuocFtthDailyResultPreparation.preparedRows
+                );
+            }
+
+            if (hasCuocFtthConfigs) {
+                await insertRawRows(
+                    tx,
+                    "CuocFtthConfig",
+                    ["id", "targetRatePercent", "updatedAt"],
+                    cuocFtthConfigPreparation.preparedRows
+                );
+            }
+
             if (hasNode0TbRecords) {
                 await insertRawRows(
                     tx,
@@ -1534,7 +1628,7 @@ export async function POST(request: Request) {
                     node0TbPreparation.preparedRows
                 );
             }
-            await applyRestoreSystemDefaults(tx);
+            await applyRestoreSystemDefaults(tx, { cuocFtth: hasCuocFtthDailyResults || hasCuocFtthConfigs });
         });
 
         clearRestoreCaches();
@@ -1554,6 +1648,8 @@ export async function POST(request: Request) {
                 cuocDailyResults: cuocDailyResultPreparation.preparedRows.length,
                 cuocCdDailyResults: cuocCdDailyResultPreparation.preparedRows.length,
                 cuocCdConfigs: cuocCdConfigPreparation.preparedRows.length,
+                cuocFtthDailyResults: cuocFtthDailyResultPreparation.preparedRows.length,
+                cuocFtthConfigs: cuocFtthConfigPreparation.preparedRows.length,
                 cdtTransactions: cdtTransactionPreparation.preparedRows.length,
                 cdtOutstandingRecords: cdtOutstandingPreparation.preparedRows.length,
                 disconnectRecords: disconnectPreparation.preparedRows.length,
@@ -1569,6 +1665,9 @@ export async function POST(request: Request) {
             },
         });
     } catch (error) {
+        if (error instanceof BackupRestoreSizeError) {
+            return NextResponse.json({ error: error.message }, { status: 413 });
+        }
         console.error("BACKUP_POST_ERROR", error);
         return NextResponse.json({ error: "Lỗi máy chủ nội bộ" }, { status: 500 });
     }

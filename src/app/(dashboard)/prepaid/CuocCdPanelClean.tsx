@@ -22,6 +22,7 @@ import type { CuocCdRow, CuocCdSummaryRow, CuocCdSortField, CuocCdSortDirection 
 import { sortCuocCdRows } from "@/lib/cuoc-cd-sorting";
 
 type CuocCdPanelCleanProps = {
+  service?: "cd" | "ftth";
   canAdmin: boolean;
   isCtv?: boolean;
   reportDate: string;
@@ -66,6 +67,7 @@ function formatDecimal(val: number): string {
 }
 
 export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
+  const reportName = props.service === "ftth" ? "Cước FTTH" : "Cước CD";
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<CuocCdSortField | null>(null);
   const [sortDirection, setSortDirection] = useState<CuocCdSortDirection>("desc");
@@ -236,10 +238,10 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
         <div className="ui-panel-heading">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Layers className="text-rose-500" size={26} />
-            <h1 className={`${styles.title} ui-panel-title`}>Cước Cố Định (Cước CD)</h1>
+            <h1 className={`${styles.title} ui-panel-title`}>{props.service === "ftth" ? reportName : "Cước Cố Định (Cước CD)"}</h1>
           </div>
           <p className={`${styles.subtitle} ui-panel-subtitle`}>
-            Báo cáo dữ liệu cước cố định theo User CNKD
+            {props.service === "ftth" ? "Báo cáo dữ liệu cước FTTH theo User CNKD" : "Báo cáo dữ liệu cước cố định theo User CNKD"}
           </p>
         </div>
         <button className={props.surfaceActionBtnClass} onClick={props.onBack}>
@@ -329,7 +331,7 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
         {!props.isCtv && (
           <label className={props.surfacePrimaryBtnClass} style={{ cursor: "pointer" }}>
             {props.importing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            Tải file Cước CD
+            Tải file {reportName}
             <input type="file" accept=".xlsx" hidden onChange={props.onImport} disabled={props.importing} />
           </label>
         )}
@@ -424,7 +426,7 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
               {!props.isCtv && (
                 <label className={`${props.surfacePrimaryBtnClass} ${styles.cdtMobileUploadBtn}`}>
                   {props.importing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                  Tải file Cước CD
+                  Tải file {reportName}
                   <input type="file" accept=".xlsx" hidden onChange={props.onImport} disabled={props.importing} />
                 </label>
               )}
@@ -438,8 +440,8 @@ export default function CuocCdPanelClean(props: CuocCdPanelCleanProps) {
         loading={props.loading}
         errorMessage={props.errorMessage}
         isEmpty={filteredRows.length === 0}
-        emptyTitle="Chưa có dữ liệu Cước CĐ"
-        emptyDescription="Vui lòng chọn ngày báo cáo hoặc tải lên file dữ liệu Cước CĐ để xem báo cáo"
+        emptyTitle={props.service === "ftth" ? "Chưa có dữ liệu Cước FTTH" : "Chưa có dữ liệu Cước CĐ"}
+        emptyDescription={`Vui lòng chọn ngày báo cáo hoặc tải lên file dữ liệu ${props.service === "ftth" ? reportName : "Cước CĐ"} để xem báo cáo`}
         onRetry={props.onRefresh}
         actionBtnClass={props.surfaceActionBtnClass}
         skeletonStats={0}

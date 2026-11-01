@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAccessibleCtvCodes } from "@/lib/scope";
 import { clearCacheByPrefix } from "@/lib/kpi-cache";
+import { CUSTOMER_IMPORT_SIZE_ERROR, getCustomerImportMaxBytes } from "@/lib/customer-import-limits";
 import {
     getMappedNodeNamesByAccounts,
     normalizeCustomerAccountKey,
@@ -131,6 +132,11 @@ export async function POST(request: Request) {
 
         if (!(file instanceof File)) {
             return NextResponse.json({ error: "Vui lòng chọn file để tải lên" }, { status: 400 });
+        }
+
+        const maxBytes = getCustomerImportMaxBytes();
+        if (maxBytes !== null && file.size > maxBytes) {
+            return NextResponse.json({ error: CUSTOMER_IMPORT_SIZE_ERROR }, { status: 413 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());

@@ -311,6 +311,29 @@
       ]
     }
   },
+  "cuocFtth": {
+    "CuocFtthDailyResult": {
+      "columns": [
+        "id",
+        "reportDate",
+        "ctvUser",
+        "employeeCodeRaw",
+        "managerCodeRaw",
+        "dauKy",
+        "luyKe",
+        "thuaThieu",
+        "tonChuaThu",
+        "createdAt"
+      ],
+      "primaryKey": ["id"],
+      "unique": [["reportDate", "employeeCodeRaw"]]
+    },
+    "CuocFtthConfig": {
+      "columns": ["id", "targetRatePercent", "updatedAt"],
+      "primaryKey": ["id"],
+      "unique": []
+    }
+  },
   "customer": {
     "Customer": {
       "columns": [

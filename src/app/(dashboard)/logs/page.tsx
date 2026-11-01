@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import styles from "./logs.module.css";
 import toast from "react-hot-toast";
+import { BACKUP_RESTORE_SIZE_ERROR, getClientBackupRestoreMaxBytes } from "@/lib/backup-restore-limits";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialogProvider";
 import AsyncState from "@/components/ui/AsyncState";
 
@@ -75,6 +76,31 @@ function riskLevel(log: LogItem): "normal" | "warning" {
   return "normal";
 }
 
+type RestoreAcknowledgement = {
+  success: true;
+  restored: { users: number; customers: number };
+};
+
+const restoreUnknownMessage = "Chưa xác định được kết quả khôi phục. Dữ liệu có thể đã thay đổi; hãy kiểm tra trước khi thử lại.";
+
+function isRestoreRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isRestoreAcknowledgement(value: unknown): value is RestoreAcknowledgement {
+  if (!isRestoreRecord(value) || value.success !== true || !isRestoreRecord(value.restored)) return false;
+  const { users, customers } = value.restored;
+  return typeof users === "number" && Number.isSafeInteger(users) && users >= 0
+    && typeof customers === "number" && Number.isSafeInteger(customers) && customers >= 0;
+}
+
+const deleteUnknownMessage = "Chưa xác định được kết quả xóa nhật ký. Dữ liệu có thể đã thay đổi; hãy kiểm tra trước khi thử lại.";
+
+function isDeleteLogAcknowledgement(value: unknown): value is { success: true; count: number } {
+  return isRestoreRecord(value) && value.success === true
+    && typeof value.count === "number" && Number.isSafeInteger(value.count) && value.count >= 0;
+}
+
 export default function LogsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -92,8 +118,11 @@ export default function LogsPage() {
   const [actionFilter, setActionFilter] = useState<"ALL" | "CREATE" | "UPDATE">("ALL");
   const [searchText, setSearchText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const deleteInFlightRef = useRef(false);
   const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
+  const downloadInFlightRef = useRef(false);
   const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const restoreInFlightRef = useRef(false);
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeLog, setActiveLog] = useState<LogItem | null>(null);
@@ -171,45 +200,66 @@ export default function LogsPage() {
   }, [actionFilter, endDate, searchText, startDate]);
 
   const handleDeleteLogs = async () => {
+    if (deleteInFlightRef.current) return;
     if (!startDate && !endDate && selectedIds.length === 0) {
       toast.error("Vui lòng chọn log hoặc khoảng ngày cần xóa.");
       return;
     }
 
-    const isBulk = selectedIds.length > 0;
-    const confirmMsg = isBulk
-      ? `Bạn có chắc muốn xóa ${selectedIds.length} dòng log đã chọn?`
-      : "Bạn có chắc muốn xóa toàn bộ log trong khoảng đang lọc?";
-    const accepted = await confirm({
-      title: isBulk ? `Xóa ${selectedIds.length} nhật ký?` : "Xóa nhật ký theo bộ lọc?",
-      description: isBulk ? confirmMsg : `${confirmMsg} Khoảng lọc hiện có ${total.toLocaleString("vi-VN")} bản ghi.`,
-      confirmLabel: "Xóa nhật ký",
-      destructive: true,
-      confirmationText: isBulk ? undefined : "XOA NHAT KY",
-    });
-    if (!accepted) return;
-
-    setIsDeleting(true);
+    deleteInFlightRef.current = true;
+    let phase: "confirm" | "request" | "acknowledged" = "confirm";
     try {
+      const isBulk = selectedIds.length > 0;
+      const confirmMsg = isBulk
+        ? `Bạn có chắc muốn xóa ${selectedIds.length} dòng log đã chọn?`
+        : "Bạn có chắc muốn xóa toàn bộ log trong khoảng đang lọc?";
+      const accepted = await confirm({
+        title: isBulk ? `Xóa ${selectedIds.length} nhật ký?` : "Xóa nhật ký theo bộ lọc?",
+        description: isBulk ? confirmMsg : `${confirmMsg} Khoảng lọc hiện có ${total.toLocaleString("vi-VN")} bản ghi.`,
+        confirmLabel: "Xóa nhật ký",
+        destructive: true,
+        confirmationText: isBulk ? undefined : "XOA NHAT KY",
+      });
+      if (!accepted) return;
+
+      phase = "request";
+      setIsDeleting(true);
       const body = isBulk ? { ids: selectedIds } : { startDate, endDate };
       const res = await fetch("/api/logs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json().catch(() => null);
-      if (res.ok) {
-        toast.success(`Đã xóa ${data?.count ?? 0} bản ghi.`);
-        setActiveLog(null);
-        setPage(1);
-        void fetchLogs();
-      } else {
-        toast.error(data?.error || "Xóa log thất bại.");
+      if (res.status >= 500) {
+        toast.error(deleteUnknownMessage);
+        return;
       }
+      const data: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(isRestoreRecord(data) && typeof data.error === "string" && data.error.trim()
+          ? data.error
+          : "Xóa log thất bại.");
+        return;
+      }
+      if (!isDeleteLogAcknowledgement(data)) {
+        toast.error(deleteUnknownMessage);
+        return;
+      }
+
+      phase = "acknowledged";
+      toast.success(`Đã xóa ${data.count} bản ghi.`);
+      setActiveLog(null);
+      setPage(1);
+      void fetchLogs();
     } catch (error) {
       console.error("Failed to delete logs:", error);
-      toast.error("Có lỗi xảy ra khi xóa log.");
+      toast.error(phase === "confirm"
+        ? "Không thể mở xác nhận xóa nhật ký. Vui lòng thử lại."
+        : phase === "acknowledged"
+          ? "Đã nhận xác nhận xóa nhật ký thành công, nhưng không thể cập nhật giao diện. Vui lòng tải lại trang để kiểm tra."
+          : deleteUnknownMessage);
     } finally {
+      deleteInFlightRef.current = false;
       setIsDeleting(false);
     }
   };
@@ -227,12 +277,19 @@ export default function LogsPage() {
   };
 
   const handleDownloadBackup = async () => {
-    setIsDownloadingBackup(true);
+    if (downloadInFlightRef.current) return;
+    downloadInFlightRef.current = true;
+    let url: string | null = null;
+    let anchor: HTMLAnchorElement | null = null;
     try {
+      setIsDownloadingBackup(true);
       const res = await fetch("/api/admin/backup");
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        toast.error(data?.error || "Không thể tải file backup.");
+        const data: unknown = await res.json().catch(() => null);
+        toast.error(data !== null && typeof data === "object" && "error" in data
+          && typeof data.error === "string" && data.error.trim()
+          ? data.error
+          : "Không thể tải file backup.");
         return;
       }
 
@@ -241,63 +298,107 @@ export default function LogsPage() {
       const matched = disposition.match(/filename="(.+)"/);
       const filename = matched?.[1] || "backup.json";
 
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
+      url = URL.createObjectURL(blob);
+      anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = filename;
       document.body.appendChild(anchor);
       anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      toast.success("Tải backup thành công.");
+      toast.success("Đã gửi yêu cầu tải backup. Vui lòng kiểm tra file đã lưu.");
     } catch (error) {
       console.error("Failed to download backup:", error);
       toast.error("Có lỗi khi tải backup.");
     } finally {
+      try {
+        anchor?.remove();
+      } catch (error) {
+        console.error("Failed to remove backup download anchor:", error);
+      }
+      try {
+        if (url !== null) URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Failed to revoke backup download URL:", error);
+      }
+      downloadInFlightRef.current = false;
       setIsDownloadingBackup(false);
     }
   };
 
   const handleRestoreBackup = async () => {
+    if (restoreInFlightRef.current) return;
     if (!backupFile) {
       toast.error("Vui lòng chọn file backup JSON.");
       return;
     }
 
-    const confirmed = await confirm({
-      title: "Khôi phục toàn bộ dữ liệu?",
-      description: "File backup sẽ ghi đè dữ liệu hiện tại. Hành động này có rủi ro cao và không thể hoàn tác tự động.",
-      confirmLabel: "Khôi phục dữ liệu",
-      destructive: true,
-      details: <strong>{backupFile.name}</strong>,
-      confirmationText: "KHOI PHUC",
-    });
-    if (!confirmed) return;
+    const maxBytes = getClientBackupRestoreMaxBytes();
+    if (maxBytes !== null && backupFile.size > maxBytes) {
+      toast.error(BACKUP_RESTORE_SIZE_ERROR);
+      return;
+    }
 
-    setIsRestoringBackup(true);
+    const fileToRestore = backupFile;
+    restoreInFlightRef.current = true;
+    let phase: "confirm" | "file" | "request" | "acknowledged" = "confirm";
     try {
-      const text = await backupFile.text();
+      const confirmed = await confirm({
+        title: "Khôi phục toàn bộ dữ liệu?",
+        description: "File backup sẽ ghi đè dữ liệu hiện tại. Hành động này có rủi ro cao và không thể hoàn tác tự động.",
+        confirmLabel: "Khôi phục dữ liệu",
+        destructive: true,
+        details: <strong>{fileToRestore.name}</strong>,
+        confirmationText: "KHOI PHUC",
+      });
+      if (!confirmed) return;
+
+      phase = "file";
+      setIsRestoringBackup(true);
+      const text = await fileToRestore.text();
       const payload = JSON.parse(text);
+      phase = "request";
       const res = await fetch("/api/admin/backup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(() => null);
+      if (res.status === 413) {
+        toast.error(BACKUP_RESTORE_SIZE_ERROR);
+        return;
+      }
+      if (res.status >= 500) {
+        toast.error(restoreUnknownMessage);
+        return;
+      }
+      const data: unknown = await res.json().catch(() => null);
 
       if (!res.ok) {
-        toast.error(data?.error || "Khôi phục dữ liệu thất bại.");
+        toast.error(isRestoreRecord(data) && typeof data.error === "string" && data.error.trim()
+          ? data.error
+          : "Khôi phục dữ liệu thất bại.");
+        return;
+      }
+      if (!isRestoreAcknowledgement(data)) {
+        toast.error(restoreUnknownMessage);
         return;
       }
 
-      setBackupFile(null);
+      phase = "acknowledged";
+      setBackupFile((current) => current === fileToRestore ? null : current);
       setPage(1);
+      toast.success(`Khôi phục thành công: ${data.restored.customers} khách hàng, ${data.restored.users} người dùng.`, { duration: 5000 });
       void fetchLogs();
-      toast.success(`Khôi phục thành công: ${data?.restored?.customers ?? 0} khách hàng, ${data?.restored?.users ?? 0} người dùng.`, { duration: 5000 });
     } catch (error) {
       console.error("Failed to restore backup:", error);
-      toast.error("File không hợp lệ hoặc có lỗi khi khôi phục.");
+      const message = phase === "confirm"
+        ? "Không thể mở xác nhận khôi phục. Vui lòng thử lại."
+        : phase === "file"
+          ? "File không hợp lệ hoặc có lỗi khi khôi phục."
+          : phase === "acknowledged"
+            ? "Đã nhận xác nhận khôi phục thành công, nhưng không thể cập nhật giao diện. Vui lòng tải lại trang để kiểm tra."
+            : restoreUnknownMessage;
+      toast.error(message);
     } finally {
+      restoreInFlightRef.current = false;
       setIsRestoringBackup(false);
     }
   };

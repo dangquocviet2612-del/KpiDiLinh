@@ -61,7 +61,7 @@ describe("read-only runtime schema contract", () => {
     expect(mocks.execute).not.toHaveBeenCalled();
   });
 
-  it.each(["customer", "users", "node0tb", "mapping", "node", "documents"])("domain %s uses one metadata read, no schema writes", async (domain) => {
+  it.each(["customer", "users", "node0tb", "mapping", "node", "documents", "cuocFtth"])("domain %s uses one metadata read, no schema writes", async (domain) => {
     const { ensureRuntimeSchema } = await runtime();
     await ensureRuntimeSchema(domain as Parameters<typeof ensureRuntimeSchema>[0]);
     expect(mocks.query).toHaveBeenCalledTimes(1);
@@ -145,11 +145,16 @@ describe("read-only runtime schema contract", () => {
   it("release migration preserves manually configured rates and disabled system metrics", async () => {
     const { applyMigrations, loadMigrations } = await migrations();
     const catalog = await loadMigrations(path.join(root, "prisma/migrations"));
-    expect(catalog).toHaveLength(5);
+    expect(catalog).toHaveLength(6);
+    expect(catalog[5].version).toBe("20261031000000_add_cuoc_ftth");
     await database.execute("UPDATE CuocConfig SET targetRatePercent=89 WHERE id=1");
     await database.execute("UPDATE CuocCdConfig SET targetRatePercent=94 WHERE id=1");
     await database.execute("UPDATE KpiMetricConfig SET isEnabled=0,baseScore=7 WHERE kpiCode='CUOC_N1_N3_RATE'");
-    await database.execute({ sql: "DELETE FROM _AppMigration WHERE version=?", args: [catalog[4].version] });
+    await database.batch([
+      'DROP TABLE "CuocFtthDailyResult"',
+      'DROP TABLE "CuocFtthConfig"',
+      { sql: "DELETE FROM _AppMigration WHERE version IN (?, ?)", args: [catalog[4].version, catalog[5].version] },
+    ], "write");
     await applyMigrations(database, catalog, url);
     expect((await database.execute("SELECT targetRatePercent FROM CuocConfig")).rows[0].targetRatePercent).toBe(89);
     expect((await database.execute("SELECT targetRatePercent FROM CuocCdConfig")).rows[0].targetRatePercent).toBe(94);
@@ -166,8 +171,8 @@ describe("read-only runtime schema contract", () => {
     const result = preflight();
     expect(result.status, result.stderr).toBe(0);
     const report = JSON.parse(result.stdout);
-    expect(report).toMatchObject({ ready: true, readOnly: true, reads: 8 });
-    expect(report.domains).toHaveLength(7);
+    expect(report).toMatchObject({ ready: true, readOnly: true, reads: 9 });
+    expect(report.domains).toHaveLength(8);
     expect((await database.execute("SELECT name,sql FROM sqlite_master ORDER BY name")).rows).toEqual(schemaBefore);
     expect((await database.execute("SELECT * FROM KpiMetricConfig")).rows).toEqual(defaultsBefore);
   });

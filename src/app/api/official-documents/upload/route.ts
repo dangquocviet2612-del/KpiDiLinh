@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createTempOfficialDocAsset } from "@/lib/official-doc-assets";
+import { getOfficialDocUploadMaxBytes, OFFICIAL_DOC_UPLOAD_SIZE_ERROR } from "@/lib/official-doc-upload-limits";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,11 @@ export async function POST(request: Request) {
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Vui lòng chọn file để tải lên" }, { status: 400 });
+    }
+
+    const hostedMaxBytes = getOfficialDocUploadMaxBytes();
+    if (hostedMaxBytes !== null && file.size > hostedMaxBytes) {
+      return NextResponse.json({ error: OFFICIAL_DOC_UPLOAD_SIZE_ERROR }, { status: 413 });
     }
 
     const maxSizeMb = file.type.startsWith("video/") ? 200 : 20;

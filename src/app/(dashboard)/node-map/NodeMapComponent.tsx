@@ -16,6 +16,7 @@ import { useMapSearch } from "@/hooks/useMapSearch";
 import MapSearchResults from "@/components/MapSearchResults";
 import { escapeMapHtml as escapeHtml, formatMapPercent } from "@/lib/map-ui";
 import { toast } from "react-hot-toast";
+import { getClientNodeUploadMaxBytes, NODE_UPLOAD_SIZE_ERROR } from "@/lib/node-upload-limits";
 import Dialog from "@/components/ui/Dialog";
 import { MapLegend, MapPanel, MapToolbar, MapViewportControls } from "@/components/map";
 import { getMapTileConfig, type MapStyleMode } from "@/lib/map-tiles";
@@ -467,6 +468,7 @@ export default function NodeMapComponent() {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingEfficiency, setIsUploadingEfficiency] = useState(false);
   const [isUploadingCustomerNodeMap, setIsUploadingCustomerNodeMap] = useState(false);
+  const nodeUploadInFlightRef = useRef(false);
   const [showCustomerNodePanel, setShowCustomerNodePanel] = useState(false);
   const [customerNodeSearch, setCustomerNodeSearch] = useState("");
   const [customerNodeRows, setCustomerNodeRows] = useState<CustomerNodeMappingRow[]>([]);
@@ -984,15 +986,27 @@ export default function NodeMapComponent() {
   }, []);
 
   const handleUploadKMZ = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
+    if (nodeUploadInFlightRef.current) {
+      input.value = "";
+      return;
+    }
 
-    setShowOptionsMenu(false);
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    const maxBytes = getClientNodeUploadMaxBytes();
+    if (maxBytes !== null && file.size > maxBytes) {
+      input.value = "";
+      toast.error(NODE_UPLOAD_SIZE_ERROR);
+      return;
+    }
 
+    nodeUploadInFlightRef.current = true;
     try {
+      setShowOptionsMenu(false);
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
       const response = await fetch("/api/nodes/upload", { method: "POST", body: formData });
       let data: any;
       const contentType = response.headers.get("content-type");
@@ -1012,21 +1026,34 @@ export default function NodeMapComponent() {
     } catch (err: any) {
       toast.error(`Lỗi upload file KML/KMZ: ${err?.message || err}`);
     } finally {
+      nodeUploadInFlightRef.current = false;
       setIsUploading(false);
-      event.target.value = "";
+      input.value = "";
     }
   };
 
   const handleUploadEfficiency = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
+    if (nodeUploadInFlightRef.current) {
+      input.value = "";
+      return;
+    }
 
-    setShowOptionsMenu(false);
-    setIsUploadingEfficiency(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    const maxBytes = getClientNodeUploadMaxBytes();
+    if (maxBytes !== null && file.size > maxBytes) {
+      input.value = "";
+      toast.error(NODE_UPLOAD_SIZE_ERROR);
+      return;
+    }
 
+    nodeUploadInFlightRef.current = true;
     try {
+      setShowOptionsMenu(false);
+      setIsUploadingEfficiency(true);
+      const formData = new FormData();
+      formData.append("file", file);
       const response = await fetch("/api/nodes/upload", { method: "POST", body: formData });
       let data: any;
       const contentType = response.headers.get("content-type");
@@ -1061,21 +1088,34 @@ export default function NodeMapComponent() {
     } catch (err: any) {
       toast.error(`Lỗi import file hiệu suất node: ${err?.message || err}`);
     } finally {
+      nodeUploadInFlightRef.current = false;
       setIsUploadingEfficiency(false);
-      event.target.value = "";
+      input.value = "";
     }
   };
 
   const handleUploadCustomerNodeMap = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
+    if (nodeUploadInFlightRef.current) {
+      input.value = "";
+      return;
+    }
 
-    setShowOptionsMenu(false);
-    setIsUploadingCustomerNodeMap(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    const maxBytes = getClientNodeUploadMaxBytes();
+    if (maxBytes !== null && file.size > maxBytes) {
+      input.value = "";
+      toast.error(NODE_UPLOAD_SIZE_ERROR);
+      return;
+    }
 
+    nodeUploadInFlightRef.current = true;
     try {
+      setShowOptionsMenu(false);
+      setIsUploadingCustomerNodeMap(true);
+      const formData = new FormData();
+      formData.append("file", file);
       const response = await fetch("/api/nodes/upload", { method: "POST", body: formData });
       let data: any;
       const contentType = response.headers.get("content-type");
@@ -1108,8 +1148,9 @@ export default function NodeMapComponent() {
     } catch (err: any) {
       toast.error(`Lỗi import file node thuê bao: ${err?.message || err}`);
     } finally {
+      nodeUploadInFlightRef.current = false;
       setIsUploadingCustomerNodeMap(false);
-      event.target.value = "";
+      input.value = "";
     }
   };
 
