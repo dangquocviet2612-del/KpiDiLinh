@@ -76,7 +76,7 @@ function ConfirmAction({ label }: { label: string }) {
 }
 
 function rootBody(children: ReactNode) {
-  return RootLayout({ children }).props.children.props.children;
+  return RootLayout({ children }).props.children[1].props.children;
 }
 
 async function dashboard(children: ReactNode = <SessionProbe label="content" />) {
@@ -278,9 +278,10 @@ describe("server session hydration", () => {
     const root = RootLayout({ children: <LoginPage /> });
     expect(root.type).toBe("html");
     expect(root.props.lang).toBe("vi");
-    expect(root.props.children.type).toBe("body");
-    expect(root.props.children.props.suppressHydrationWarning).toBe(true);
-    const bodyChildren = Children.toArray(root.props.children.props.children);
+    const body = root.props.children[1];
+    expect(body.type).toBe("body");
+    expect(body.props.suppressHydrationWarning).toBe(true);
+    const bodyChildren = Children.toArray(body.props.children);
     expect(bodyChildren.map((child) => isValidElement(child) ? child.type : child)).toEqual([Toaster, LoginPage]);
     expect(isValidElement(bodyChildren[0]) && bodyChildren[0].props).toMatchObject({ position: "top-right", toastOptions: { duration: 3000 } });
     expect(metadata).toEqual({

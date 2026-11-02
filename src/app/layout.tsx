@@ -14,7 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var theme=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',theme==='light'?'light':'dark')}catch(e){}})();` }} />
+      </head>
       <body suppressHydrationWarning>
         <Toaster
           position="top-right"

@@ -380,6 +380,60 @@
     color: #fecaca;
 }
 
+.themeSwitch {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.themeSwitch:focus-visible {
+    outline: 2px solid #5eead4;
+    outline-offset: 2px;
+}
+
+.themeLabel {
+    flex: 1;
+    white-space: nowrap;
+}
+
+.themeOptions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.themeTrack {
+    display: inline-flex;
+    align-items: center;
+    width: 30px;
+    height: 18px;
+    padding: 2px;
+    border-radius: 999px;
+    background: #64748b;
+}
+
+.themeThumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #f8fafc;
+}
+
+.themeSwitch[aria-checked='true'] .themeTrack {
+    background: #0f766e;
+}
+
+.themeSwitch[aria-checked='true'] .themeThumb {
+    transform: translateX(12px);
+}
+
 .logout:hover {
     background: rgba(239, 68, 68, 0.08);
     color: #fee2e2;

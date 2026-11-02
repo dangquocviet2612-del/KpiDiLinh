@@ -44,7 +44,7 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
     const kpiGroupRef = useRef<HTMLDivElement | null>(null);
     const toolsGroupRef = useRef<HTMLDivElement | null>(null);
     const suppressAutoOpenRef = useRef<"kpi" | "tools" | null>(null);
-    const [theme, setTheme] = useState<"light" | "dark">("light");
+    const [theme, setTheme] = useState<"light" | "dark">("dark");
     const displayName = userName?.trim() || "Người dùng";
     const roleLabel = getRoleLabel(userRole);
     const userInitials = getInitials(displayName);
@@ -53,14 +53,11 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
     const canViewKpiCalculator = userRole === "ADMIN" || userRole === "MANAGER" || userRole === "CTV";
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-            setTheme("dark");
-            document.documentElement.setAttribute("data-theme", "dark");
-        } else {
-            setTheme("light");
-            document.documentElement.setAttribute("data-theme", "light");
-        }
+        let savedTheme: string | null = null;
+        try { savedTheme = localStorage.getItem("theme"); } catch { /* Use the default when storage is unavailable. */ }
+        const initialTheme = savedTheme === "light" ? "light" : "dark";
+        setTheme(initialTheme);
+        document.documentElement.setAttribute("data-theme", initialTheme);
     }, []);
 
     useEffect(() => {
@@ -173,7 +170,7 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
         const newTheme = theme === "light" ? "dark" : "light";
         setTheme(newTheme);
         document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
+        try { localStorage.setItem("theme", newTheme); } catch { /* Theme still applies when storage is unavailable. */ }
     };
 
     const collapseSubmenus = () => {
@@ -475,11 +472,23 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
                         Đổi mật khẩu
                     </Link>
 
-                    <button onClick={toggleTheme} className={styles.navLink}>
-                        <span className={styles.icon}>
-                            {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-label="Giao diện tối"
+                        aria-checked={theme === "dark"}
+                        onClick={toggleTheme}
+                        className={cn(styles.navLink, styles.themeSwitch)}
+                    >
+                        <span className={styles.icon} aria-hidden="true">
+                            {theme === "dark" ? <Moon size={20} /> : <Sun size={20} />}
                         </span>
-                        {theme === "light" ? "Giao diện tối" : "Giao diện sáng"}
+                        <span className={styles.themeLabel}>Giao diện</span>
+                        <span className={styles.themeOptions} aria-hidden="true">
+                            <span>Sáng</span>
+                            <span className={styles.themeTrack}><span className={styles.themeThumb} /></span>
+                            <span>Tối</span>
+                        </span>
                     </button>
 
                     <button onClick={() => signOut({ callbackUrl: '/login' })} className={cn(styles.navLink, styles.logout)}>
