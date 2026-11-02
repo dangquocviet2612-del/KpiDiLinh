@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Bản đồ khách hàng: tìm một phần account và bỏ click thêm mới — 02/11/2026
+
+- Sửa chấm điểm search-map giữ account chứa từ khóa giữa/cuối, ví dụ `thangtv18` trong `l063_gftth_thangtv18`. Giữ scope quyền và yêu cầu có tọa độ.
+- Click bản đồ chỉ hoạt động khi đang chọn lại vị trí khách hàng; bỏ nhánh click trống mở form thêm mới. Nút Thêm khách hàng và sửa tọa độ vẫn giữ.
+- 36 focused tests, lint, TypeScript và Next production build đạt. Commit `c93d821c736c0bffcc84e7e8a5e452fedf854ae9` đã push; CI `41422328795` success; Vercel `dpl_BKCNkJCzjE6W9bcD234bKg6wsNuP` READY và promote thành công, inspect domain chính đúng bản mới.
+- Browser đăng nhập candidate và Production đạt: tìm thangtv18 trả HTTP200 và account khớp một phần; click trống không mở form/dialog; chọn lại tọa độ vẫn mở xác nhận. Không thực hiện ghi dữ liệu. Login HTTP200; rollback `dpl_FsFkjywikScNHZ8AbJTjcsRox2Fb`.
+
 ## Nút Cài ứng dụng — 02/11/2026
 
 - Thêm nút Cài ứng dụng dưới Sáng/Tối, trước Đăng xuất. Khi có beforeinstallprompt, chỉ mở native prompt khi người dùng bấm; khi chưa có hiện hướng dẫn desktop/Android/iPhone. appinstalled/standalone hiển thị Đã cài ứng dụng; dismiss không báo cài thành công.
