@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## ADMIN dán nhanh khách hàng — 02/11/2026
+
+- ADMIN tạo mới có mục Dán nhanh khách hàng trong form dùng chung danh sách/bản đồ. Nhận 4 dòng thứ tự bất kỳ: tọa độ, CNKD ngắn/đầy đủ, tên và account; phuav đối chiếu phuav_ldg_cnkd. Mã mơ hồ/không biết và tọa độ sai báo lỗi; chỉ đảo tọa độ khi chắc chắn.
+- Nhận diện điền form chỉnh sửa được, vẫn cần Lưu; dùng POST hiện có và kiểm tra account trùng. Không hiện khi sửa khách hàng hoặc role khác ADMIN. Không thêm API/schema/migration.
+- 25 focused tests, lint, TypeScript và production build đạt. Commit `85b24d9a0a13df78d546591305607c2cf5771b88` đã push; CI `41424933605` completed/success. Vercel `dpl_7HRbTLVkUdGTLn7AcJPu6iYUXgJ1` READY và promote thành công; inspect domain chính đúng bản mới, login HTTP200.
+- Candidate desktop và Production desktop1440/mobile390 đăng nhập ADMIN nhận diện đúng 4 dòng đảo thứ tự, tên/account/tọa độ và mã chuẩn PHUAV_LDG_CNKD. Không bấm Lưu/không ghi dữ liệu. Quyền ẩn role khác xác minh qua UI tests, chưa đăng nhập thực tế non-admin. Rollback `dpl_BKCNkJCzjE6W9bcD234bKg6wsNuP`.
+
 ## Bản đồ khách hàng: tìm một phần account và bỏ click thêm mới — 02/11/2026
 
 - Sửa chấm điểm search-map giữ account chứa từ khóa giữa/cuối, ví dụ `thangtv18` trong `l063_gftth_thangtv18`. Giữ scope quyền và yêu cầu có tọa độ.
