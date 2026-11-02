@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Nâng cấp dán nhanh: điện thoại và GPS — 02/11/2026
+
+- Chỉ bắt buộc tên/account; CNKD/điện thoại/tọa độ tùy chọn. Chuẩn hóa điện thoại Việt Nam, giữ form chỉnh sửa và lỗi account trùng của POST hiện có.
+- Thiếu tọa độ xóa default map, yêu cầu bấm lấy GPS; từ chối/thất bại không mở Lưu. Quick mode chặn account trống/tọa độ không hợp lệ sau chỉnh sửa; callbacks GPS cũ bị vô hiệu khi đổi form/nhận diện lại.
+- 29 focused tests, lint, TypeScript và Next build đạt; commit `6dbfbcb434c89316d76fd80fd99c8260efc28be0` đã push; CI `41426883998` success. Vercel `dpl_FLTLz1XeCMSaAiCYpkYQuTjg1jjv` READY/promote, domain chính xác nhận đúng deployment, login HTTP200.
+- Candidate và Production desktop1440/mobile390 đạt: +84 chuẩn hóa thành 0; thiếu/từ chối GPS khóa Lưu; GPS giả thành công điền tọa độ và mở Lưu. Không bấm Lưu/không ghi dữ liệu, không lấy GPS thật. Chặn account trùng kiểm tra qua tests/POST hiện có, không tạo trùng trên Production. Rollback `dpl_7HRbTLVkUdGTLn7AcJPu6iYUXgJ1`.
+
 ## ADMIN dán nhanh khách hàng — 02/11/2026
 
 - ADMIN tạo mới có mục Dán nhanh khách hàng trong form dùng chung danh sách/bản đồ. Nhận 4 dòng thứ tự bất kỳ: tọa độ, CNKD ngắn/đầy đủ, tên và account; phuav đối chiếu phuav_ldg_cnkd. Mã mơ hồ/không biết và tọa độ sai báo lỗi; chỉ đảo tọa độ khi chắc chắn.
