@@ -13,14 +13,54 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ data: { role
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 beforeEach(() => {
     state.role = "ADMIN";
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => [{ username: "phuav_ldg_cnkd", name: "Phu" }] })));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => [{ id: "phu", username: "phuav_ldg_cnkd", name: "Phu" }] })));
 });
 const show = (customer: Customer | null = null) => render(<ConfirmDialogProvider><CustomerModalRefined customer={customer} onClose={vi.fn()} onRefresh={vi.fn()} /></ConfirmDialogProvider>);
 describe("admin customer quick paste", () => {
+    it.each([true, false])("clears map defaults and gates save until explicit GPS succeeds (%s)", async (succeeds) => {
+        const user = userEvent.setup();
+        const gps = vi.fn((success, failure) => succeeds ? success({ coords: { latitude: 11.5, longitude: 107.9 } }) : failure({ message: "Permission denied" }));
+        Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: gps } });
+        render(<ConfirmDialogProvider><CustomerModalRefined customer={null} defaultLocation={{ latitude: 10, longitude: 106 }} onClose={vi.fn()} onRefresh={vi.fn()} /></ConfirmDialogProvider>);
+        await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "ldg_gftth_namnv14\nNguyễn Văn Nam");
+        await user.click(screen.getByRole("button", { name: "Nhận diện" }));
+        expect(gps).not.toHaveBeenCalled();
+        expect(screen.getByLabelText("Vĩ độ (Latitude)")).toHaveValue(null);
+        expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+        await user.click(screen.getByRole("button", { name: "Lấy tọa độ hiện tại" }));
+        if (succeeds) {
+            expect(screen.getByRole("button", { name: "Lưu" })).toBeEnabled();
+            expect(screen.getByLabelText("Vĩ độ (Latitude)")).toHaveValue(11.5);
+        } else {
+            expect(screen.getByRole("alert")).toHaveTextContent("Permission denied");
+            expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+        }
+        expect(vi.mocked(fetch).mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+    });
+    it("preserves optional fields and retains the form on a duplicate server rejection", async () => {
+        const user = userEvent.setup(); show();
+        await waitFor(() => expect(screen.getByRole("option", { name: /phuav_ldg_cnkd/ })).toBeInTheDocument());
+        await user.type(screen.getByLabelText("Số điện thoại"), "0912345678");
+        await user.selectOptions(screen.getByLabelText("Mã CTV (giao khách)"), "phuav_ldg_cnkd");
+        await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "ldg_gftth_namnv14\nNguyễn Văn Nam\n11.5, 107.9");
+        await user.click(screen.getByRole("button", { name: "Nhận diện" }));
+        expect(screen.getByLabelText("Số điện thoại")).toHaveValue("0912345678");
+        expect(screen.getByLabelText("Mã CTV (giao khách)")).toHaveValue("phuav_ldg_cnkd");
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Account đã tồn tại" }) } as Response);
+        await user.click(screen.getByRole("button", { name: "Lưu" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Account đã tồn tại");
+        expect(screen.getByLabelText("Account")).toHaveValue("ldg_gftth_namnv14");
+        expect(screen.getByRole("button", { name: "Lưu" })).toBeEnabled();
+        await user.clear(screen.getByLabelText("Account"));
+        expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+        await user.type(screen.getByLabelText("Account"), "another_account");
+        await user.clear(screen.getByLabelText("Vĩ độ (Latitude)"));
+        expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    });
     it("previews editable fields and saves only after explicit save", async () => {
         const user = userEvent.setup(); show();
         await waitFor(() => expect(screen.getByRole("option", { name: /phuav_ldg_cnkd/ })).toBeInTheDocument());
-        await user.type(screen.getByLabelText("Thông tin 4 dòng"), "ldg_gftth_namnv14\nnguyễn văn nam\n107.95302872883524, 11.503610559826157\nPHUAV");
+        await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "ldg_gftth_namnv14\nnguyễn văn nam\n107.95302872883524, 11.503610559826157\nPHUAV");
         await user.click(screen.getByRole("button", { name: "Nhận diện" }));
         expect(screen.getByLabelText("Tên khách hàng *")).toHaveValue("nguyễn văn nam");
         expect(screen.getByLabelText("Account")).toHaveValue("ldg_gftth_namnv14");
@@ -35,17 +75,17 @@ describe("admin customer quick paste", () => {
     it("leaves existing form values intact on recognition errors", async () => {
         const user = userEvent.setup(); show();
         await user.type(screen.getByLabelText("Tên khách hàng *"), "Giữ tên");
-        await user.type(screen.getByLabelText("Thông tin 4 dòng"), "invalid");
+        await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "invalid");
         await user.click(screen.getByRole("button", { name: "Nhận diện" }));
         expect(screen.getByRole("alert")).toBeInTheDocument();
         expect(screen.getByLabelText("Tên khách hàng *")).toHaveValue("Giữ tên");
     });
     it.each(["MANAGER", "CTV", undefined])("hides quick paste for %s", (role) => {
         state.role = role; show();
-        expect(screen.queryByLabelText("Thông tin 4 dòng")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Thông tin khách hàng dán nhanh")).not.toBeInTheDocument();
     });
     it("hides quick paste when editing", () => {
         show({ id: "existing", name: "Existing" } as Customer);
-        expect(screen.queryByLabelText("Thông tin 4 dòng")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Thông tin khách hàng dán nhanh")).not.toBeInTheDocument();
     });
 });

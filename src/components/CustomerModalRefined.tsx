@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, MapPin, MessageCircle, X } from "lucide-react";
@@ -128,6 +128,9 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const [quickPaste, setQuickPaste] = useState("");
     const [quickPasteFeedback, setQuickPasteFeedback] = useState<{ error: boolean; message: string } | null>(null);
     const [gpsLoading, setGpsLoading] = useState(false);
+    const [quickNeedsGps, setQuickNeedsGps] = useState(false);
+    const [quickActive, setQuickActive] = useState(false);
+    const gpsRequest = useRef(0);
     const [edits, setEdits] = useState<EditHistoryItem[]>([]);
     const { data: currentUser, scope } = useCurrentUser();
     const [ctvState, setCtvState] = useState<{ scope: typeof scope; users: CtvUser[] }>({ scope, users: [] });
@@ -141,6 +144,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const currentSnapshot = useMemo(() => JSON.stringify(formData), [formData]);
     const isDirty = initialSnapshot !== "" && currentSnapshot !== initialSnapshot;
     const isPhoneValid = formData.phone === "" || /^0\d{8,10}$/.test(formData.phone);
+    const quickFieldsInvalid = quickActive && (!formData.account.trim() || !formData.latitude.trim() || !formData.longitude.trim() || !Number.isFinite(Number(formData.latitude)) || !Number.isFinite(Number(formData.longitude)) || Math.abs(Number(formData.latitude)) > 90 || Math.abs(Number(formData.longitude)) > 180);
     const showPrepaidFields = formData.billingType === "PREPAID";
     const renewalMonthWarning = useMemo(() => {
         if (!showPrepaidFields) return null;
@@ -152,6 +156,14 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
         const nextData = getInitialFormData(customer, defaultLocation);
         setFormData(nextData);
         setInitialSnapshot(JSON.stringify(nextData));
+        gpsRequest.current += 1;
+        setGpsLoading(false);
+        setQuickNeedsGps(false);
+        setQuickActive(false);
+        setQuickPaste("");
+        setQuickPasteFeedback(null);
+        setError("");
+        return () => { gpsRequest.current += 1; };
     }, [customer, defaultLocation]);
 
     useEffect(() => {
@@ -255,6 +267,15 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
+        if (quickNeedsGps) {
+            setError("Hãy bấm Lấy tọa độ hiện tại và lấy GPS thành công trước khi lưu.");
+            return;
+        }
+        if (quickFieldsInvalid) {
+            setError("Dán nhanh yêu cầu account và tọa độ hợp lệ trước khi lưu.");
+            return;
+        }
+
         if (isRenewalMonthInvalid) {
             const message = renewalMonthWarning || "Ngày gia hạn không hợp lệ.";
             setError(message);
@@ -338,7 +359,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                         {!customer && role === "ADMIN" && (
                             <section className={styles.section}>
                                 <h3 className={styles.sectionTitle}>Dán nhanh khách hàng</h3>
-                                <label className="label-base" htmlFor="customer-quick-paste">Thông tin 4 dòng</label>
+                                <label className="label-base" htmlFor="customer-quick-paste">Thông tin khách hàng dán nhanh</label>
                                 <textarea
                                     id="customer-quick-paste"
                                     className="input-base"
@@ -349,22 +370,23 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                                     disabled={loading}
                                 />
                                 <p id="customer-quick-paste-help" className={styles.helperText}>
-                                    Dán tọa độ, CNKD (mã ngắn hoặc username đầy đủ), tên khách hàng và account, mỗi mục một dòng, thứ tự bất kỳ. Tọa độ theo vĩ độ, kinh độ; chỉ tự đảo khi xác định chắc chắn. Nhận diện để xem và sửa trước khi bấm Lưu.
+                                    Bắt buộc tên khách hàng và account. Có thể thêm CNKD (mã ngắn hoặc username đầy đủ), số điện thoại và tọa độ, mỗi mục một dòng, thứ tự bất kỳ. Nếu thiếu tọa độ, hãy lấy GPS ngay tại chỗ đang đứng trước khi lưu.
                                 </p>
                                 <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => {
                                     if (customer || role !== "ADMIN") return;
                                     try {
-                                        if (ctvLoadState.scope !== scope || ctvLoadState.status === "loading") {
-                                            throw new Error("Đang tải danh sách CNKD. Vui lòng đợi rồi bấm Nhận diện lại.");
-                                        }
-                                        if (ctvLoadState.status === "error") {
-                                            throw new Error("Không tải được danh sách CNKD. Đóng và mở lại biểu mẫu để thử lại.");
-                                        }
                                         const parsed = parseCustomerQuickPaste(quickPaste, ctvs);
-                                        setFormData((previous) => ({ ...previous, ...parsed }));
-                                        setQuickPasteFeedback({ error: false, message: "Đã điền biểu mẫu. Kiểm tra thông tin và bấm Lưu để tạo khách hàng." });
+                                        gpsRequest.current += 1;
+                                        setGpsLoading(false);
+                                        setError("");
+                                        const needsGps = parsed.latitude === undefined;
+                                        setQuickNeedsGps(needsGps);
+                                        setQuickActive(true);
+                                        setFormData((previous) => ({ ...previous, ...parsed, latitude: parsed.latitude ?? "", longitude: parsed.longitude ?? "" }));
+                                        setQuickPasteFeedback({ error: false, message: needsGps ? "Đã điền biểu mẫu. Thiếu tọa độ: hãy bấm Lấy tọa độ hiện tại ngay tại chỗ đang đứng trước khi lưu." : "Đã điền biểu mẫu. Kiểm tra thông tin và bấm Lưu để tạo khách hàng." });
                                     } catch (parseError) {
-                                        setQuickPasteFeedback({ error: true, message: parseError instanceof Error ? parseError.message : "Không nhận diện được dữ liệu." });
+                                        const listHint = ctvLoadState.scope !== scope || ctvLoadState.status === "loading" ? " Danh sách CNKD đang tải; nếu có CNKD, vui lòng thử lại sau." : ctvLoadState.status === "error" ? " Không tải được danh sách CNKD; đóng và mở lại biểu mẫu để thử lại." : "";
+                                        setQuickPasteFeedback({ error: true, message: (parseError instanceof Error ? parseError.message : "Không nhận diện được dữ liệu.") + listHint });
                                     }
                                 }}>Nhận diện</button>
                                 {quickPasteFeedback && <p role={quickPasteFeedback.error ? "alert" : "status"} className={quickPasteFeedback.error ? styles.helperError : styles.helperText}>{quickPasteFeedback.message}</p>}
@@ -412,7 +434,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
 
                                 <div className={styles.col}>
                                     <label className="label-base" htmlFor="customer-account">Account</label>
-                                    <input id="customer-account" name="account" className="input-base" value={formData.account} onChange={handleChange} />
+                                    <input id="customer-account" name="account" required={quickActive} className="input-base" value={formData.account} onChange={handleChange} />
                                 </div>
 
                                 <div className={styles.col}>
@@ -573,7 +595,8 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                                 </div>
                             </div>
 
-                            {canUseGps && (
+                            {quickNeedsGps && <p className={styles.helperError}>Cần lấy GPS ngay tại chỗ đang đứng. Chỉ có thể lưu sau khi lấy tọa độ hiện tại thành công.</p>}
+                            {(canUseGps || (!customer && role === "ADMIN" && quickNeedsGps)) && (
                                 <div className={styles.fullWidth}>
                                     <button
                                         type="button"
@@ -587,16 +610,26 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
 
                                             setGpsLoading(true);
                                             setError("");
+                                            const request = ++gpsRequest.current;
                                             navigator.geolocation.getCurrentPosition(
                                                 (position) => {
+                                                    if (request !== gpsRequest.current) return;
+                                                    if (!Number.isFinite(position.coords.latitude) || !Number.isFinite(position.coords.longitude) || Math.abs(position.coords.latitude) > 90 || Math.abs(position.coords.longitude) > 180) {
+                                                        setError("GPS trả về tọa độ không hợp lệ. Vui lòng thử lại.");
+                                                        setGpsLoading(false);
+                                                        return;
+                                                    }
                                                     setFormData((prev) => ({
                                                         ...prev,
                                                         latitude: position.coords.latitude.toFixed(6),
                                                         longitude: position.coords.longitude.toFixed(6),
                                                     }));
                                                     setGpsLoading(false);
+                                                    setQuickNeedsGps(false);
+                                                    setQuickPasteFeedback(null);
                                                 },
                                                 (gpsError) => {
+                                                    if (request !== gpsRequest.current) return;
                                                     const message = `Không lấy được tọa độ: ${gpsError.message}`;
                                                     setError(message);
                                                     toast.error(message);
@@ -654,7 +687,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                             <button type="button" onClick={handleRequestClose} className="btn btn-secondary" disabled={loading}>
                                 Hủy
                             </button>
-                            <button type="submit" disabled={loading || !isPhoneValid || isRenewalMonthInvalid} className="btn btn-primary">
+                            <button type="submit" disabled={loading || quickNeedsGps || quickFieldsInvalid || !isPhoneValid || isRenewalMonthInvalid} className="btn btn-primary">
                                 {loading ? <Loader2 className="animate-spin" size={18} /> : "Lưu"}
                             </button>
                         </div>

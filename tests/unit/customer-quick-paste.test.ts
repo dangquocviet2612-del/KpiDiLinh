@@ -4,6 +4,18 @@ import { parseCustomerQuickPaste } from "@/lib/customer-quick-paste";
 const users = [{ username: "phuav_ldg_cnkd" }];
 const lines = ["11.503610559826157, 107.95302872883524", "phuav", "nguyễn văn nam", "ldg_gftth_namnv14"];
 describe("customer quick paste", () => {
+  it("requires only name and account", () => {
+    expect(parseCustomerQuickPaste("ldg_gftth_namnv14\nNguyễn Văn Nam", [])).toEqual({ name: "Nguyễn Văn Nam", account: lines[3] });
+  });
+  it.each(["abcdef", "1234567890"])("accepts explicit Account: %s", (account) => {
+    expect(parseCustomerQuickPaste(`Nguyễn Văn Nam\nAccount: ${account}`, [])).toEqual({ name: "Nguyễn Văn Nam", account });
+  });
+  it.each(["0912345678", "+84 912 345 678", "84912345678"])("normalizes optional phone %s", (phone) => {
+    expect(parseCustomerQuickPaste(`${lines[3]}\n${phone}\n${lines[2]}`, [])).toMatchObject({ phone: "0912345678" });
+  });
+  it("rejects multiple phone lines", () => {
+    expect(() => parseCustomerQuickPaste(`${lines[3]}\n${lines[2]}\n0912345678\n0987654321`, [])).toThrow();
+  });
   it.each([lines, [lines[3], lines[2], lines[0], "PHUAV_LDG_CNKD"], [...lines].reverse()])("recognizes shuffled full/short usernames", (...input) => {
     expect(parseCustomerQuickPaste(input.join("\n"), users)).toEqual({ name: lines[2], account: lines[3], ctvCode: users[0].username, latitude: "11.503610559826157", longitude: "107.95302872883524" });
   });
@@ -19,7 +31,7 @@ describe("customer quick paste", () => {
     expect(() => parseCustomerQuickPaste(lines.join("\n"), [...users, { username: "PHUAV_LDG_CNKD" }])).toThrow(/nhiều/);
     expect(() => parseCustomerQuickPaste([lines[0], "phuav", "phuav_ldg_cnkd", lines[3]].join("\n"), users)).toThrow();
   });
-  it.each([lines.slice(1), [...lines, "extra"], [lines[0], "phuav", "another_account", lines[3]]])("rejects incomplete/extra/ambiguous lines", (...input) => {
+  it.each([[lines[3]], [...lines, "extra"], [lines[0], "phuav", "another_account", lines[3]]])("rejects incomplete/extra/ambiguous lines", (...input) => {
     expect(() => parseCustomerQuickPaste(input.join("\n"), users)).toThrow();
   });
 });
