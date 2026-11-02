@@ -1114,7 +1114,7 @@ export default function MapComponent() {
                 />
 
                 <MapClickHandler
-                    isActive={true}
+                    isActive={Boolean(pickingLocationSubj)}
                     onLocationSelected={async (latlng) => {
                         if (pickingLocationSubj) {
                             setConfirmDialog({
@@ -1150,18 +1150,6 @@ export default function MapComponent() {
                             return;
                         }
 
-                        // Click trên bản đồ để thêm khách hàng tại điểm đó
-                        setConfirmDialog({
-                            isOpen: true,
-                            title: "Thêm khách hàng tại vị trí này?",
-                            message: `Tọa độ: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}. Bạn có muốn mở biểu mẫu thêm khách hàng tại điểm này?`,
-                            onConfirm: () => {
-                                setCustomAddLocation({ latitude: latlng.lat, longitude: latlng.lng });
-                                setEditingCustomer(null);
-                                setAddingAtLocation(true);
-                            },
-                            onCancel: () => {}
-                        });
                     }}
                 />
 

@@ -87,6 +87,7 @@ export async function GET(request: Request) {
                 if (phone === qNorm || account === qNorm) score += 100;
                 if (phone.startsWith(qNorm) || account.startsWith(qNorm) || name.startsWith(qNorm)) score += 60;
                 if (name.includes(qNorm)) score += 30;
+                if (account.includes(qNorm)) score += 30;
                 if (ctvCode.includes(qNorm) || address.includes(qNorm)) score += 15;
 
                 return { item, score };

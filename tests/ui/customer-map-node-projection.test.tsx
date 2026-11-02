@@ -324,9 +324,8 @@ describe("customer map coordinates DTO consumer", () => {
     await waitFor(() => expect(mocks.fetch.mock.calls.filter((call) => call[0] === customerUrl)).toHaveLength(2));
     fireEvent.click(screen.getByRole("button", { name: "Close form" }));
     await act(async () => { mocks.mapClick?.({ latlng: { lat: 2, lng: 3 } }); });
-    expect(screen.getByRole("dialog")).toHaveAccessibleName("Thêm khách hàng tại vị trí này?");
-    fireEvent.click(screen.getByRole("button", { name: "Đồng ý" }));
-    expect(mocks.modal.mock.lastCall?.[0]).toMatchObject({ customer: null, defaultLocation: { latitude: 2, longitude: 3 } });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close form" })).not.toBeInTheDocument();
     expect(mocks.fetch.mock.calls.filter((call) => call[0].startsWith("/api/nodes"))).toEqual([[nodeUrl]]);
     expect(writes()).toEqual([]);
   });
