@@ -74,6 +74,8 @@ describe("admin customer quick paste", () => {
     });
     it("leaves existing form values intact on recognition errors", async () => {
         const user = userEvent.setup(); show();
+        // Wait for the dialog's initial RAF autofocus before simulating typing.
+        await waitFor(() => expect(screen.getByRole("button", { name: "Đóng" })).toHaveFocus());
         await user.type(screen.getByLabelText("Tên khách hàng *"), "Giữ tên");
         await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "invalid");
         await user.click(screen.getByRole("button", { name: "Nhận diện" }));
