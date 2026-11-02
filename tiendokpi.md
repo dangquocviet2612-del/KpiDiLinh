@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Nút Cài ứng dụng — 02/11/2026
+
+- Thêm nút Cài ứng dụng dưới Sáng/Tối, trước Đăng xuất. Khi có beforeinstallprompt, chỉ mở native prompt khi người dùng bấm; khi chưa có hiện hướng dẫn desktop/Android/iPhone. appinstalled/standalone hiển thị Đã cài ứng dụng; dismiss không báo cài thành công.
+- Tái sử dụng Dialog, hỗ trợ Escape/focus và target 44px; không bổ sung service worker/cache dữ liệu. Việc tạo shortcut/cài thực tế phụ thuộc trình duyệt.
+- 13 focused tests đạt; lint, TypeScript và production build đạt. Application commit `60bdcbae0fd11b9dfd043a62c0f1918b34e2cef2` đã push main; CI `41383644504` completed/success.
+- Vercel `dpl_FsFkjywikScNHZ8AbJTjcsRox2Fb` READY/promote thành công; inspect domain chính trỏ đúng bản mới, login HTTP200. Browser đăng nhập candidate và Production ở 1280/390px đạt: mở hướng dẫn, Escape đóng và trả focus, sidebar mobile giữ mở. Không mutation dữ liệu nghiệp vụ; chưa thử cài app thật trên thiết bị. Rollback `dpl_2jZ6uPgvDpnBRATJHr4ucH98KcDh`.
+
 ## Công tắc Sáng/Tối — 02/11/2026
 
 - Thêm công tắc có nhãn Sáng/Tối ngay dưới Đổi mật khẩu; role switch, bàn phím Enter/Space, vùng bấm 44px và focus rõ.
