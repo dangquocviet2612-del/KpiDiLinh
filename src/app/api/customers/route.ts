@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { recordAuditLog } from "@/lib/audit";
+import { detectCustomerDuplicates, duplicateCustomerSelect } from "@/lib/customer-duplicates";
 import { findCustomerSearchIds } from "@/lib/customer-search";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
@@ -11,6 +14,11 @@ import { clearCacheByPrefix, getCache, getCacheGeneration, setCache } from "@/li
 import { calculateCustomerExpirationDate, parseCustomerDateInput } from "@/lib/customer-date-input";
 import { customerInputSchema } from "@/lib/validations/customer.schema";
 import { ensureCustomerSchema } from "@/lib/ensure-customer-schema";
+
+const duplicateConfirmationSchema = z.object({
+    reason: z.string().trim().min(5, "Lý do cần ít nhất 5 ký tự").max(500, "Lý do không được vượt quá 500 ký tự"),
+    candidateIds: z.array(z.string().min(1).max(200)),
+});
 
 function parsePositiveInt(value: string | null, fallback: number, max: number) {
     const parsed = Number(value ?? fallback);
@@ -187,6 +195,33 @@ export async function POST(request: Request) {
 
         await ensureCustomerSchema();
 
+        // Recompute from the caller's accessible customers. Never trust a client match flag.
+        const duplicateRows = await prisma.customer.findMany({
+            where: accessibleCtvCodes === null ? {} : { ctvCode: { in: accessibleCtvCodes } },
+            select: duplicateCustomerSelect,
+        });
+        const candidates = detectCustomerDuplicates(body, duplicateRows);
+        let duplicateConfirmation: z.infer<typeof duplicateConfirmationSchema> | undefined;
+        if (Object.prototype.hasOwnProperty.call(rawBody, "duplicateConfirmation")) {
+            const confirmationResult = duplicateConfirmationSchema.safeParse(rawBody.duplicateConfirmation);
+            if (!confirmationResult.success) {
+                return NextResponse.json({ error: "Vui lòng xác nhận và nhập lý do thêm khách hàng riêng (5–500 ký tự)." }, { status: 422 });
+            }
+            duplicateConfirmation = confirmationResult.data;
+        }
+        const confirmedIds = new Set(duplicateConfirmation?.candidateIds);
+        const confirmationMatches = duplicateConfirmation
+            && confirmedIds.size === duplicateConfirmation.candidateIds.length
+            && confirmedIds.size === candidates.length
+            && candidates.every((candidate) => confirmedIds.has(candidate.id));
+        if ((candidates.length > 0 && !confirmationMatches) || (duplicateConfirmation && !confirmationMatches)) {
+            return NextResponse.json({
+                code: "CUSTOMER_POSSIBLE_DUPLICATE",
+                error: "Có khách hàng có thể trùng. Vui lòng kiểm tra trước khi thêm khách hàng riêng.",
+                candidates,
+            }, { status: 409 });
+        }
+
         const safeNumber = (val: any, isFloat: boolean) => {
             if (val === null || val === undefined || String(val).trim() === "") return null;
             const str = String(val).trim().replace(",", ".");
@@ -250,6 +285,21 @@ export async function POST(request: Request) {
                 expirationDate,
             },
         });
+
+        if (duplicateConfirmation && candidates.length > 0 && session.user.id) {
+            // Existing audit helper is best-effort after the write, not part of an atomic transaction.
+            await recordAuditLog({
+                userId: session.user.id,
+                username: session.user.name || "",
+                action: "CUSTOMER_DUPLICATE_OVERRIDE",
+                resource: "Customer",
+                details: {
+                    customerId: customer.id,
+                    candidateIds: candidates.map((candidate) => candidate.id),
+                    reason: duplicateConfirmation.reason,
+                },
+            });
+        }
 
         if (session.user.id) {
             try {

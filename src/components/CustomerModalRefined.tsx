@@ -22,6 +22,16 @@ interface CustomerModalProps {
     defaultLocation?: { latitude: number; longitude: number } | null;
 }
 
+interface DuplicateCandidate {
+    id: string;
+    name: string;
+    account: string | null;
+    ctvCode: string | null;
+    phone: string | null;
+    distanceMeters: number | null;
+    matchReasons: ("name" | "phone")[];
+}
+
 const FIXED_PACKAGES = [
     "NET1PLUS",
     "BASIC360",
@@ -125,6 +135,10 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const [initialSnapshot, setInitialSnapshot] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [duplicateWarning, setDuplicateWarning] = useState<{ snapshot: string; candidates: DuplicateCandidate[] } | null>(null);
+    const [duplicateReason, setDuplicateReason] = useState("");
+    const submitting = useRef(false);
+    const duplicatePanel = useRef<HTMLElement>(null);
     const [quickPaste, setQuickPaste] = useState("");
     const [quickPasteFeedback, setQuickPasteFeedback] = useState<{ error: boolean; message: string } | null>(null);
     const [gpsLoading, setGpsLoading] = useState(false);
@@ -142,6 +156,20 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const confirm = useConfirmDialog();
 
     const currentSnapshot = useMemo(() => JSON.stringify(formData), [formData]);
+    const activeDuplicateWarning = !customer && duplicateWarning?.snapshot === currentSnapshot ? duplicateWarning : null;
+    const canConfirmDuplicate = duplicateReason.trim().length >= 5 && duplicateReason.trim().length <= 500 && /[\p{L}\p{N}]/u.test(duplicateReason);
+    useEffect(() => {
+        if (activeDuplicateWarning) {
+            duplicatePanel.current?.focus();
+            duplicatePanel.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        }
+    }, [activeDuplicateWarning]);
+    useEffect(() => {
+        if (duplicateWarning && duplicateWarning.snapshot !== currentSnapshot) {
+            setDuplicateWarning(null);
+            setDuplicateReason("");
+        }
+    }, [currentSnapshot, duplicateWarning]);
     const isDirty = initialSnapshot !== "" && currentSnapshot !== initialSnapshot;
     const isPhoneValid = formData.phone === "" || /^0\d{8,10}$/.test(formData.phone);
     const quickFieldsInvalid = quickActive && (!formData.account.trim() || !formData.latitude.trim() || !formData.longitude.trim() || !Number.isFinite(Number(formData.latitude)) || !Number.isFinite(Number(formData.longitude)) || Math.abs(Number(formData.latitude)) > 90 || Math.abs(Number(formData.longitude)) > 180);
@@ -163,6 +191,8 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
         setQuickPaste("");
         setQuickPasteFeedback(null);
         setError("");
+        setDuplicateWarning(null);
+        setDuplicateReason("");
         return () => { gpsRequest.current += 1; };
     }, [customer, defaultLocation]);
 
@@ -264,8 +294,11 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
         router.push(`/node-map?focusNode=${encodeURIComponent(nodeTarget)}`);
     };
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
+    const handleSubmit = async (event?: React.FormEvent, confirmDuplicate = false) => {
+        event?.preventDefault();
+        if (submitting.current) return;
+        if (activeDuplicateWarning && (!confirmDuplicate || !canConfirmDuplicate)) return;
+        if (confirmDuplicate && !activeDuplicateWarning) return;
 
         if (quickNeedsGps) {
             setError("Hãy bấm Lấy tọa độ hiện tại và lấy GPS thành công trước khi lưu.");
@@ -283,6 +316,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
             return;
         }
 
+        submitting.current = true;
         setLoading(true);
         setError("");
 
@@ -295,11 +329,22 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
             const res = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(confirmDuplicate && activeDuplicateWarning ? {
+                    ...formData,
+                    duplicateConfirmation: {
+                        reason: duplicateReason.trim(),
+                        candidateIds: activeDuplicateWarning.candidates.map((candidate) => candidate.id),
+                    },
+                } : formData),
             });
 
             const data = await res.json();
             if (!res.ok) {
+                if (!isEdit && res.status === 409 && data.code === "CUSTOMER_POSSIBLE_DUPLICATE" && Array.isArray(data.candidates) && data.candidates.length > 0) {
+                    setDuplicateWarning({ snapshot: currentSnapshot, candidates: data.candidates });
+                    setDuplicateReason("");
+                    return;
+                }
                 throw new Error(data.error || "Có lỗi xảy ra.");
             }
 
@@ -311,6 +356,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
             setError(message);
             toast.error(message);
         } finally {
+            submitting.current = false;
             setLoading(false);
         }
     };
@@ -355,6 +401,27 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                 {error && <div className={styles.error} role="alert">{error}</div>}
 
                 <form onSubmit={handleSubmit} className={styles.formBody}>
+                    {activeDuplicateWarning && (
+                        <section ref={duplicatePanel} tabIndex={-1} className={styles.section} aria-labelledby="customer-duplicate-title" style={{ border: "1px solid #d97706", padding: "16px", borderRadius: "12px" }}>
+                            <h3 id="customer-duplicate-title" className={styles.sectionTitle}>Có thể khách hàng đã tồn tại</h3>
+                            <p role="status">Kiểm tra các khách hàng bên dưới trước khi thêm bản ghi riêng.</p>
+                            {activeDuplicateWarning.candidates.map((candidate) => (
+                                <article key={candidate.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--border-color, #ddd)" }}>
+                                    <strong>{candidate.name}</strong>
+                                    <p>Account: {candidate.account || "Chưa có account"} · Số điện thoại: {candidate.phone || "Chưa có số điện thoại"} · CNKD: {candidate.ctvCode || "Chưa giao CNKD"}</p>
+                                    <p>{candidate.distanceMeters === null ? "Chưa có tọa độ để tính khoảng cách." : `Khoảng cách: ${Math.round(candidate.distanceMeters)} m.`} {candidate.matchReasons.map((reason) => reason === "name" ? "Tên trùng" : "Trùng số điện thoại").join(" · ")}</p>
+                                    <a href={`/customers?q=${encodeURIComponent(candidate.account || candidate.name)}`} target="_blank" rel="noopener noreferrer">Xem khách hàng đã có</a>
+                                </article>
+                            ))}
+                            <label className="label-base" htmlFor="customer-duplicate-reason">Lý do thêm khách hàng riêng</label>
+                            <textarea id="customer-duplicate-reason" className="input-base" value={duplicateReason} onChange={(event) => setDuplicateReason(event.target.value)} disabled={loading} maxLength={500} rows={2} aria-describedby="customer-duplicate-reason-help" />
+                            <p id="customer-duplicate-reason-help" className={styles.helperText}>Mô tả lý do cụ thể, ít nhất 5 ký tự.</p>
+                            <div className={styles.footerActions}>
+                                <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => { setDuplicateWarning(null); setDuplicateReason(""); }}>Quay lại kiểm tra</button>
+                                <button type="button" className="btn btn-primary" disabled={loading || !canConfirmDuplicate || quickNeedsGps || quickFieldsInvalid || !isPhoneValid || isRenewalMonthInvalid} onClick={() => void handleSubmit(undefined, true)}>Vẫn thêm khách hàng riêng</button>
+                            </div>
+                        </section>
+                    )}
                     <div className={styles.fieldset}>
                         {!customer && role === "ADMIN" && (
                             <section className={styles.section}>
@@ -687,7 +754,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                             <button type="button" onClick={handleRequestClose} className="btn btn-secondary" disabled={loading}>
                                 Hủy
                             </button>
-                            <button type="submit" disabled={loading || quickNeedsGps || quickFieldsInvalid || !isPhoneValid || isRenewalMonthInvalid} className="btn btn-primary">
+                            <button type="submit" disabled={loading || Boolean(activeDuplicateWarning) || quickNeedsGps || quickFieldsInvalid || !isPhoneValid || isRenewalMonthInvalid} className="btn btn-primary">
                                 {loading ? <Loader2 className="animate-spin" size={18} /> : "Lưu"}
                             </button>
                         </div>
