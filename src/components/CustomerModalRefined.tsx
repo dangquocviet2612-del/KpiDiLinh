@@ -13,6 +13,7 @@ import { getCustomerDateInputWarning } from "@/lib/customer-date-input";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialogProvider";
 import { useDialogAccessibility } from "@/hooks/useDialogAccessibility";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { parseCustomerQuickPaste } from "@/lib/customer-quick-paste";
 
 interface CustomerModalProps {
     customer: Customer | null;
@@ -124,10 +125,13 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
     const [initialSnapshot, setInitialSnapshot] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [quickPaste, setQuickPaste] = useState("");
+    const [quickPasteFeedback, setQuickPasteFeedback] = useState<{ error: boolean; message: string } | null>(null);
     const [gpsLoading, setGpsLoading] = useState(false);
     const [edits, setEdits] = useState<EditHistoryItem[]>([]);
     const { data: currentUser, scope } = useCurrentUser();
     const [ctvState, setCtvState] = useState<{ scope: typeof scope; users: CtvUser[] }>({ scope, users: [] });
+    const [ctvLoadState, setCtvLoadState] = useState<{ scope: typeof scope; status: "loading" | "ready" | "error" }>({ scope, status: "loading" });
     const ctvs = ctvState.scope === scope ? ctvState.users : [];
     const canUseGps = Boolean(currentUser && (currentUser.role === "ADMIN" || currentUser.canUseGps === true || !!customer));
     const { data: session } = useSession();
@@ -154,6 +158,7 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
         const controller = new AbortController();
         let active = true;
         setCtvState({ scope, users: [] });
+        setCtvLoadState({ scope, status: "loading" });
         const fetchCtvs = async () => {
             if (!scope || (role !== "ADMIN" && role !== "MANAGER")) {
                 return;
@@ -163,10 +168,18 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
                 const res = await fetch("/api/users", { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
-                    if (active && !controller.signal.aborted) setCtvState({ scope, users: Array.isArray(data) ? data : [] });
+                    if (active && !controller.signal.aborted) {
+                        setCtvState({ scope, users: Array.isArray(data) ? data : [] });
+                        setCtvLoadState({ scope, status: Array.isArray(data) ? "ready" : "error" });
+                    }
+                } else if (active && !controller.signal.aborted) {
+                    setCtvLoadState({ scope, status: "error" });
                 }
             } catch (fetchError) {
-                if (active && !controller.signal.aborted) console.error("Error fetching CTVs:", fetchError);
+                if (active && !controller.signal.aborted) {
+                    setCtvLoadState({ scope, status: "error" });
+                    console.error("Error fetching CTVs:", fetchError);
+                }
             }
         };
 
@@ -322,6 +335,41 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
 
                 <form onSubmit={handleSubmit} className={styles.formBody}>
                     <div className={styles.fieldset}>
+                        {!customer && role === "ADMIN" && (
+                            <section className={styles.section}>
+                                <h3 className={styles.sectionTitle}>Dán nhanh khách hàng</h3>
+                                <label className="label-base" htmlFor="customer-quick-paste">Thông tin 4 dòng</label>
+                                <textarea
+                                    id="customer-quick-paste"
+                                    className="input-base"
+                                    rows={4}
+                                    value={quickPaste}
+                                    onChange={(event) => { setQuickPaste(event.target.value); setQuickPasteFeedback(null); }}
+                                    aria-describedby="customer-quick-paste-help"
+                                    disabled={loading}
+                                />
+                                <p id="customer-quick-paste-help" className={styles.helperText}>
+                                    Dán tọa độ, CNKD (mã ngắn hoặc username đầy đủ), tên khách hàng và account, mỗi mục một dòng, thứ tự bất kỳ. Tọa độ theo vĩ độ, kinh độ; chỉ tự đảo khi xác định chắc chắn. Nhận diện để xem và sửa trước khi bấm Lưu.
+                                </p>
+                                <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => {
+                                    if (customer || role !== "ADMIN") return;
+                                    try {
+                                        if (ctvLoadState.scope !== scope || ctvLoadState.status === "loading") {
+                                            throw new Error("Đang tải danh sách CNKD. Vui lòng đợi rồi bấm Nhận diện lại.");
+                                        }
+                                        if (ctvLoadState.status === "error") {
+                                            throw new Error("Không tải được danh sách CNKD. Đóng và mở lại biểu mẫu để thử lại.");
+                                        }
+                                        const parsed = parseCustomerQuickPaste(quickPaste, ctvs);
+                                        setFormData((previous) => ({ ...previous, ...parsed }));
+                                        setQuickPasteFeedback({ error: false, message: "Đã điền biểu mẫu. Kiểm tra thông tin và bấm Lưu để tạo khách hàng." });
+                                    } catch (parseError) {
+                                        setQuickPasteFeedback({ error: true, message: parseError instanceof Error ? parseError.message : "Không nhận diện được dữ liệu." });
+                                    }
+                                }}>Nhận diện</button>
+                                {quickPasteFeedback && <p role={quickPasteFeedback.error ? "alert" : "status"} className={quickPasteFeedback.error ? styles.helperError : styles.helperText}>{quickPasteFeedback.message}</p>}
+                            </section>
+                        )}
                         <section className={styles.section}>
                             <h3 className={styles.sectionTitle}>Thông tin cơ bản</h3>
                             <div className={styles.grid}>
