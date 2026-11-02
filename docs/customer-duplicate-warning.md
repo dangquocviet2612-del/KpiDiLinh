@@ -9,4 +9,4 @@ Khi tạo khách hàng từ form thường hoặc dán nhanh, POST kiểm tra l�
 - Override ghi audit qua helper hiện có sau tạo; audit best-effort, không phải transaction nguyên tử. Kiểm tra và tạo chưa có unique constraint mới: hai yêu cầu đồng thời vẫn có thể race.
 - Không gộp/xóa khách hàng cũ, không đổi schema và không cho vượt phạm vi quyền.
 
-Local verification 02/11/2026: 117 file/2.011 tests đạt, production build đạt. Phần cảnh báo chưa phát hành ở thời điểm tạo tài liệu.
+Verification 02/11/2026: 117 file/2.011 tests đạt, production build đạt. Đã phát hành với commit focus cuối `8fe79fc`, CI `41441032381` success và deployment `dpl_FdBnwRy624wNsBK4ddairg41PsKs`. Browser desktop/mobile trên domain chính kiểm giao diện bằng phản hồi409 giả lập; backend có tests riêng, không tạo dữ liệu thật để thử.

@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Cảnh báo khách hàng nghi trùng — 02/11/2026
+
+- POST tạo khách hàng tính lại nghi trùng trong scope quyền: cùng tên chuẩn hóa Unicode/khoảng trắng và cách ≤300m; thiếu tọa độ cảnh báo cùng tên; cùng SĐT chuẩn hóa cũng cảnh báo. Account trùng giữ chặn cũ.
+- Form thường/dán nhanh nhận409 trước ghi, hiện thông tin đối chiếu; xem bản cũ ở tab mới, quay lại hoặc thêm riêng với lý do5–500 ký tự. ID nghi trùng kiểm tra lại, sửa form làm mất xác nhận cũ; audit override best-effort. Không gộp/xóa dữ liệu, chưa thêm unique constraint/transaction chống race.
+- 117 file/2.011 tests, lint, TypeScript, production build đạt; application `095fbd7c03fb2f95a596a5f503d3bcc3dead91dc` và sửa focus `8fe79fc543da6999482df918161ee40d5d9fbc10` đã push. CI cuối `41441032381` success; Vercel `dpl_FdBnwRy624wNsBK4ddairg41PsKs` READY/promote, domain chính đúng deployment.
+- Browser candidate và Production desktop1440/mobile390 strict đạt: warning được focus, lý do trống/ký tự dấu bị chặn, xác nhận gửi reason/ID, link bản cũ tab mới, sửa tên bỏ warning cũ. Phản hồi409/API tạo trong browser là giả lập; không ghi khách hàng thật. Backend detection/override có unit/API tests riêng. Lỗi focus phát hiện ở candidate đầu đã sửa: giữ option Escape ổn định, handler vẫn chặn đóng khi đang lưu. Rollback `dpl_3ET6JgcDP4USz7131gdavyuF5QnN`.
+
 ## Tìm khách hàng không phân biệt hoa/thường tiếng Việt — 02/11/2026
 
 - Hai API danh sách/search-map chuẩn hóa NFC và lowercase Unicode để HUYỀN/Huyền/huyền khớp giống nhau, vẫn phân biệt dấu. SQLite LIKE trước đây chỉ fold ASCII.
