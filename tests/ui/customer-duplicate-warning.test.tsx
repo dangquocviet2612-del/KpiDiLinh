@@ -31,6 +31,7 @@ async function setup(quick = false) {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<ConfirmDialogProvider><CustomerModalRefined customer={null} onClose={onClose} onRefresh={vi.fn()} /></ConfirmDialogProvider>);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Đóng" })).toHaveFocus());
     if (quick) {
         await user.type(screen.getByLabelText("Thông tin khách hàng dán nhanh"), "new_account\nNguyễn Nam\n11.5, 107.9");
         await user.click(screen.getByRole("button", { name: "Nhận diện" }));
