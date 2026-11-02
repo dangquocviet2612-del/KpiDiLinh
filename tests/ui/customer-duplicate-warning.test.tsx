@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CustomerModalRefined from "@/components/CustomerModalRefined";
@@ -12,6 +12,21 @@ const candidates = [{ id: "old", name: "Nguyễn Nam", account: "old_account", p
 beforeEach(() => vi.stubGlobal("fetch", vi.fn(async (_url, options) => options?.method === "POST" ? { ok: false, status: 409, json: async () => ({ code: "CUSTOMER_POSSIBLE_DUPLICATE", error: "Có thể trùng khách hàng", candidates }) } : { ok: true, json: async () => [] })));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const posts = () => vi.mocked(fetch).mock.calls.filter(([, options]) => options?.method === "POST");
+it.each(["Hủy", "Đóng", "Escape"])("can discard the form after duplicate warning via %s", async (action) => {
+    const { user, onClose } = await setup();
+    await screen.findByRole("button", { name: "Vẫn thêm khách hàng riêng" });
+    if (action === "Escape") await user.keyboard("{Escape}");
+    else await user.click(screen.getByRole("button", { name: action }));
+    const confirmation = await screen.findByRole("dialog", { name: "Bỏ thay đổi chưa lưu?" });
+    await user.click(within(confirmation).getByRole("button", { name: "Hủy" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Tên khách hàng *")).toHaveValue("Nguyễn Nam");
+    await user.click(screen.getByRole("button", { name: "Đóng" }));
+    const retry = await screen.findByRole("dialog", { name: "Bỏ thay đổi chưa lưu?" });
+    await user.click(within(retry).getByRole("button", { name: "Bỏ thay đổi" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(posts()).toHaveLength(1);
+});
 async function setup(quick = false) {
     const user = userEvent.setup();
     const onClose = vi.fn();

@@ -1,7 +1,8 @@
 .dialogBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  /* Dialogs are portalled above customer forms (2000) and navigation (2040). */
+  z-index: 2200;
   display: grid;
   place-items: center;
   padding: 1rem;
