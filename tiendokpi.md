@@ -1,5 +1,13 @@
 # Tiến độ dự án KpiDiLinh
 
+## Công tắc Sáng/Tối — 02/11/2026
+
+- Thêm công tắc có nhãn Sáng/Tối ngay dưới Đổi mật khẩu; role switch, bàn phím Enter/Space, vùng bấm 44px và focus rõ.
+- Mặc định Tối khi chưa có lựa chọn; giữ theme sáng/tối đã lưu. Bootstrap theme trước khi hiển thị nội dung.
+- Local: 109 file / 1.944 test đạt; lint, TypeScript và Next production build đạt với cấu hình giả lập.
+- Application commit `e496f3ccb05e2fc93dffc94df3ca7d1280e4cd34` đã push main. GitHub CI `41365491100` completed/success; Vercel `dpl_2jZ6uPgvDpnBRATJHr4ucH98KcDh` READY và promote thành công, inspect xác nhận domain chính trỏ bản mới.
+- Browser đăng nhập trên candidate và domain chính đều đạt: mặc định tối khi OS sáng, switch hiện đúng, click và reload giữ lựa chọn, Space đổi theme. Domain chính không dùng protection bypass; không sửa dữ liệu nghiệp vụ. Login HTTP 200. Mốc rollback `dpl_DtA9Wzorqf8fimWDY11XBiqPUNb6`.
+
 > Cập nhật: **27/10/2026**, múi giờ **Asia/Saigon (UTC+7)**.
 >
 > File này ghi lại các việc đã thực hiện, bằng chứng kiểm tra và việc còn lại để tiếp tục dự án. Số liệu phục hồi là mốc của bản backup ngày 26/10/2026; dữ liệu nhập thêm sau mốc này có thể làm số lượng thay đổi.
