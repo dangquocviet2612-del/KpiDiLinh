@@ -6,6 +6,7 @@ import { Users, User, Map as MapIcon, LogOut, Moon, Sun, Menu, X, KeyRound, Fold
 import { signOut } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 import styles from "./Sidebar.module.css";
+import InstallAppButton from "./InstallAppButton";
 import { cn } from "@/lib/utils";
 
 function getRoleLabel(role: string) {
@@ -490,6 +491,8 @@ export default function Sidebar({ userRole, userName }: { userRole: string; user
                             <span>Tối</span>
                         </span>
                     </button>
+
+                    <InstallAppButton className={styles.navLink} />
 
                     <button onClick={() => signOut({ callbackUrl: '/login' })} className={cn(styles.navLink, styles.logout)}>
                         <span className={styles.icon}><LogOut size={20} /></span>

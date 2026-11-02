@@ -54,7 +54,9 @@ describe("sidebar theme switch", () => {
     const control = screen.getByRole("switch", { name: "Giao diện tối" });
     expect(control.tagName).toBe("BUTTON");
     expect(screen.getByRole("link", { name: "Đổi mật khẩu" }).nextElementSibling).toBe(control);
-    expect(control.nextElementSibling).toBe(screen.getByRole("button", { name: "Đăng xuất" }));
+    const install = screen.getByRole("button", { name: /^(Cài ứng dụng|Đã cài ứng dụng)$/ });
+    expect(control.nextElementSibling).toBe(install);
+    expect(install.nextElementSibling).toBe(screen.getByRole("button", { name: "Đăng xuất" }));
     expect(screen.getByText("Sáng")).toBeVisible();
     expect(screen.getByText("Tối")).toBeVisible();
     for (const activate of [() => user.click(control), () => user.keyboard("{Enter}"), () => user.keyboard(" ")]) {
