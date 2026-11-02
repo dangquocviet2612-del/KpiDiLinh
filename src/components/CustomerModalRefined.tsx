@@ -363,7 +363,9 @@ export default function CustomerModalRefined({ customer, onClose, onRefresh, def
 
     const dialogRef = useDialogAccessibility<HTMLDivElement>({
         onClose: () => void handleRequestClose(),
-        closeOnEscape: !loading,
+        // handleRequestClose already blocks closing while loading. Keeping this
+        // option stable avoids resetting modal focus after a duplicate response.
+        closeOnEscape: true,
     });
 
     return (
