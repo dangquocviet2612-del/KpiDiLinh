@@ -12,5 +12,6 @@ it("retains an account matching a middle/suffix query without other matching fie
   const response = await GET(new Request("http://localhost/api/customers/search-map?q=thangtv18"));
   expect(response.status).toBe(200);
   expect((await response.json()).items).toEqual([expect.objectContaining({ id: "suffix-account" })]);
-  expect(mocks.findMany.mock.calls[0][0].where.OR).toContainEqual({ account: { contains: "thangtv18" } });
+  expect(mocks.findMany.mock.calls[0][0].take).toBeUndefined();
+  expect(mocks.findMany.mock.calls[1][0].where.id).toEqual({ in: ["suffix-account"] });
 });

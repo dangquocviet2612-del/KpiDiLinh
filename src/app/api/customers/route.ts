@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
+import { findCustomerSearchIds } from "@/lib/customer-search";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { findNearestNodeName } from "@/lib/nodeUtils";
@@ -57,14 +58,6 @@ export async function GET(request: Request) {
             where.ctvCode = { contains: ctvCodeFilter };
         }
 
-        if (search) {
-            where.OR = [
-                { name: { contains: search } },
-                { phone: { contains: search } },
-                { account: { contains: search } },
-                { ctvCode: { contains: search } },
-            ];
-        }
         if (subscriberType) where.subscriberType = subscriberType;
         if (billingType) where.billingType = billingType;
         if (prepaidPeriod) where.prepaidPeriod = parseInt(prepaidPeriod);
@@ -99,6 +92,7 @@ export async function GET(request: Request) {
         }
 
         await ensureCustomerSchema();
+        if (search) where.id = { in: await findCustomerSearchIds(where, search) };
 
         const rows = await prisma.customer.findMany({
             where,
@@ -281,6 +275,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
-
-
-

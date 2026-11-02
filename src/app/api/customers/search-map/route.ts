@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findCustomerSearchIds, normalizeCustomerSearch } from "@/lib/customer-search";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getAccessibleCtvCodes } from "@/lib/scope";
@@ -13,7 +14,7 @@ function parseLimit(value: string | null, defaultLimit = 20, max = 50): number {
 }
 
 function normalize(value: string): string {
-    return value.trim().toLowerCase();
+    return normalizeCustomerSearch(value.trim());
 }
 
 export async function GET(request: Request) {
@@ -32,24 +33,11 @@ export async function GET(request: Request) {
         if (cached) return NextResponse.json(cached);
 
         const qNorm = normalize(q);
-        const isNumericQuery = /^\d+$/.test(qNorm);
 
         const whereClause: any = {
             latitude: { not: null },
             longitude: { not: null },
-            OR: [
-                { name: { contains: q } },
-                { account: { contains: q } },
-                { ctvCode: { contains: q } },
-                { address: { contains: q } },
-            ],
         };
-
-        if (isNumericQuery) {
-            whereClause.OR.push({ phone: { contains: qNorm } });
-        } else {
-            whereClause.OR.push({ phone: { contains: q } });
-        }
 
         const accessibleCtvCodes = await getAccessibleCtvCodes(session);
         if (accessibleCtvCodes !== null) {
@@ -57,6 +45,7 @@ export async function GET(request: Request) {
         }
 
         await ensureCustomerSchema();
+        whereClause.id = { in: await findCustomerSearchIds(whereClause, q, true) };
 
         const candidateTake = Math.max(limit * 2, 20);
         const raw = await prisma.customer.findMany({
