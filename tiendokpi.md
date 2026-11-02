@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Sửa Hủy/thoát form sau cảnh báo trùng — 02/11/2026
+
+- Dialog xác nhận có backdrop1200 bị form khách hàng2000 che. Nâng lớp dialog chung lên2200, trên form/sidebar; giữ xác nhận bỏ thay đổi.
+- 14 test hồi quy Hủy/X/Escape và dialog, lint/TypeScript/build đạt. Browser fixture trước sửa xác nhận pointer bị form chặn ở desktop/mobile; dùng CSS local2200 thì Hủy giữ form, X/Bỏ thay đổi đóng được. Không ghi khách hàng thật.
+- Application `48e0379873443057337e9f79ca0b0472f8fbda7a` đã push. CI đầu phát hiện hai race test gõ trước RAF autofocus; test-only8803560/24db374 chờ focus đúng, không đổi app. CI cuối `41443399805` success; diff src/config/schema giữa candidate8803560 và24db374 rỗng.
+- Promote `dpl_Arj3iHYHLk33APwonnUdEuwU1KFL` READY, domain chính đúng deployment. Candidate và Production desktop1440/mobile390 actual CSS2200/no overrides: pointer hit đúng nút, Hủy giữ form, X mở lại, Bỏ thay đổi đóng form. Browser POST409 giả lập, không ghi khách hàng thật. Rollback `dpl_FdBnwRy624wNsBK4ddairg41PsKs`.
+
 ## Cảnh báo khách hàng nghi trùng — 02/11/2026
 
 - POST tạo khách hàng tính lại nghi trùng trong scope quyền: cùng tên chuẩn hóa Unicode/khoảng trắng và cách ≤300m; thiếu tọa độ cảnh báo cùng tên; cùng SĐT chuẩn hóa cũng cảnh báo. Account trùng giữ chặn cũ.
