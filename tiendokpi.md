@@ -1,5 +1,12 @@
 # Tiến độ dự án KpiDiLinh
 
+## Tìm khách hàng không phân biệt hoa/thường tiếng Việt — 02/11/2026
+
+- Hai API danh sách/search-map chuẩn hóa NFC và lowercase Unicode để HUYỀN/Huyền/huyền khớp giống nhau, vẫn phân biệt dấu. SQLite LIKE trước đây chỉ fold ASCII.
+- Đọc projection tối thiểu trong phạm vi quyền khi có tìm kiếm, lọc ID trước phân trang/count/map limit. Tradeoff: quét các trường tìm kiếm trong scope mỗi cache miss, không đổi schema hay bỏ quyền.
+- Toàn bộ 114 file/1.985 tests, TypeScript, targeted lint và Next build đạt; commit `84f862936e2ef78889d7d2cbad76f65eb0c257a4` đã push. CI `41428695889` success; Vercel `dpl_3ET6JgcDP4USz7131gdavyuF5QnN` READY/promote, inspect domain chính đúng deployment.
+- Candidate và Production đăng nhập GET-only đạt: HUYỀN/Huyền/huyền/NFD cùng tập ID không rỗng cho danh sách và search-map; tổng/số trang danh sách bằng nhau. Không ghi dữ liệu/không in thông tin khách hàng. Rollback `dpl_FLTLz1XeCMSaAiCYpkYQuTjg1jjv`.
+
 ## Nâng cấp dán nhanh: điện thoại và GPS — 02/11/2026
 
 - Chỉ bắt buộc tên/account; CNKD/điện thoại/tọa độ tùy chọn. Chuẩn hóa điện thoại Việt Nam, giữ form chỉnh sửa và lỗi account trùng của POST hiện có.
